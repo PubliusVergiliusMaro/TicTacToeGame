@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34309.116
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TicTacToeGame.WebUI", "TicTacToeGame.WebUI\TicTacToeGame.WebUI.csproj", "{96278A68-D808-4C83-A21C-3882A224C266}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TicTacToeGame.WebUI", "TicTacToeGame.WebUI\TicTacToeGame.WebUI.csproj", "{96278A68-D808-4C83-A21C-3882A224C266}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TicTacToeGame.Domain", "TicTacToeGame.Domain\TicTacToeGame.Domain.csproj", "{142D7BCC-B411-4F88-88F6-AA4B3FD34F39}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TicTacToeGame.Domain", "TicTacToeGame.Domain\TicTacToeGame.Domain.csproj", "{142D7BCC-B411-4F88-88F6-AA4B3FD34F39}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
