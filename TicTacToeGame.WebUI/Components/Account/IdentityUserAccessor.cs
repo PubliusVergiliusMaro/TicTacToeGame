@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.Identity;
+using TicTacToeGame.Domain.Models;
 using TicTacToeGame.WebUI.Data;
 
 namespace TicTacToeGame.WebUI.Components.Account
 {
-    internal sealed class IdentityUserAccessor(UserManager<ApplicationUser> userManager, IdentityRedirectManager redirectManager)
+    internal sealed class IdentityUserAccessor(UserManager<Player> userManager, IdentityRedirectManager redirectManager)
     {
-        public async Task<ApplicationUser> GetRequiredUserAsync(HttpContext context)
+        public async Task<Player> GetRequiredUserAsync(HttpContext context)
         {
             var user = await userManager.GetUserAsync(context.User);
 
