@@ -13,7 +13,8 @@
             @for (int col = 0; col < 3; col++)
             {
                 int index = row * 3 + col;
-                <button style="width: 100px; height: 100px; font-size: 24px; text-align: center; vertical-align: middle; margin-bottom: 5px;" @onclick="(() => MakeMove(index))">
+                <button style="width: 100px; height: 100px; font-size: 24px; text-align: center; vertical-align: middle; margin-bottom: 5px;"
+                        @onclick="(() => MakeMove(index))" disabled="@IsButtonDisabled(index)">
                     @GetSquareValue(index)
                 </button>
             }
@@ -48,53 +49,61 @@
             //Only after fife movements Player can win
             if (counter >= 5)
             {
-                CheckForWinner();
+                if (CheckForWinner())
+                {
+                    CurrentGame.GameResult = GameResult.Finished;
+                }
             }
 
             SwitchPlayer();
         }
     }
-    //Thiscan be mediator in the future
+    //This can be mediator in the future
     private void SwitchPlayer()
     {
         CurrentGame.CurrentTurn = (CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
     }
 
 
-    private void CheckForWinner()
+    private bool CheckForWinner()
     {
-        
+
         for (int row = 0; row < 3; row++)
         {   //Check row
             if (AreAllEqual(board[row * 3], board[row * 3 + 1], board[row * 3 + 2]))
             {
                 GameStatus = $"{board[row * 3]} wins!";
-                return;
+                return true;
             }
             // Check columns
             if (AreAllEqual(board[row], board[row + 3], board[row + 6]))
             {
                 GameStatus = $"{board[row]} wins!";
-                return;
+                return true;
             }
         }
         // Check diagonals
         if (AreAllEqual(board[0], board[4], board[8]))
         {
             GameStatus = $"{board[0]} wins!";
-            return;
+            return true;
         }
 
         if (AreAllEqual(board[2], board[4], board[6]))
         {
             GameStatus = $"{board[2]} wins!";
-            return;
+            return true;
         }
 
         // Check for a tie
         if (board.All(cell => cell != BoardElements.Empty))
         {
             GameStatus = "It's a tie!";
+            return true;
+        }
+        else
+        {
+            return false;
         }
     }
 
@@ -109,4 +118,6 @@
         return (board[index] == BoardElements.Empty) ? "" : board[index].ToString();
     }
 
+    private bool IsButtonDisabled(int index) => CurrentGame.GameResult == GameResult.Finished;
+    
 }
