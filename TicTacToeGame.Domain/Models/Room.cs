@@ -2,7 +2,8 @@
 {
     public class Room : EntityBase
     {
-
+        public int ConnectionId { get; set; }
+        public bool IsOpen { get; set; }
     }
         //public string Name { get; set; }
         //public string Password { get; set; }
