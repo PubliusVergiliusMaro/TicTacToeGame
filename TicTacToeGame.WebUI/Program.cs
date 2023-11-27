@@ -36,6 +36,9 @@ builder.Services.AddIdentityCore<Player>(options => options.SignIn.RequireConfir
 
 builder.Services.AddSingleton<IEmailSender<Player>, IdentityNoOpEmailSender>();
 
+builder.Services.AddScoped<Game>();
+
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

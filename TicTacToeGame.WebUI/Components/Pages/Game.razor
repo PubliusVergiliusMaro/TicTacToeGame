@@ -1,0 +1,112 @@
+﻿@page "/game"
+
+@using TicTacToeGame.Domain.Enums
+@using TicTacToeGame.Domain.Models
+@inject TicTacToeGame.Domain.Models.Game CurrentGame
+
+<h1 style="text-align: center;">Tic Tac Toe Game</h1>
+
+<div style="display: flex; flex-direction: column; align-items: center;">
+    @for (int row = 0; row < 3; row++)
+    {
+        <div>
+            @for (int col = 0; col < 3; col++)
+            {
+                int index = row * 3 + col;
+                <button style="width: 100px; height: 100px; font-size: 24px; text-align: center; vertical-align: middle; margin-bottom: 5px;" @onclick="(() => MakeMove(index))">
+                    @GetSquareValue(index)
+                </button>
+            }
+        </div>
+    }
+</div>
+
+<p>@GameStatus</p>
+
+@code {
+
+    private BoardElements[] board = new BoardElements[9];
+    private string GameStatus = "";
+    private int counter;
+
+    protected override void OnInitialized()
+    {
+        Random random = new Random();
+        //Determine who make move firt (X || O)
+        CurrentGame.CurrentTurn = (random.Next(2) == 0) ? PlayerType.Host : PlayerType.Guest;
+
+        GameStatus = "Game in progress";
+    }
+
+    private void MakeMove(int index)
+    {
+        if (board[index] == BoardElements.Empty && CurrentGame.GameResult == GameResult.NotFinished)
+        {
+            //Put X or O on cell
+            board[index] = (CurrentGame.CurrentTurn == PlayerType.Host) ? BoardElements.X : BoardElements.O;
+            counter++;
+            //Only after fife movements Player can win
+            if (counter >= 5)
+            {
+                CheckForWinner();
+            }
+
+            SwitchPlayer();
+        }
+    }
+    //Thiscan be mediator in the future
+    private void SwitchPlayer()
+    {
+        CurrentGame.CurrentTurn = (CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
+    }
+
+
+    private void CheckForWinner()
+    {
+        
+        for (int row = 0; row < 3; row++)
+        {   //Check row
+            if (AreAllEqual(board[row * 3], board[row * 3 + 1], board[row * 3 + 2]))
+            {
+                GameStatus = $"{board[row * 3]} wins!";
+                return;
+            }
+            // Check columns
+            if (AreAllEqual(board[row], board[row + 3], board[row + 6]))
+            {
+                GameStatus = $"{board[row]} wins!";
+                return;
+            }
+        }
+        // Check diagonals
+        if (AreAllEqual(board[0], board[4], board[8]))
+        {
+            GameStatus = $"{board[0]} wins!";
+            return;
+        }
+
+        if (AreAllEqual(board[2], board[4], board[6]))
+        {
+            GameStatus = $"{board[2]} wins!";
+            return;
+        }
+
+        // Check for a tie
+        if (board.All(cell => cell != BoardElements.Empty))
+        {
+            GameStatus = "It's a tie!";
+        }
+    }
+
+    private bool AreAllEqual(BoardElements a, BoardElements b, BoardElements c)
+    {
+        return a != BoardElements.Empty && a == b && b == c;
+    }
+
+
+    private string GetSquareValue(int index)
+    {
+        return (board[index] == BoardElements.Empty) ? "" : board[index].ToString();
+    }
+
+}
