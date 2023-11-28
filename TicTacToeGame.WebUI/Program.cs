@@ -43,6 +43,9 @@ builder.Services.AddSingleton<RoomRepository>(rep => new RoomRepository(connecti
 
 builder.Services.AddSingleton<IEmailSender<Player>, IdentityNoOpEmailSender>();
 
+builder.Services.AddScoped<Game>();
+
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
