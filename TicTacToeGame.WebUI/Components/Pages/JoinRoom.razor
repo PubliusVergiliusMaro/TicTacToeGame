@@ -1,0 +1,63 @@
+﻿@page "/join-room"
+@using Microsoft.AspNetCore.SignalR.Client
+@using TicTacToeGame.Domain.Models
+@using TicTacToeGame.Domain.Repositories
+@inject NavigationManager _navigationManager
+@inject PlayerRepository _playerRepository
+@implements IDisposable
+@rendermode InteractiveServer
+
+<h3>JoinRoom</h3>
+<div class="card">
+    <div class="row">
+        <h4 class="col-5">Enter Room Id:</h4>
+        <input type="text" class="col-5" @bind="@_roomId" />
+    </div>
+    <div class="row">
+        <button style="margin:30px 10px 10px 10px;height:50px; width:100px;" @onclick="JoinGameRoom">
+            Join Room
+        </button>
+    </div>
+</div>
+
+@code {
+    private HubConnection hubConnection;
+    private Player testPlaye;
+    private int _roomId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _roomId = 123456;
+
+        testPlaye = _playerRepository.GetAll().FirstOrDefault();
+
+
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(_navigationManager.ToAbsoluteUri("/gameHub"))
+            .Build();
+
+        hubConnection.On<int, Player>("AcceptJoining", (joinedRoomId, player) =>
+        {
+            _navigationManager.NavigateTo("/game");
+        });
+
+        await hubConnection.StartAsync();
+    }
+    private async Task JoinGameRoom()
+    {
+
+        await hubConnection.SendAsync("JoinRoom", _roomId, testPlaye);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection != null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+    public void Dispose()
+    {
+        hubConnection?.DisposeAsync();
+    }
+}

@@ -2,9 +2,11 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using TicTacToeGame.Domain.Models;
+using TicTacToeGame.Domain.Repositories;
 using TicTacToeGame.WebUI.Components;
 using TicTacToeGame.WebUI.Components.Account;
 using TicTacToeGame.WebUI.Data;
+using TicTacToeGame.WebUI.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,6 +36,11 @@ builder.Services.AddIdentityCore<Player>(options => options.SignIn.RequireConfir
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
+builder.Services.AddSingleton<GamesHistoryRepository>(rep => new GamesHistoryRepository(connectionString));
+builder.Services.AddSingleton<GameRepository>(rep => new GameRepository(connectionString));
+builder.Services.AddSingleton<PlayerRepository>(rep => new PlayerRepository(connectionString));
+builder.Services.AddSingleton<RoomRepository>(rep => new RoomRepository(connectionString));
+
 builder.Services.AddSingleton<IEmailSender<Player>, IdentityNoOpEmailSender>();
 
 var app = builder.Build();
@@ -54,6 +61,8 @@ app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 app.UseAntiforgery();
+
+app.MapHub<GameHub>("/gamehub");
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

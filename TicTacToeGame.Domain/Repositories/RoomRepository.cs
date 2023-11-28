@@ -18,11 +18,24 @@ namespace TicTacToeGame.Domain.Repositories
             _db = new SqlConnection(connstring);
         }
         public List<Room> GetAll() => _db.Query<Room>("Select", commandType: CommandType.StoredProcedure).AsList();
-        public Room? GetById(int id) => _db.Query<Room>("SelectById", new { Id = id }, commandType: CommandType.StoredProcedure).FirstOrDefault();
-        public override void AddEntity(Room entity)
+        public Room? GetById(int id) => _db.Query<Room>("SelectById", new { Id = id }, commandType: CommandType.StoredProcedure).FirstOrDefault();// maybe check check if null
+        public int AddEntity(Room entity)
         {
-            base.AddEntity(entity);
+            int id = _db.Query<int>("InsertRoom", new 
+            {
+                ConnectionId = entity.ConnectionId,
+                IsOpen = entity.IsOpen,
+                UniqueID = entity.UniqueId,
+                CreatedAt = entity.CreatedAt,
+                UpdatedAt = entity.UpdatedAt,
+                IsDeleted = entity.IsDeleted
+            }, commandType: CommandType.StoredProcedure).Single();
+            return id;
         }
+        //public override void AddEntity(Room entity)
+        //{
+        //    base.AddEntity(entity);
+        //}
         public override void UpdateEntity(Room entity)
         {
             base.UpdateEntity(entity);

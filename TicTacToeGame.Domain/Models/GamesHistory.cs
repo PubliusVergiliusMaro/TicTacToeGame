@@ -1,4 +1,5 @@
-﻿using TicTacToeGame.Domain.Enums;
+﻿using Dapper.Contrib.Extensions;
+using TicTacToeGame.Domain.Enums;
 
 namespace TicTacToeGame.Domain.Models
 {
@@ -6,7 +7,7 @@ namespace TicTacToeGame.Domain.Models
     {
         public List<Game> Games { get; set; } = new List<Game>();
         public string PlayerId { get; set; }
-        //[Write(false)]
+        [Write(false)]
         public Player player { get; set; }
     }
 }
