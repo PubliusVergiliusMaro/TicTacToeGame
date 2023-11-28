@@ -84,7 +84,7 @@
         if (result.Succeeded)
         {
             Logger.LogInformation("User logged in.");
-            RedirectManager.RedirectTo("/main");
+            RedirectManager.RedirectTo("/");
         }
         else if (result.RequiresTwoFactor)
         {

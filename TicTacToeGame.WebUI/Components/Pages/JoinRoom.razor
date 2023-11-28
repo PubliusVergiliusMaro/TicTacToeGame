@@ -36,12 +36,9 @@
             .WithUrl(_navigationManager.ToAbsoluteUri("/gameHub"))
             .Build();
 
-        hubConnection.On<int, Player>("JoinRoom", (joinedRoomId, player) =>
+        hubConnection.On<int, Player>("AcceptJoining", (joinedRoomId, player) =>
         {
-            // if (joinedRoomId == _roomId)
-            // {
             _navigationManager.NavigateTo("/game");
-            // }
         });
 
         await hubConnection.StartAsync();

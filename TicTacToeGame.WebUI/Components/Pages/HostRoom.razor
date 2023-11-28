@@ -1,5 +1,7 @@
 ﻿@page "/host-room"
 @using Microsoft.AspNetCore.SignalR.Client
+@using System.Security.Claims
+@using TicTacToeGame.Domain.Enums
 @using TicTacToeGame.Domain.Models
 @using TicTacToeGame.Domain.Repositories
 
@@ -7,6 +9,7 @@
 @inject NavigationManager _navigationManager
 @inject RoomRepository _roomRepository
 @inject GameRepository _gameRepository
+@inject PlayerRepository _playerRepository
 @inject AuthenticationStateProvider _authenticationStateProvider
 @rendermode InteractiveServer
 @implements IDisposable
@@ -15,6 +18,10 @@
 <h4>Room Id: @room.ConnectionId</h4>
 
 @code {
+    // TODO:
+    // - Add validation if user if authorized and if not redirect to login page
+
+
     // Room
     private static Room room;
 
@@ -25,10 +32,10 @@
     protected override async Task OnInitializedAsync()
     {
         room = new Room()
-            {
-                ConnectionId = new Random().Next(100_000, 1_000_000),
-                IsOpen = true
-            };
+        {
+           ConnectionId = new Random().Next(100_000, 1_000_000),
+           IsOpen = true
+        };
 
         hubConnection = new HubConnectionBuilder()
             .WithUrl(_navigationManager.ToAbsoluteUri("/gameHub"))
@@ -36,36 +43,41 @@
 
         hubConnection.On<int, Player>("JoinRoom", async (joinedRoomId, joinPlayer) =>
         {
-            if (3>1)//room.IsOpen)
+            if (room.IsOpen)
             {
-                if (5>1)//room.ConnectionId == joinedRoomId)
+                if (room.ConnectionId == joinedRoomId)
                 {
-                    //_roomRepository.AddEntity(room);
                     // add Room to db
-                    var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
-                    var user = authState.User;
+                    int roomId = _roomRepository.AddEntity(room); 
 
-                    Player player = joinPlayer;
+                    // maybe add some manager that adds rooms to some list with timer and after some time deletes them
 
-                    TicTacToeGame.Domain.Models.Game game = new TicTacToeGame.Domain.Models.Game()
-                        {
-                            PlayerHostId = user.Claims.First().Value.ToString(),
-                            PlayerGuestId = joinPlayer.Id,
-                        };
-                    //_gameRepository.AddEntities(game);
+                    AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
+                    ClaimsPrincipal? user = authState.User;
+
+                    // add checking if user is null
+                    TicTacToeGame.Domain.Models.Game game = new()
+                    {
+                        PlayerHostId = user.Claims.First().Value.ToString(),
+                        PlayerGuestId = joinPlayer.Id,
+                        RoomId = roomId,
+                        GameResult = GameState.InProgress,
+                    };
+
+                    _gameRepository.AddEntity(game);
+                    await hubConnection.SendAsync("AcceptJoining", room.ConnectionId, null);
+                    _navigationManager.NavigateTo("/game");
+                    // maybe update player type
+
                     // connect game to room
                     // Add Game to db
                     // add host to db
                     // add guest to db
 
-                    await hubConnection.SendAsync("JoinRoom", room.ConnectionId, null);
-                    _navigationManager.NavigateTo("/game");
                 }
             }
         });
-
         await hubConnection.StartAsync();
-        //
     }
 
     public void Dispose()
