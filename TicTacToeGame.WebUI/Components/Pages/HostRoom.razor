@@ -1,0 +1,75 @@
+﻿@page "/host-room"
+@using Microsoft.AspNetCore.SignalR.Client
+@using TicTacToeGame.Domain.Models
+@using TicTacToeGame.Domain.Repositories
+
+
+@inject NavigationManager _navigationManager
+@inject RoomRepository _roomRepository
+@inject GameRepository _gameRepository
+@inject AuthenticationStateProvider _authenticationStateProvider
+@rendermode InteractiveServer
+@implements IDisposable
+<h3>HostRoom</h3>
+
+<h4>Room Id: @room.ConnectionId</h4>
+
+@code {
+    // Room
+    private static Room room;
+
+    // HubConnection
+    private HubConnection hubConnection;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        room = new Room()
+            {
+                ConnectionId = new Random().Next(100_000, 1_000_000),
+                IsOpen = true
+            };
+
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(_navigationManager.ToAbsoluteUri("/gameHub"))
+            .Build();
+
+        hubConnection.On<int, Player>("JoinRoom", async (joinedRoomId, joinPlayer) =>
+        {
+            if (3>1)//room.IsOpen)
+            {
+                if (5>1)//room.ConnectionId == joinedRoomId)
+                {
+                    //_roomRepository.AddEntity(room);
+                    // add Room to db
+                    var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
+                    var user = authState.User;
+
+                    Player player = joinPlayer;
+
+                    TicTacToeGame.Domain.Models.Game game = new TicTacToeGame.Domain.Models.Game()
+                        {
+                            PlayerHostId = user.Claims.First().Value.ToString(),
+                            PlayerGuestId = joinPlayer.Id,
+                        };
+                    //_gameRepository.AddEntities(game);
+                    // connect game to room
+                    // Add Game to db
+                    // add host to db
+                    // add guest to db
+
+                    await hubConnection.SendAsync("JoinRoom", room.ConnectionId, null);
+                    _navigationManager.NavigateTo("/game");
+                }
+            }
+        });
+
+        await hubConnection.StartAsync();
+        //
+    }
+
+    public void Dispose()
+    {
+        hubConnection?.DisposeAsync();
+    }
+}
