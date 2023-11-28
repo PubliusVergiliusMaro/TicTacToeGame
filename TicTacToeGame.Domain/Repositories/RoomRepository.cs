@@ -17,8 +17,8 @@ namespace TicTacToeGame.Domain.Repositories
         {
             _db = new SqlConnection(connstring);
         }
-        public List<Room> GetAll() => _db.Query<Room>("Select", commandType: CommandType.StoredProcedure).AsList();
-        public Room? GetById(int id) => _db.Query<Room>("SelectById", new { Id = id }, commandType: CommandType.StoredProcedure).FirstOrDefault();// maybe check check if null
+        //public List<Room> GetAll() => _db.Query<Room>("Select", commandType: CommandType.StoredProcedure).AsList();
+        //public Room? GetById(int id) => _db.Query<Room>("SelectById", new { Id = id }, commandType: CommandType.StoredProcedure).FirstOrDefault();// maybe check check if null
         public int AddEntity(Room entity)
         {
             int id = _db.Query<int>("InsertRoom", new 

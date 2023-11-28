@@ -62,6 +62,7 @@
                         PlayerGuestId = joinPlayer.Id,
                         RoomId = roomId,
                         GameResult = GameState.InProgress,
+                        CurrentTurn = PlayerType.Host
                     };
 
                     _gameRepository.AddEntity(game);

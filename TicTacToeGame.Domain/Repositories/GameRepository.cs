@@ -23,7 +23,7 @@ namespace TicTacToeGame.Domain.Repositories
             {
                 using (var connection = new SqlConnection(_connectionString))
                 {
-                    Game game = connection.Query<Game>("SelectGameByPlayersId", new { Id = userId }, commandType: CommandType.StoredProcedure).FirstOrDefault();
+                    Game game = connection.Query<Game>("SelectGameByPlayersId", new { Id = userId }, commandType: CommandType.StoredProcedure).LastOrDefault();
 
                     if (game != null)
                     {
