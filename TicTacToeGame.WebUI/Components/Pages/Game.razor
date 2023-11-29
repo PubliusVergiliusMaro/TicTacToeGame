@@ -12,6 +12,7 @@
 
 @implements IDisposable
 @rendermode InteractiveServer
+                             
 <h1 style="text-align: center;">Tic Tac Toe Game</h1>
 
 <div style="display: flex; flex-direction: column; align-items: center;">
@@ -72,8 +73,7 @@
     }
 
     private async Task MakeMove(int index)
-    {
-        
+    {   
         if (board[index] == BoardElements.Empty && CurrentGame.GameResult == GameState.Starting)
         {
             // Check if it's the correct player's turn
@@ -85,7 +85,7 @@
 
                 // Only after five movements can a player win
                 if (counter >= 3)
-                {
+                {             
                     if (CheckForWinner())
                     {
                         CurrentGame.GameResult = GameState.Finished;
@@ -183,6 +183,7 @@
     }
 
     private bool IsButtonDisabled(int index) => CurrentGame.GameResult == GameState.Finished;
+
     public void Dispose()
     {
         hubConnection?.DisposeAsync();

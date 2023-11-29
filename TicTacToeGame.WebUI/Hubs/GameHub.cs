@@ -6,10 +6,9 @@ namespace TicTacToeGame.WebUI.Hubs
 {
     public class GameHub : Hub
     {
-
-        public async Task AcceptJoining(int roomId, Player player)
+        public async Task AcceptJoining(int roomId)
         {
-            await Clients.All.SendAsync("AcceptJoining", roomId, player);
+            await Clients.All.SendAsync("AcceptJoining", roomId);
         }
         public async Task JoinRoom(int roomId, Player player)
         {

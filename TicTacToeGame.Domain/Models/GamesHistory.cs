@@ -8,6 +8,6 @@ namespace TicTacToeGame.Domain.Models
         public List<Game> Games { get; set; } = new List<Game>();
         public string PlayerId { get; set; }
         [Write(false)]
-        public Player player { get; set; }
+        public Player Player { get; set; }
     }
 }

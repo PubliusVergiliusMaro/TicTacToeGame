@@ -13,7 +13,7 @@ namespace TicTacToeGame.Domain.Repositories
             _db = new SqlConnection(connstring);
         }
         public List<GamesHistory> GetAll() => _db.Query<GamesHistory>("Select", commandType: CommandType.StoredProcedure).AsList();
-        public GamesHistory? GetById(int id) => _db.Query<GamesHistory>("SelectById", new { Id = id }, commandType: CommandType.StoredProcedure).FirstOrDefault();
+        public GamesHistory? GetById(int id) => _db.QuerySingleOrDefault<GamesHistory>("SelectById", new { Id = id }, commandType: CommandType.StoredProcedure);
         public override void AddEntity(GamesHistory entity)
         {
             base.AddEntity(entity);
@@ -25,6 +25,15 @@ namespace TicTacToeGame.Domain.Repositories
         public override void DeleteEntity(GamesHistory entity)
         {
             base.DeleteEntity(entity);
+        }
+
+        public async Task<GamesHistory?> GetGamesHistoryByPlayerId(string playerId)// implement stored procedure
+        {
+            // handle null
+            return await _db.QuerySingleOrDefaultAsync<GamesHistory>("SelectGamesHistoryByPlayerId", new
+            {
+                PlayerId = playerId
+            }, commandType: CommandType.StoredProcedure);
         }
     }
 }

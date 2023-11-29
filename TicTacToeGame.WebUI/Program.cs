@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using TicTacToeGame.Domain.Models;
 using TicTacToeGame.Domain.Repositories;
+using TicTacToeGame.Services.GamesStatisticServices;
 using TicTacToeGame.WebUI.Components;
 using TicTacToeGame.WebUI.Components.Account;
 using TicTacToeGame.WebUI.Data;
@@ -41,6 +42,8 @@ builder.Services.AddSingleton<GamesHistoryRepository>(rep => new GamesHistoryRep
 builder.Services.AddSingleton<GameRepository>(rep => new GameRepository(connectionString));
 builder.Services.AddSingleton<PlayerRepository>(rep => new PlayerRepository(connectionString));
 builder.Services.AddSingleton<RoomRepository>(rep => new RoomRepository(connectionString));
+
+builder.Services.AddScoped<IGamesStatisticsService, GamesStatisticsService>();
 
 builder.Services.AddSingleton<IEmailSender<Player>, IdentityNoOpEmailSender>();
 
