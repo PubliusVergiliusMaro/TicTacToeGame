@@ -1,0 +1,78 @@
+﻿@page "/games-statistics"
+@using System.Security.Claims
+@using TicTacToeGame.Domain.Models
+@using TicTacToeGame.Services.GamesStatisticServices
+
+@inject IGamesStatisticsService GamesStatisticsService
+@inject AuthenticationStateProvider _authenticationStateProvider
+@rendermode InteractiveServer
+<h3>Games Statistics</h3>
+
+<div class="row">
+    @foreach (var game in abstracthistory.Games)
+    {
+
+        <div class="card">
+            @* <img src="@game.ImageUrl" class="card-img-top" alt="@game.Name"> *@
+            <div class="card-body">
+                <h5 class="card-title">@game.Winner</h5>
+                <p class="card-text">@($"{game.PlayerHostId} vs {game.PlayerGuestId}")</p>
+                <p class="card-text">@game.CreatedAt.ToString("D")</p>
+                @* <a href="@game.Link" class="btn btn-primary">Go to game</a> *@
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// Abstraction of games history
+    /// </summary>
+    GamesHistory abstracthistory;
+
+    /* TODO:
+    
+        - Add to tables in database pobility to delete cascade
+        - Make that when player loses block was red and if win green and if draw yellow
+        - Make that if data of game was more than 1 week it displays an data and if less
+             than 1 week it displays how many days ago it was played
+        - Displays players nicknames instead of ids
+
+             * Make that if player clicks on game it redirects to game page
+             * Maybe make some history of moves and display it on that page too
+    */
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
+        ClaimsPrincipal? user = authState.User;
+        string _userId = user.Claims.First().Value.ToString();
+
+        // make stored procedure for getting all games that was played by current user
+        // and get only that games where game was finished
+
+        abstracthistory = new GamesHistory();
+
+        //await GamesStatisticsService.CreateTestGames();
+
+
+        abstracthistory.Games = await GamesStatisticsService.GetPlayedGames(_userId);
+
+        //abstracthistory.Games.AddRange()
+       
+       
+        
+        // for (int i = 0; i < 10; i++)
+        // {
+        //     abstracthistory.Games.Add(new TicTacToeGame.Domain.Models.Game
+        //         {
+        //             Winner = Domain.Enums.PlayerType.Host,
+        //             GameResult = Domain.Enums.GameState.Finished,
+        //             CurrentTurn = Domain.Enums.PlayerType.Guest,
+        //             PlayerHostId = "3202f031-56d7-4783-85bc-6e362f10878f",
+        //             PlayerGuestId = "4697f0ea-8260-4089-b6ba-58943f0f768d",
+        //         });
+        // }
+    }
+}

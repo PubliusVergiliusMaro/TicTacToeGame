@@ -13,7 +13,7 @@ namespace TicTacToeGame.Domain.Repositories
             _db = new SqlConnection(connstring);
         }
         public List<Player> GetAll() => _db.Query<Player>("SelectPlayers", commandType: CommandType.StoredProcedure).AsList();
-        public Player? GetById(int id) => _db.Query<Player>("SelectById", new { Id = id }, commandType: CommandType.StoredProcedure).FirstOrDefault();
+        public Player? GetById(string id) => _db.Query<Player>("SelectUserById", new { Id = id }, commandType: CommandType.StoredProcedure).FirstOrDefault();
         public override void AddEntity(Player entity)
         {
             base.AddEntity(entity);

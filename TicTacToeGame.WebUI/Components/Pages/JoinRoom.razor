@@ -1,9 +1,13 @@
 ﻿@page "/join-room"
+
 @using Microsoft.AspNetCore.SignalR.Client
+@using System.Security.Claims
 @using TicTacToeGame.Domain.Models
 @using TicTacToeGame.Domain.Repositories
+
 @inject NavigationManager _navigationManager
 @inject PlayerRepository _playerRepository
+@inject AuthenticationStateProvider _authenticationStateProvider
 @implements IDisposable
 @rendermode InteractiveServer
 
@@ -24,29 +28,36 @@
     private HubConnection hubConnection;
     private Player testPlaye;
     private int _roomId;
-
+    private string _userId;
     protected override async Task OnInitializedAsync()
     {
         _roomId = 123456;
 
-        testPlaye = _playerRepository.GetAll().FirstOrDefault();
+        AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
+        ClaimsPrincipal? user = authState.User;
+        _userId = user.Claims.First().Value.ToString();
+        //testPlaye = _playerRepository.GetAll().FirstOrDefault();
 
 
         hubConnection = new HubConnectionBuilder()
             .WithUrl(_navigationManager.ToAbsoluteUri("/gameHub"))
             .Build();
 
-        hubConnection.On<int, Player>("AcceptJoining", (joinedRoomId, player) =>
+        hubConnection.On<int>("AcceptJoining", (joinedRoomId) =>
         {
-            _navigationManager.NavigateTo("/game");
+            if(_roomId == joinedRoomId)
+            {
+                _navigationManager.NavigateTo("/game");
+            }
         });
 
         await hubConnection.StartAsync();
     }
     private async Task JoinGameRoom()
     {
+        Player currentPlayer = _playerRepository.GetById(_userId);
 
-        await hubConnection.SendAsync("JoinRoom", _roomId, testPlaye);
+        await hubConnection.SendAsync("JoinRoom", _roomId, currentPlayer);
     }
 
     public async ValueTask DisposeAsync()

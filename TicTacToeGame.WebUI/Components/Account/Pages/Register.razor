@@ -6,6 +6,7 @@
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
 @using TicTacToeGame.Domain.Models
+@using TicTacToeGame.Domain.Repositories
 @using TicTacToeGame.WebUI.Data
 
 @inject UserManager<Player> UserManager
@@ -15,7 +16,7 @@
 @inject ILogger<Register> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
-
+@inject GamesHistoryRepository GamesHistoryRepository
 <PageTitle>Register</PageTitle>
 
 <h1>Register</h1>
@@ -84,6 +85,14 @@
         Logger.LogInformation("User created a new account with password.");
 
         var userId = await UserManager.GetUserIdAsync(user);
+
+        GamesHistory gamesHistory = new()
+        {
+            PlayerId = userId
+        };
+
+        GamesHistoryRepository.AddEntity(gamesHistory);
+
         var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
         code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
         var callbackUrl = NavigationManager.GetUriWithQueryParameters(

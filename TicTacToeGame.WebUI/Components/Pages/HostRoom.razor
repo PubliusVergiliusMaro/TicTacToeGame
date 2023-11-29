@@ -62,10 +62,11 @@
                         PlayerGuestId = joinPlayer.Id,
                         RoomId = roomId,
                         GameResult = GameState.InProgress,
+                        CurrentTurn = PlayerType.Host
                     };
 
                     _gameRepository.AddEntity(game);
-                    await hubConnection.SendAsync("AcceptJoining", room.ConnectionId, null);
+                    await hubConnection.SendAsync("AcceptJoining", room.ConnectionId);
                     _navigationManager.NavigateTo("/game");
                     // maybe update player type
 

@@ -1,9 +1,12 @@
 ﻿@page "/game"
 
+@using System.Security.Claims
 @using TicTacToeGame.Domain.Enums
 @using TicTacToeGame.Domain.Models
+@using TicTacToeGame.Domain.Repositories
 @inject TicTacToeGame.Domain.Models.Game CurrentGame
-
+@inject AuthenticationStateProvider _authenticationStateProvider
+@inject GameRepository _gameRepository
 <h1 style="text-align: center;">Tic Tac Toe Game</h1>
 
 <div style="display: flex; flex-direction: column; align-items: center;">
@@ -30,18 +33,23 @@
     private string GameStatus = "";
     private int counter;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         Random random = new Random();
         //Determine who make move firt (X || O)
         CurrentGame.CurrentTurn = (random.Next(2) == 0) ? PlayerType.Host : PlayerType.Guest;
 
         GameStatus = "Game in progress";
+
+
+        AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
+        ClaimsPrincipal? user = authState.User;
+        CurrentGame = _gameRepository.GetByUsersId(user.Claims.First().Value.ToString());
     }
 
     private void MakeMove(int index)
     {
-        if (board[index] == BoardElements.Empty && CurrentGame.GameResult == GameResult.NotFinished)
+        if (board[index] == BoardElements.Empty && CurrentGame.GameResult == GameState.InProgress)
         {
             //Put X or O on cell
             board[index] = (CurrentGame.CurrentTurn == PlayerType.Host) ? BoardElements.X : BoardElements.O;
@@ -51,7 +59,7 @@
             {
                 if (CheckForWinner())
                 {
-                    CurrentGame.GameResult = GameResult.Finished;
+                    CurrentGame.GameResult = GameState.Finished;
                 }
             }
 
@@ -118,6 +126,6 @@
         return (board[index] == BoardElements.Empty) ? "" : board[index].ToString();
     }
 
-    private bool IsButtonDisabled(int index) => CurrentGame.GameResult == GameResult.Finished;
+    private bool IsButtonDisabled(int index) => CurrentGame.GameResult == GameState.Finished;
     
 }

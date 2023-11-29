@@ -7,7 +7,7 @@ namespace TicTacToeGame.Domain.Models
     {
         public PlayerType? Winner { get; set; } = PlayerType.None;
         public GameState GameResult { get; set; } = GameState.Starting; // Maybe rename as gameState
-        public PlayerType CurrentTurn { get; set; } = PlayerType.None;//= Maybe add here rundomize or make in the manager
+        public PlayerType CurrentTurn { get; set; }//= Maybe add here rundomize or make in the manager
         
         public string PlayerHostId { get; set; }// in db int
         public string PlayerGuestId { get; set; }// in db int
