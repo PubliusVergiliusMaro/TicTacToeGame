@@ -5,11 +5,13 @@
 @using TicTacToeGame.Domain.Models
 @using System.Security.Claims
 @using TicTacToeGame.Domain.Repositories
+@using TicTacToeGame.Services.GamesStatisticServices
 @inject NavigationManager _navigationManager
 @inject PlayerRepository _playerRepository
 @inject GameRepository _gameRepository
 @inject AuthenticationStateProvider _authenticationStateProvider
-
+@inject GamesHistoryRepository _gamesHistoryRepository
+@inject IGamesStatisticsService _gamesStatisticsService
 @implements IDisposable
 @rendermode InteractiveServer
                              
@@ -41,7 +43,8 @@
     private TicTacToeGame.Domain.Models.Game CurrentGame = new();
     private HubConnection hubConnection;
     private PlayerType CurrentTurnMove;
-
+    Player currentPlayerHost;
+    Player currentPlayerGuest;
     protected override async Task OnInitializedAsync()
     {
         Random random = new Random();
@@ -52,7 +55,8 @@
         ClaimsPrincipal? user = authState.User;
         CurrentGame = _gameRepository.GetByUsersId(user.Claims.First().Value.ToString());
 
-        
+        currentPlayerHost = _playerRepository.GetById(CurrentGame.PlayerHostId);
+        currentPlayerGuest = _playerRepository.GetById(CurrentGame.PlayerGuestId);
         CurrentTurnMove = PlayerType.Host;
 
         hubConnection = new HubConnectionBuilder()
@@ -88,7 +92,14 @@
                 {             
                     if (CheckForWinner())
                     {
+                        GamesHistory hostGamesHistory = await _gamesStatisticsService.GetGamesHistoryByPlayerId(currentPlayerHost.Id);
+                        GamesHistory guestGamesHistory = await _gamesStatisticsService.GetGamesHistoryByPlayerId(currentPlayerGuest.Id);
+
+                        CurrentGame.GamesHistoryHostId = hostGamesHistory.Id;
+                        CurrentGame.GamesHistoryGuestId = guestGamesHistory.Id;
+
                         CurrentGame.GameResult = GameState.Finished;
+                        _gameRepository.UpdateEntity(CurrentGame);
                     }
                 }
 
@@ -96,7 +107,6 @@
                 await SentGameState();
             }
         }
-
     }
 
     private async Task SentGameState()
@@ -114,18 +124,10 @@
     {
         AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
         ClaimsPrincipal? user = authState.User;
-        Player currentPlayerHost = _playerRepository.GetById(CurrentGame.PlayerHostId);
-        Player currentPlayerGuest = _playerRepository.GetById(CurrentGame.PlayerGuestId);
-        if (CurrentTurnMove == PlayerType.Host && user.Claims.First().Subject.Name == currentPlayerHost.Email)
-        {
-            return true;
-        }
-        else if (CurrentTurnMove == PlayerType.Guest && user.Claims.First().Subject.Name == currentPlayerGuest.Email)
-        {
-            return true;
-        }
 
-        return false;
+        return (CurrentTurnMove == PlayerType.Host && user.Claims.First().Subject.Name == currentPlayerHost.Email) ||
+        (CurrentTurnMove == PlayerType.Guest && user.Claims.First().Subject.Name == currentPlayerGuest.Email);
+
     }
 
 
