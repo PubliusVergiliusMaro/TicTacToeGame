@@ -8,6 +8,7 @@
 @inject NavigationManager _navigationManager
 @inject PlayerRepository _playerRepository
 @inject AuthenticationStateProvider _authenticationStateProvider
+
 @implements IDisposable
 @rendermode InteractiveServer
 
@@ -29,15 +30,12 @@
     private Player testPlaye;
     private int _roomId;
     private string _userId;
+
     protected override async Task OnInitializedAsync()
     {
-        _roomId = 123456;
-
         AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
         ClaimsPrincipal? user = authState.User;
         _userId = user.Claims.First().Value.ToString();
-        //testPlaye = _playerRepository.GetAll().FirstOrDefault();
-
 
         hubConnection = new HubConnectionBuilder()
             .WithUrl(_navigationManager.ToAbsoluteUri("/gameHub"))
@@ -56,7 +54,6 @@
     private async Task JoinGameRoom()
     {
         Player currentPlayer = _playerRepository.GetById(_userId);
-
         await hubConnection.SendAsync("JoinRoom", _roomId, currentPlayer);
     }
 

@@ -8,7 +8,7 @@ namespace TicTacToeGame.Domain.Repositories
     public abstract class BaseRepository<T> where T : class
     {
         protected readonly Policy policy = Policy.Handle<SqlException>()
-            .WaitAndRetry(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+            .WaitAndRetry(2, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
 
         private readonly IDbConnection _db;
         public BaseRepository(string connstring)

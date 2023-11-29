@@ -61,7 +61,7 @@
                         PlayerHostId = user.Claims.First().Value.ToString(),
                         PlayerGuestId = joinPlayer.Id,
                         RoomId = roomId,
-                        GameResult = GameState.InProgress,
+                        GameResult = GameState.Starting,
                         CurrentTurn = PlayerType.Host
                     };
 
