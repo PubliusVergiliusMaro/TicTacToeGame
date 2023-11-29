@@ -1,6 +1,7 @@
 ﻿@page "/game"
 
 @using Microsoft.AspNetCore.SignalR.Client
+@using TicTacToeGame.Domain.Constants
 @using TicTacToeGame.Domain.Enums
 @using TicTacToeGame.Domain.Models
 @using System.Security.Claims
@@ -37,18 +38,15 @@
 
 @code {
 
-    private BoardElements[] board = new BoardElements[9];
+    private BoardElements[] board = new BoardElements[TicTacToeRules.BOARD_SIZE];
     private string GameStatus = "";
     private int counter;
     private TicTacToeGame.Domain.Models.Game CurrentGame = new();
     private HubConnection hubConnection;
-    private PlayerType CurrentTurnMove;
     Player currentPlayerHost;
     Player currentPlayerGuest;
     protected override async Task OnInitializedAsync()
     {
-        Random random = new Random();
-
         GameStatus = "Game in progress";
 
         AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
@@ -57,7 +55,8 @@
 
         currentPlayerHost = _playerRepository.GetById(CurrentGame.PlayerHostId);
         currentPlayerGuest = _playerRepository.GetById(CurrentGame.PlayerGuestId);
-        CurrentTurnMove = PlayerType.Host;
+        
+        
 
         hubConnection = new HubConnectionBuilder()
             .WithUrl(_navigationManager.ToAbsoluteUri("/gameHub"))
@@ -68,11 +67,19 @@
             InvokeAsync(() =>
             {
                 board = receivedBoard;
-                CurrentTurnMove = nextPlayerTurn;
+                CurrentGame.CurrentTurn = nextPlayerTurn;
                 StateHasChanged();
             });
         });
-
+        hubConnection.On<GameState,string>("SendGameStatus", (receiveGameResult,receiveGameStatus) =>
+        {
+            InvokeAsync(() =>
+            {
+                CurrentGame.GameResult = receiveGameResult;
+                GameStatus = receiveGameStatus;
+                StateHasChanged();
+            });
+        });
         await hubConnection.StartAsync();
     }
 
@@ -84,80 +91,93 @@
             if (await IsCurrentPlayersTurn())
             {
                 // Put X or O on cell
-                board[index] = (CurrentTurnMove == PlayerType.Host) ? BoardElements.X : BoardElements.O;
+                board[index] = (CurrentGame.CurrentTurn == PlayerType.Host) ? BoardElements.X : BoardElements.O;
                 counter++;
 
-                // Only after five movements can a player win
-                if (counter >= 3)
+                // Only after 3 movements can a player win
+                if (counter >= TicTacToeRules.MIN_COUNT_OF_MOVE_TO_WIN)
                 {             
                     if (CheckForWinner())
                     {
-                        GamesHistory hostGamesHistory = await _gamesStatisticsService.GetGamesHistoryByPlayerId(currentPlayerHost.Id);
-                        GamesHistory guestGamesHistory = await _gamesStatisticsService.GetGamesHistoryByPlayerId(currentPlayerGuest.Id);
-
-                        CurrentGame.GamesHistoryHostId = hostGamesHistory.Id;
-                        CurrentGame.GamesHistoryGuestId = guestGamesHistory.Id;
-
-                        CurrentGame.GameResult = GameState.Finished;
-                        _gameRepository.UpdateEntity(CurrentGame);
+                        await FinishGameAndPutInHistory();
                     }
                 }
-
                 // Switch player turns
                 await SentGameState();
             }
         }
     }
 
-    private async Task SentGameState()
-    {
-        PlayerType nextPlayerTurn = (CurrentTurnMove == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
-        //CurrentGame.CurrentTurn = nextPlayerTurn;
-        //_gameRepository.UpdateEntity(CurrentGame);
-        await hubConnection.SendAsync("SendGameState", board, nextPlayerTurn);
-    }
-
-
-    // Other methods...
-
     private async Task<bool> IsCurrentPlayersTurn()
     {
         AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
         ClaimsPrincipal? user = authState.User;
 
-        return (CurrentTurnMove == PlayerType.Host && user.Claims.First().Subject.Name == currentPlayerHost.Email) ||
-        (CurrentTurnMove == PlayerType.Guest && user.Claims.First().Subject.Name == currentPlayerGuest.Email);
+        return (CurrentGame.CurrentTurn == PlayerType.Host && user.Claims.First().Subject.Name == currentPlayerHost.Email) ||
+        (CurrentGame.CurrentTurn == PlayerType.Guest && user.Claims.First().Subject.Name == currentPlayerGuest.Email);
 
     }
+    private async Task FinishGameAndPutInHistory()
+    {
+        CurrentGame.GameResult = GameState.Finished;
+
+        GamesHistory hostGamesHistory = await _gamesStatisticsService.GetGamesHistoryByPlayerId(currentPlayerHost.Id);
+        GamesHistory guestGamesHistory = await _gamesStatisticsService.GetGamesHistoryByPlayerId(currentPlayerGuest.Id);
+
+        CurrentGame.GamesHistoryHostId = hostGamesHistory.Id;
+        CurrentGame.GamesHistoryGuestId = guestGamesHistory.Id;
+
+        CurrentGame.Winner = CurrentGame.CurrentTurn;
+
+        _gameRepository.UpdateEntity(CurrentGame);
+
+        await SendGameStatus();
+    }
+
+    private async Task SentGameState()
+    {
+        PlayerType nextPlayerTurn = (CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
+        await hubConnection.SendAsync("SendGameState", board, nextPlayerTurn);
+    }
+
+    private async Task SendGameStatus()
+    {
+        await hubConnection.SendAsync("SendGameStatus", CurrentGame.GameResult, GameStatus);
+    }
+
 
 
     private bool CheckForWinner()
     {
 
-        for (int row = 0; row < 3; row++)
+        for (int row = TicTacToeRules.FIRST_ROW_OF_BOARD; row < TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS; row++)
         {   //Check row
-            if (AreAllEqual(board[row * 3], board[row * 3 + 1], board[row * 3 + 2]))
+            if (AreAllEqual(board[row * TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS],
+                board[row * TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS + 1], board[row * TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS + 2]))
             {
-                GameStatus = $"{board[row * 3]} wins!";
+                GameStatus = $"{board[row * TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS]} wins!";
                 return true;
             }
             // Check columns
-            if (AreAllEqual(board[row], board[row + 3], board[row + 6]))
+            if (AreAllEqual(board[row], board[row + TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS],
+                board[row + 2 * TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS]))
             {
                 GameStatus = $"{board[row]} wins!";
                 return true;
             }
         }
         // Check diagonals
-        if (AreAllEqual(board[0], board[4], board[8]))
+        if (AreAllEqual(board[TicTacToeRules.FIRST_ELEMENT_OF_DIAGONAL], 
+            board[TicTacToeRules.SECOND_ELEMENT_OF_DIAGONAL], board[TicTacToeRules.THIRD_ELEMENT_OF_DIAGONAL]))
         {
-            GameStatus = $"{board[0]} wins!";
+            GameStatus = $"{board[TicTacToeRules.FIRST_ELEMENT_OF_DIAGONAL]} wins!";
             return true;
         }
 
-        if (AreAllEqual(board[2], board[4], board[6]))
+        if (AreAllEqual(board[TicTacToeRules.FIRST_ELEMENT_OF_REVERSE_DIAGONAL],
+            board[TicTacToeRules.SECOND_ELEMENT_OF_REVERSE_DIAGONAL], board[TicTacToeRules.THIRD_ELEMENT_OF_REVERSE_DIAGONAL]))
         {
-            GameStatus = $"{board[2]} wins!";
+            GameStatus = $"{board[TicTacToeRules.FIRST_ELEMENT_OF_REVERSE_DIAGONAL]} wins!";
             return true;
         }
 
@@ -184,7 +204,11 @@
         return (board[index] == BoardElements.Empty) ? "" : board[index].ToString();
     }
 
-    private bool IsButtonDisabled(int index) => CurrentGame.GameResult == GameState.Finished;
+    private bool IsButtonDisabled(int index)
+    {
+        return CurrentGame.GameResult == GameState.Finished;
+
+    }
 
     public void Dispose()
     {

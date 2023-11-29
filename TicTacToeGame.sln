@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TicTacToeGame.WebUI", "TicT
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TicTacToeGame.Domain", "TicTacToeGame.Domain\TicTacToeGame.Domain.csproj", "{142D7BCC-B411-4F88-88F6-AA4B3FD34F39}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TicTacToeGame.Services", "TicTacToeGame.Services\TicTacToeGame.Services.csproj", "{BE8E6894-9D3A-42D4-95BF-694B07859B16}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TicTacToeGame.Services", "TicTacToeGame.Services\TicTacToeGame.Services.csproj", "{BE8E6894-9D3A-42D4-95BF-694B07859B16}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

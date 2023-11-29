@@ -22,5 +22,23 @@ namespace TicTacToeGame.WebUI.Hubs
         {
             await Clients.All.SendAsync("SendGameState", board, nextPlayerTurn);
         }
+        public async Task SendGameStatus(GameState gameState,string gameStatus)
+        {
+            await Clients.All.SendAsync("SendGameStatus", gameState, gameStatus);
+        }
+        //public async Task JoinGroup(string groupName)
+        //{
+        //    await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
+        //}
+
+        //public async Task SendGameStateToGroup(string groupName, BoardElements[] board, PlayerType nextPlayerTurn)
+        //{
+        //    await Clients.Group(groupName).SendAsync("SendGameStateToGroup", board, nextPlayerTurn);
+        //}
+
+        //public async Task SendGameStatusToGroup(string groupName, GameState gameState, string gameStatus)
+        //{
+        //    await Clients.Group(groupName).SendAsync("SendGameStatusToGroup", gameState, gameStatus);
+        //}
     }
 }

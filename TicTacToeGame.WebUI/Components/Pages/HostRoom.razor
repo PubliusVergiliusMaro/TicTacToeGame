@@ -64,6 +64,7 @@
                         GameResult = GameState.Starting,
                         CurrentTurn = PlayerType.Host
                     };
+                    //await JoinGroupAsync(game.UniqueId.ToString());
 
                     _gameRepository.AddEntity(game);
                     await hubConnection.SendAsync("AcceptJoining", room.ConnectionId);
