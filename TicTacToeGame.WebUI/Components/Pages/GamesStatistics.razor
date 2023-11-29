@@ -9,18 +9,26 @@
 <h3>Games Statistics</h3>
 
 <div class="row">
-    @foreach (var game in abstracthistory.Games)
+    @if (gamesHistory.Games.Count == 0)
     {
-
-        <div class="card">
-            @* <img src="@game.ImageUrl" class="card-img-top" alt="@game.Name"> *@
-            <div class="card-body">
-                <h5 class="card-title">@game.Winner</h5>
-                <p class="card-text">@($"{game.PlayerHostId} vs {game.PlayerGuestId}")</p>
-                <p class="card-text">@game.CreatedAt.ToString("D")</p>
-                @* <a href="@game.Link" class="btn btn-primary">Go to game</a> *@
+        <h2>You have no games played</h2>
+        @* maybe add some button to main page and maybe add some message where will be instructions how to play *@
+    }
+    else
+    {
+        <h4>Games played: @gamesHistory.Games.Count</h4>
+        @foreach (var game in gamesHistory.Games)
+        {
+            <div class="card m-1">
+                @* <img src="@game.ImageUrl" class="card-img-top" alt="@game.Name"> *@
+                <div class="card-body">
+                    <h5 class="card-title">@game.Winner</h5>
+                    <p class="card-text">@($"{game.PlayerHostId} vs {game.PlayerGuestId}")</p>
+                    <p class="card-text">@game.CreatedAt.ToString("D")</p>
+                    @* <a href="@game.Link" class="btn btn-primary">Go to game</a> *@
+                </div>
             </div>
-        </div>
+        }
     }
 </div>
 
@@ -28,18 +36,18 @@
     /// <summary>
     /// Abstraction of games history
     /// </summary>
-    GamesHistory abstracthistory;
-
+    private GamesHistory gamesHistory;
+    private Player _currentPlayer;
     /* TODO:
-    
-        - Add to tables in database pobility to delete cascade
-        - Make that when player loses block was red and if win green and if draw yellow
-        - Make that if data of game was more than 1 week it displays an data and if less
-             than 1 week it displays how many days ago it was played
-        - Displays players nicknames instead of ids
 
-             * Make that if player clicks on game it redirects to game page
-             * Maybe make some history of moves and display it on that page too
+    - Add to tables in database pobility to delete cascade
+    - Make that when player loses block was red and if win green and if draw yellow
+    - Make that if data of game was more than 1 week it displays an data and if less
+         than 1 week it displays how many days ago it was played
+    - Displays players nicknames instead of ids
+
+         * Make that if player clicks on game it redirects to game page
+         * Maybe make some history of moves and display it on that page too
     */
 
     protected override async Task OnInitializedAsync()
@@ -47,22 +55,23 @@
 
         AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
         ClaimsPrincipal? user = authState.User;
-        string _userId = user.Claims.First().Value.ToString();
-
+        string? _userId = user.Claims.First().Value.ToString();
+        _currentPlayer = GamesStatisticsService.GetPlayerById(_userId);
         // make stored procedure for getting all games that was played by current user
         // and get only that games where game was finished
 
-        abstracthistory = new GamesHistory();
+        gamesHistory = new GamesHistory();
 
         //await GamesStatisticsService.CreateTestGames();
 
 
-        abstracthistory.Games = await GamesStatisticsService.GetPlayedGames(_userId);
+        // add try catch for if user has no games played because it returns null
+        gamesHistory.Games = await GamesStatisticsService.GetPlayedGames(_userId);
 
         //abstracthistory.Games.AddRange()
-       
-       
-        
+
+
+
         // for (int i = 0; i < 10; i++)
         // {
         //     abstracthistory.Games.Add(new TicTacToeGame.Domain.Models.Game

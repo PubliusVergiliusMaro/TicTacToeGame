@@ -69,7 +69,7 @@ namespace TicTacToeGame.Services.GamesStatisticServices
             // 3. we should get games by id of games history
             GamesHistory gamesHistory = await GetGamesHistoryByPlayerId(playerId);
             
-            List<Game> games = _gameRepository.GetGamesByGamesHistoryId(gamesHistory.Id);
+            List<Game>? games = _gameRepository.GetGamesByGamesHistoryId(gamesHistory.Id);
             if(games == null)
             {
                 // handle null
@@ -79,6 +79,16 @@ namespace TicTacToeGame.Services.GamesStatisticServices
 
             return games;
         }
-
+        public Player GetPlayerById(string playerId)
+        {
+            Player player = _playerRepository.GetById(playerId);
+            if(player == null)
+            {
+                // handle null
+                // maybe send message to user that error occured
+                throw new Exception("Player not found");
+            }
+            return player;
+        }
     }
 }

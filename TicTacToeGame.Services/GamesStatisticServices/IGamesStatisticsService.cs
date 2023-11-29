@@ -8,5 +8,6 @@ namespace TicTacToeGame.Services.GamesStatisticServices
         Game GenerateRandomGame();
         Task CreateTestGames();
         Task<List<Game>> GetPlayedGames(string playerId);
+        Player GetPlayerById(string playerId);
     }
 }

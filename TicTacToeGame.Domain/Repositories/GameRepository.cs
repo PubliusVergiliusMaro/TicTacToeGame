@@ -50,12 +50,21 @@ namespace TicTacToeGame.Domain.Repositories
             base.DeleteEntity(entity);
         }
 
-        public List<Game> GetGamesByGamesHistoryId(int id)// Implement
+        public List<Game>? GetGamesByGamesHistoryId(int id)// Implement
         {
-            return _db.Query<Game>("SelectGamesByGamesHistoryId", new
+            try
             {
-                GamesHistoryId = id
-            }, commandType: CommandType.StoredProcedure).AsList();
+
+                return _db.Query<Game>("SelectGamesByGamesHistoryId", new
+                {
+                    GamesHistoryId = id
+                }, commandType: CommandType.StoredProcedure).AsList();
+            }
+            catch (Exception ex)
+            {
+                // handle error
+                throw new Exception(ex.Message);
+            }
         }
     }
 }
