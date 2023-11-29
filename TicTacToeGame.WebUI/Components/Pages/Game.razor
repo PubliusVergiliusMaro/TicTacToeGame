@@ -74,7 +74,7 @@
     private async Task MakeMove(int index)
     {
         
-        if (board[index] == BoardElements.Empty && CurrentGame.GameResult == GameState.InProgress)
+        if (board[index] == BoardElements.Empty && CurrentGame.GameResult == GameState.Starting)
         {
             // Check if it's the correct player's turn
             if (await IsCurrentPlayersTurn())
@@ -114,12 +114,13 @@
     {
         AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
         ClaimsPrincipal? user = authState.User;
-
-        if (CurrentTurnMove == PlayerType.Host && user.Claims.First().Value.ToString() == CurrentGame.PlayerHostId)
+        Player currentPlayerHost = _playerRepository.GetById(CurrentGame.PlayerHostId);
+        Player currentPlayerGuest = _playerRepository.GetById(CurrentGame.PlayerGuestId);
+        if (CurrentTurnMove == PlayerType.Host && user.Claims.First().Subject.Name == currentPlayerHost.Email)
         {
             return true;
         }
-        else if (CurrentTurnMove == PlayerType.Guest)
+        else if (CurrentTurnMove == PlayerType.Guest && user.Claims.First().Subject.Name == currentPlayerGuest.Email)
         {
             return true;
         }
