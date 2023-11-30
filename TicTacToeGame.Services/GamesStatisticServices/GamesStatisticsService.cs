@@ -10,7 +10,7 @@ namespace TicTacToeGame.Services.GamesStatisticServices
         private readonly PlayerRepository _playerRepository;
         private readonly GameRepository _gameRepository;
 
-        public GamesStatisticsService(GamesHistoryRepository gamesHistoryRepository, 
+        public GamesStatisticsService(GamesHistoryRepository gamesHistoryRepository,
             PlayerRepository playerRepository,
             GameRepository gameRepository)
         {
@@ -21,7 +21,7 @@ namespace TicTacToeGame.Services.GamesStatisticServices
         public async Task<GamesHistory> GetGamesHistoryByPlayerId(string playerId)
         {
             GamesHistory gamesHistory = await _gamesHistoryRepository.GetGamesHistoryByPlayerId(playerId);
-            if(gamesHistory == null)
+            if (gamesHistory == null)
             {  // handle null
                 // maybe send message to user that error occured
                 throw new Exception("Games history not found");
@@ -36,7 +36,7 @@ namespace TicTacToeGame.Services.GamesStatisticServices
 
             Game game = new Game
             {
-                Winner = playerTypes[random.Next(1,3)],
+                Winner = playerTypes[random.Next(1, 3)],
                 GameResult =  GameState.Finished,
                 CurrentTurn = playerTypes[random.Next(1, 3)],
 
@@ -45,7 +45,7 @@ namespace TicTacToeGame.Services.GamesStatisticServices
 
                 GamesHistoryHostId = 1,
                 GamesHistoryGuestId = 2,
-                
+
                 RoomId = 1
             };
 
@@ -54,7 +54,7 @@ namespace TicTacToeGame.Services.GamesStatisticServices
         public async Task CreateTestGames()
         {
             List<Game> games = new List<Game>();
-            for(int i = 0; i < 10; i++)
+            for (int i = 0; i < 10; i++)
             {
                 games.Add(GenerateRandomGame());
             }
@@ -68,9 +68,9 @@ namespace TicTacToeGame.Services.GamesStatisticServices
             // 2. we should get id of user's games history
             // 3. we should get games by id of games history
             GamesHistory gamesHistory = await GetGamesHistoryByPlayerId(playerId);
-            
+
             List<Game>? games = _gameRepository.GetGamesByGamesHistoryId(gamesHistory.Id);
-            if(games == null)
+            if (games == null)
             {
                 // handle null
                 // maybe send message to user that error occured
@@ -79,10 +79,22 @@ namespace TicTacToeGame.Services.GamesStatisticServices
 
             return games;
         }
+        public Player GetWinner(PlayerType? playerType, Player hostPlayer, Player guestPlayer)
+        {
+            switch (playerType)
+            {
+                case PlayerType.Host:
+                    return hostPlayer;
+                case PlayerType.Guest:
+                    return guestPlayer;
+                default:
+                    return null;
+            }
+        }
         public Player GetPlayerById(string playerId)
         {
             Player player = _playerRepository.GetById(playerId);
-            if(player == null)
+            if (player == null)
             {
                 // handle null
                 // maybe send message to user that error occured
@@ -90,5 +102,9 @@ namespace TicTacToeGame.Services.GamesStatisticServices
             }
             return player;
         }
+        //public string GetDateOfGame(List<Game> games)
+        //{
+        //    return games.LastOrDefault().DateOfGame.ToString();
+        //}
     }
 }

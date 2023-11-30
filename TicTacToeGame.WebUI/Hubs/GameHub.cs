@@ -26,6 +26,10 @@ namespace TicTacToeGame.WebUI.Hubs
         {
             await Clients.All.SendAsync("SendGameStatus", gameState, gameStatus);
         }
+        public async Task DeclineJoining(string message)
+        {
+            await Clients.All.SendAsync("DeclineJoining", message);
+        }
         //public async Task JoinGroup(string groupName)
         //{
         //    await Groups.AddToGroupAsync(Context.ConnectionId, groupName);

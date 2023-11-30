@@ -1,5 +1,7 @@
 ﻿@page "/join-room"
 
+@using System.Timers
+@using System.Diagnostics
 @using Microsoft.AspNetCore.SignalR.Client
 @using System.Security.Claims
 @using TicTacToeGame.Domain.Models
@@ -13,6 +15,7 @@
 @rendermode InteractiveServer
 
 <h3>JoinRoom</h3>
+<h4>@_declineMessage</h4>
 <div class="card">
     <div class="row">
         <h4 class="col-5">Enter Room Id:</h4>
@@ -30,6 +33,7 @@
     private Player testPlaye;
     private int _roomId;
     private string _userId;
+    private string _declineMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -43,17 +47,41 @@
 
         hubConnection.On<int>("AcceptJoining", (joinedRoomId) =>
         {
-            if(_roomId == joinedRoomId)
+            if (_roomId == joinedRoomId)
             {
-                // await JoinGroupAsync(receiveGameUniqueId);
                 _navigationManager.NavigateTo("/game");
             }
+        });
+
+        // fix bug with not showing decline message when it comes when timer is elapsed
+        hubConnection.On<string>("DeclineJoining", (declineMessage) =>
+        {
+            InvokeAsync(() =>
+            {
+                _declineMessage = declineMessage;
+                StateHasChanged();
+
+                var resetTimer = new Timer(4000);
+                resetTimer.Elapsed += (sender, e) =>
+                {
+                    InvokeAsync(() =>
+                {
+                    _declineMessage = "";
+                    StateHasChanged();
+                });
+                    // Dispose of the timer as it's no longer needed
+                    resetTimer.Dispose();
+                };
+                resetTimer.AutoReset = false;
+                resetTimer.Start();
+            });
         });
 
         await hubConnection.StartAsync();
     }
     private async Task JoinGameRoom()
     {
+        // add validation to the input text field
         Player currentPlayer = _playerRepository.GetById(_userId);
         await hubConnection.SendAsync("JoinRoom", _roomId, currentPlayer);
     }

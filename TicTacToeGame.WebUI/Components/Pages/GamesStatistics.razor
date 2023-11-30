@@ -19,11 +19,16 @@
         <h4>Games played: @gamesHistory.Games.Count</h4>
         @foreach (var game in gamesHistory.Games)
         {
+            Player hostPlayer = GamesStatisticsService.GetPlayerById(game.PlayerHostId);
+            Player guestPlayer = GamesStatisticsService.GetPlayerById(game.PlayerGuestId);
+
+            Player winner = GamesStatisticsService.GetWinner(game.Winner, hostPlayer, guestPlayer);
+
             <div class="card m-1">
                 @* <img src="@game.ImageUrl" class="card-img-top" alt="@game.Name"> *@
                 <div class="card-body">
-                    <h5 class="card-title">@game.Winner</h5>
-                    <p class="card-text">@($"{game.PlayerHostId} vs {game.PlayerGuestId}")</p>
+                    <h5 class="card-title">@(winner == null ? "Draw" : winner.UserName)</h5>
+                    <p class="card-text">@($"{hostPlayer.UserName} vs {guestPlayer.UserName}")</p>
                     <p class="card-text">@game.CreatedAt.ToString("D")</p>
                     @* <a href="@game.Link" class="btn btn-primary">Go to game</a> *@
                 </div>
@@ -36,7 +41,7 @@
     /// <summary>
     /// Abstraction of games history
     /// </summary>
-    private GamesHistory gamesHistory;
+    private GamesHistory gamesHistory = new GamesHistory();
     private Player _currentPlayer;
     /* TODO:
 
@@ -55,33 +60,21 @@
 
         AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
         ClaimsPrincipal? user = authState.User;
-        string? _userId = user.Claims.First().Value.ToString();
-        _currentPlayer = GamesStatisticsService.GetPlayerById(_userId);
-        // make stored procedure for getting all games that was played by current user
-        // and get only that games where game was finished
-
-        gamesHistory = new GamesHistory();
-
-        //await GamesStatisticsService.CreateTestGames();
-
-
-        // add try catch for if user has no games played because it returns null
-        gamesHistory.Games = await GamesStatisticsService.GetPlayedGames(_userId);
-
-        //abstracthistory.Games.AddRange()
+        string? _userId = user.Claims.FirstOrDefault()?.Value;
+        if (_userId != null)
+        {
+            //_currentPlayer = GamesStatisticsService.GetPlayerById(_userId);
+            //gamesHistory.Games = await GamesStatisticsService.GetPlayedGames(_userId);
+            _currentPlayer = GamesStatisticsService.GetPlayerById(_userId);
+            // make stored procedure for getting all games that was played by current user
+            // and get only that games where game was finished
 
 
+            //await GamesStatisticsService.CreateTestGames();
 
-        // for (int i = 0; i < 10; i++)
-        // {
-        //     abstracthistory.Games.Add(new TicTacToeGame.Domain.Models.Game
-        //         {
-        //             Winner = Domain.Enums.PlayerType.Host,
-        //             GameResult = Domain.Enums.GameState.Finished,
-        //             CurrentTurn = Domain.Enums.PlayerType.Guest,
-        //             PlayerHostId = "3202f031-56d7-4783-85bc-6e362f10878f",
-        //             PlayerGuestId = "4697f0ea-8260-4089-b6ba-58943f0f768d",
-        //         });
-        // }
+
+            // add try catch for if user has no games played because it returns null
+            gamesHistory.Games = await GamesStatisticsService.GetPlayedGames(_userId);
+        }
     }
 }

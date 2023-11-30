@@ -4,10 +4,38 @@ using Microsoft.EntityFrameworkCore;
 using TicTacToeGame.Domain.Models;
 using TicTacToeGame.Domain.Repositories;
 using TicTacToeGame.Services.GamesStatisticServices;
+using TicTacToeGame.Services.RoomServices;
 using TicTacToeGame.WebUI.Components;
 using TicTacToeGame.WebUI.Components.Account;
 using TicTacToeGame.WebUI.Data;
 using TicTacToeGame.WebUI.Hubs;
+using TicTacToeGame.WebUI.Services;
+
+/*  // TODO:
+        GamesStatistics:
+         ? Create procedure where I just enters user id and it returns all his games
+
+        Game:
+         - Make that player can`t go on game just by url
+         - Divide players into groups and make that they can`t see each other moves
+         - I think MediatR should be added to the game         
+
+        HostRoom:
+         - Fix bug that when you refresh Room connection Id loads twice
+         - Add service that will return unique Id according to that he already generated        
+
+        JoinRoom:
+        - Fix bug with timers that when message comes before timer elapsed - timer elapsing will also affect
+        new comming messages
+
+        Db:
+        - Add to the procedures not taking that entities that are soft deleted
+
+        Global: 
+        - Add error handling to the pages (I think it should be SignalR that will return to specific page some error)
+        - Fix slow loading game component (I think it is because if intervals of waiting of Polly in repositories)
+ */
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,9 +71,13 @@ builder.Services.AddSingleton<GameRepository>(rep => new GameRepository(connecti
 builder.Services.AddSingleton<PlayerRepository>(rep => new PlayerRepository(connectionString));
 builder.Services.AddSingleton<RoomRepository>(rep => new RoomRepository(connectionString));
 
+builder.Services.AddSingleton<RoomService>();
+
 builder.Services.AddScoped<IGamesStatisticsService, GamesStatisticsService>();
 
 builder.Services.AddSingleton<IEmailSender<Player>, IdentityNoOpEmailSender>();
+
+builder.Services.AddSingleton<RoomBackgroundService>();
 
 builder.Services.AddScoped<Game>();
 

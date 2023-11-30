@@ -51,6 +51,12 @@
 
         AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
         ClaimsPrincipal? user = authState.User;
+
+        // if user is in some game that is starting 
+        // Do
+        // else redirect him to the home page
+
+        //maybe take game also by created date
         CurrentGame = _gameRepository.GetByUsersId(user.Claims.First().Value.ToString());
 
         currentPlayerHost = _playerRepository.GetById(CurrentGame.PlayerHostId);

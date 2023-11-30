@@ -1,4 +1,5 @@
-﻿using TicTacToeGame.Domain.Models;
+﻿using TicTacToeGame.Domain.Enums;
+using TicTacToeGame.Domain.Models;
 
 namespace TicTacToeGame.Services.GamesStatisticServices
 {
@@ -9,5 +10,6 @@ namespace TicTacToeGame.Services.GamesStatisticServices
         Task CreateTestGames();
         Task<List<Game>> GetPlayedGames(string playerId);
         Player GetPlayerById(string playerId);
+        Player GetWinner(PlayerType? playerType, Player hostPlayer, Player guestPlayer);
     }
 }
