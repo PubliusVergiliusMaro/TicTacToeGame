@@ -1,41 +1,88 @@
 ﻿@page "/host-room"
+
 @using Microsoft.AspNetCore.SignalR.Client
 @using System.Security.Claims
+@using System.Timers
+@using System.Diagnostics
 @using TicTacToeGame.Domain.Enums
 @using TicTacToeGame.Domain.Models
 @using TicTacToeGame.Domain.Repositories
-
+@using TicTacToeGame.Services.RoomServices
 
 @inject NavigationManager _navigationManager
 @inject RoomRepository _roomRepository
 @inject GameRepository _gameRepository
 @inject PlayerRepository _playerRepository
 @inject AuthenticationStateProvider _authenticationStateProvider
+@inject RoomService _roomService
+
 @rendermode InteractiveServer
 @implements IDisposable
+
 <h3>HostRoom</h3>
+@if (isTimerElapsed)
+{
+    <div class="container">
+        <div class="row d-flex align-items-center">
+            <div class="col-7">
+                <div class="alert alert-secondary">Time of your room Id has run out</div>
+            </div>
+            <div class="col-3">
+                <input type="button" class="btn btn-primary" value="Refresh" @onclick="InitializeRoom" />
+            </div>
+        </div>
+    </div>
+}
 
-<h4>Room Id: @room.ConnectionId</h4>
-
+<h4>Room Id: @_connectionId</h4>
+<h4>@_stopwatch.Elapsed.ToString(@"hh\:mm\:ss")</h4>
 @code {
     // TODO:
     // - Add validation if user if authorized and if not redirect to login page
 
-
     // Room
-    private static Room room;
+    //private static Dictionary<Room, Timer> rooms = new();
+    private string _connectionId;
+
+    // Timer
+    private bool isTimerElapsed = false;
 
     // HubConnection
     private HubConnection hubConnection;
 
+    // Stopwatch
+    private Stopwatch _stopwatch = new Stopwatch();
+    private Timer stopwatchtimer;
+
+    private void InitializeRoom()
+    {
+        // stopwatchtimer.Start();
+        // _stopwatch.Start();
+
+        isTimerElapsed = false;
+        Room room = new Room()
+            {
+                ConnectionId = new Random().Next(100_000, 1_000_000),
+                IsOpen = true
+            };
+        _connectionId = room.ConnectionId.ToString();
+
+        _roomService.OnRoomDeleted = () =>
+       {
+           isTimerElapsed = true;
+           InvokeAsync(StateHasChanged);
+       };
+
+        _roomService.AddRoom(room, () =>
+       {
+           isTimerElapsed = true;
+           InvokeAsync(StateHasChanged);
+       });
+    }
 
     protected override async Task OnInitializedAsync()
     {
-        room = new Room()
-        {
-           ConnectionId = new Random().Next(100_000, 1_000_000),
-           IsOpen = true
-        };
+        InitializeRoom();
 
         hubConnection = new HubConnectionBuilder()
             .WithUrl(_navigationManager.ToAbsoluteUri("/gameHub"))
@@ -43,20 +90,19 @@
 
         hubConnection.On<int, Player>("JoinRoom", async (joinedRoomId, joinPlayer) =>
         {
-            if (room.IsOpen)
+            if (_roomService.OpenedRooms.Keys.Any(r => r.ConnectionId == joinedRoomId && r.IsOpen))
             {
-                if (room.ConnectionId == joinedRoomId)
-                {
-                    // add Room to db
-                    int roomId = _roomRepository.AddEntity(room); 
+                Room room = _roomService.OpenedRooms.Keys.First(r => r.ConnectionId == joinedRoomId);
+                // add Room to db
+                int roomId = _roomRepository.AddEntity(room);
 
-                    // maybe add some manager that adds rooms to some list with timer and after some time deletes them
+                // maybe add some manager that adds rooms to some list with timer and after some time deletes them
 
-                    AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
-                    ClaimsPrincipal? user = authState.User;
+                AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
+                ClaimsPrincipal? user = authState.User;
 
-                    // add checking if user is null
-                    TicTacToeGame.Domain.Models.Game game = new()
+                // add checking if user is null
+                TicTacToeGame.Domain.Models.Game game = new()
                     {
                         PlayerHostId = user.Claims.First().Value.ToString(),
                         PlayerGuestId = joinPlayer.Id,
@@ -64,26 +110,60 @@
                         GameResult = GameState.Starting,
                         CurrentTurn = PlayerType.Host
                     };
-                    //await JoinGroupAsync(game.UniqueId.ToString());
 
-                    _gameRepository.AddEntity(game);
-                    await hubConnection.SendAsync("AcceptJoining", room.ConnectionId);
-                    _navigationManager.NavigateTo("/game");
-                    // maybe update player type
+                _gameRepository.AddEntity(game);
+                await hubConnection.SendAsync("AcceptJoining", room.ConnectionId);
+                _navigationManager.NavigateTo("/game");
+                // maybe update player type
 
-                    // connect game to room
-                    // Add Game to db
-                    // add host to db
-                    // add guest to db
-
-                }
+                // connect game to room
+                // Add Game to db
+                // add host to db
+                // add guest to db
+            }
+            else
+            {
+                await hubConnection.SendAsync("DeclineJoining", "Such connection Id is not right");
             }
         });
         await hubConnection.StartAsync();
     }
 
+    // private void UpdateTime(object sender, ElapsedEventArgs e)
+    // {
+    //     if (_stopwatch.IsRunning)
+    //     {
+    //         InvokeAsync(StateHasChanged);
+    //     }
+
+    // }
+
+    // private void DeleteRoom(Room room, Timer timer)
+    // {
+    //     InvokeAsync(() =>
+    //     {
+    //         _stopwatch.Stop();
+    //         _stopwatch.Reset();
+
+    //         isTimerElapsed = true;
+    //         //room.IsOpen = false;
+    //         rooms[room].Stop();
+    //         rooms.Where(k => k.Key.ConnectionId == room.ConnectionId).Select(k => k.Key).First().IsOpen = false;
+    //         rooms.Remove(room);
+    //         StateHasChanged();
+    //     });
+    // }
+    // maybe add deleting room and in another methods
+
+    // private void OnTimerElapsed(object sender, ElapsedEventArgs e)
+    // {
+
+    // }
     public void Dispose()
     {
-        hubConnection?.DisposeAsync();
+        _stopwatch.Stop();
+        _stopwatch.Reset();
+        _roomService.Dispose();
+        hubConnection.DisposeAsync();
     }
 }

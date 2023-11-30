@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="GamesStatisticServices\IGamesStatisticsService.cs~RF1b73c938.TMP" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\TicTacToeGame.Domain\TicTacToeGame.Domain.csproj" />
   </ItemGroup>
 
