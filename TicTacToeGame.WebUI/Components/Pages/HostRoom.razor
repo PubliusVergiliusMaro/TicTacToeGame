@@ -8,13 +8,15 @@
 @using TicTacToeGame.Domain.Models
 @using TicTacToeGame.Domain.Repositories
 @using TicTacToeGame.Services.RoomServices
+@using TicTacToeGame.WebUI.Services
 
 @inject NavigationManager _navigationManager
 @inject RoomRepository _roomRepository
 @inject GameRepository _gameRepository
 @inject PlayerRepository _playerRepository
 @inject AuthenticationStateProvider _authenticationStateProvider
-@inject RoomService _roomService
+@* @inject RoomService _roomService *@
+@inject RoomBackgroundService _roomBackgroundService
 
 @rendermode InteractiveServer
 @implements IDisposable
@@ -35,7 +37,7 @@
 }
 
 <h4>Room Id: @_connectionId</h4>
-<h4>@_stopwatch.Elapsed.ToString(@"hh\:mm\:ss")</h4>
+<h4>@waitingTime</h4>
 @code {
     // TODO:
     // - Add validation if user if authorized and if not redirect to login page
@@ -51,29 +53,43 @@
     private HubConnection hubConnection;
 
     // Stopwatch
-    private Stopwatch _stopwatch = new Stopwatch();
     private Timer stopwatchtimer;
+    private int waitingTime;// 30 seconds
 
     private void InitializeRoom()
     {
-        // stopwatchtimer.Start();
-        // _stopwatch.Start();
-
         isTimerElapsed = false;
-        Room room = new Room()
+        waitingTime = 10;
+        stopwatchtimer = new Timer(1000);
+        stopwatchtimer.AutoReset = true;
+        stopwatchtimer.Elapsed += (sender, e) =>
+        {
+            waitingTime--;
+            InvokeAsync(StateHasChanged);
+            if(waitingTime == 0)
             {
-                ConnectionId = new Random().Next(100_000, 1_000_000),
-                IsOpen = true
-            };
+                stopwatchtimer.Stop();
+                stopwatchtimer.Dispose();
+                isTimerElapsed = true;
+                InvokeAsync(StateHasChanged);
+            }
+        };
+        stopwatchtimer.Start();
+
+        Room room = new Room()
+        {
+            ConnectionId = new Random().Next(100_000, 1_000_000),
+            IsOpen = true
+        };
         _connectionId = room.ConnectionId.ToString();
 
-        _roomService.OnRoomDeleted = () =>
+        _roomBackgroundService.OnRoomDeleted = () =>
        {
            isTimerElapsed = true;
            InvokeAsync(StateHasChanged);
        };
 
-        _roomService.AddRoom(room, () =>
+        _roomBackgroundService.AddRoom(room, () =>
        {
            isTimerElapsed = true;
            InvokeAsync(StateHasChanged);
@@ -90,19 +106,21 @@
 
         hubConnection.On<int, Player>("JoinRoom", async (joinedRoomId, joinPlayer) =>
         {
-            if (_roomService.OpenedRooms.Keys.Any(r => r.ConnectionId == joinedRoomId && r.IsOpen))
+            if (_roomBackgroundService.OpenedRooms.Keys.Any(r => r.ConnectionId == joinedRoomId && r.IsOpen))
             {
-                Room room = _roomService.OpenedRooms.Keys.First(r => r.ConnectionId == joinedRoomId);
-                // add Room to db
-                int roomId = _roomRepository.AddEntity(room);
+                if (_connectionId == joinedRoomId.ToString())
+                {
+                    Room room = _roomBackgroundService.OpenedRooms.Keys.First(r => r.ConnectionId == joinedRoomId);
+                    // add Room to db
+                    int roomId = _roomRepository.AddEntity(room);
 
-                // maybe add some manager that adds rooms to some list with timer and after some time deletes them
+                    // maybe add some manager that adds rooms to some list with timer and after some time deletes them
 
-                AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
-                ClaimsPrincipal? user = authState.User;
+                    AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
+                    ClaimsPrincipal? user = authState.User;
 
-                // add checking if user is null
-                TicTacToeGame.Domain.Models.Game game = new()
+                    // add checking if user is null
+                    TicTacToeGame.Domain.Models.Game game = new()
                     {
                         PlayerHostId = user.Claims.First().Value.ToString(),
                         PlayerGuestId = joinPlayer.Id,
@@ -111,15 +129,16 @@
                         CurrentTurn = PlayerType.Host
                     };
 
-                _gameRepository.AddEntity(game);
-                await hubConnection.SendAsync("AcceptJoining", room.ConnectionId);
-                _navigationManager.NavigateTo("/game");
-                // maybe update player type
+                    _gameRepository.AddEntity(game);
+                    await hubConnection.SendAsync("AcceptJoining", room.ConnectionId);
+                    _navigationManager.NavigateTo("/game");
+                    // maybe update player type
 
-                // connect game to room
-                // Add Game to db
-                // add host to db
-                // add guest to db
+                    // connect game to room
+                    // Add Game to db
+                    // add host to db
+                    // add guest to db
+                }
             }
             else
             {
@@ -161,9 +180,6 @@
     // }
     public void Dispose()
     {
-        _stopwatch.Stop();
-        _stopwatch.Reset();
-        _roomService.Dispose();
         hubConnection.DisposeAsync();
     }
 }
