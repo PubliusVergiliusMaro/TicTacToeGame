@@ -15,10 +15,7 @@ namespace TicTacToeGame.WebUI.Hubs
         {
             await Clients.All.SendAsync("JoinRoom", roomId, player);
         }
-        /*public async Task UpdateBoard(int roomId, BoardElements[] updatedBoard)
-        {
-            await Clients.Group(roomId.ToString()).SendAsync("ReceiveUpdatedBoard", updatedBoard);
-        }*/
+        
         public async Task SendGameState(BoardElements[] board, PlayerType nextPlayerTurn,Guid gameId)
         {
             await Clients.Group(gameId.ToString()).SendAsync("SendGameState", board, nextPlayerTurn, gameId);

@@ -59,6 +59,12 @@ namespace TicTacToeGame.Domain.Repositories
                 }
             });
         }
+        public virtual void UpdateEntitys(ICollection<T> entities)
+        {
+            _db.Open();
+            _db.BulkUpdate(entities);
+            _db.Close();
+        }
         public virtual void DeleteEntity(T entity)
         {
             _db.Open();

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Serilog;
 using TicTacToeGame.Domain.Models;
 using TicTacToeGame.Domain.Repositories;
+using TicTacToeGame.Services.GameProcessService;
 using TicTacToeGame.Services.GamesStatisticServices;
 using TicTacToeGame.WebUI.Components;
 using TicTacToeGame.WebUI.Components.Account;
@@ -87,7 +88,9 @@ builder.Services.AddScoped<IGamesStatisticsService, GamesStatisticsService>();
 builder.Services.AddSingleton<IEmailSender<Player>, IdentityNoOpEmailSender>();
 
 builder.Services.AddSingleton<RoomBackgroundService>();
-
+builder.Services.AddScoped<GameInitializeProcess>();
+builder.Services.AddScoped<CheckForWinnerManager>();
+builder.Services.AddScoped<MakeMovesGameManager>();
 builder.Services.AddScoped<Game>();
 
 Log.Logger = new LoggerConfiguration()

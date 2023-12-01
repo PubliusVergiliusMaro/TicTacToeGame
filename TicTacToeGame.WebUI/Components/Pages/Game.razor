@@ -1,12 +1,12 @@
 ﻿@page "/game"
 
 @using Microsoft.AspNetCore.SignalR.Client
-@using Microsoft.AspNetCore.SignalR;
 @using TicTacToeGame.Domain.Constants
 @using TicTacToeGame.Domain.Enums
 @using TicTacToeGame.Domain.Models
 @using System.Security.Claims
 @using TicTacToeGame.Domain.Repositories
+@using TicTacToeGame.Services.GameProcessService
 @using TicTacToeGame.Services.GamesStatisticServices
 @using TicTacToeGame.WebUI.Components.Account
 
@@ -16,7 +16,11 @@
 @inject AuthenticationStateProvider _authenticationStateProvider
 @inject GamesHistoryRepository _gamesHistoryRepository
 @inject IGamesStatisticsService _gamesStatisticsService
+@inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject GameInitializeProcess GameInitializeProcess
+@inject CheckForWinnerManager CheckForWinnerManager
+@inject MakeMovesGameManager MakeMovesGameManager
 
 @implements IDisposable
 @rendermode InteractiveServer
@@ -27,11 +31,14 @@
     <h3 style="text-align: center;">Player @livedPlayerName leaves game</h3>
 
 }
+<p style="margin-top: 20px; font-size: 18px; color: #333; background-color: #f8f9fa; padding: 10px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+    @GameStatus
+</p>
 <div style="display: flex; flex-direction: column; align-items: center;">
     @for (int row = TicTacToeRules.FIRST_ROW_OF_BOARD; row < TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS; row++)
     {
         <div>
-            @for (int col = TicTacToeRules.FIRST_ROW_OF_BOARD; col < TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS; col++)
+            @for (int col = TicTacToeRules.FIRST_COLUMN_OF_BOARD; col < TicTacToeRules.MAX_COUNT_OF_BOARD_COLUMNS; col++)
             {
                 int index = row * 3 + col;
                 <button style="width: 100px; height: 100px; font-size: 24px; text-align: center; vertical-align: middle; margin-bottom: 5px;"
@@ -43,14 +50,19 @@
     }
 </div>
 
-<p>@GameStatus</p>
+@if (CurrentGame.GameResult == GameState.Finished)
+{
+    <button style="margin-top: 10px; padding: 10px 15px; font-size: 16px; background-color: #4CAF50; color: #fff; border: none; cursor: pointer;"
+            @onclick="GoToHomePage">
+        Go to Home Page
+    </button>
+}
 
 @code {
     // Board
     private BoardElements[] board = new BoardElements[TicTacToeRules.BOARD_SIZE];
 
     // For checking current move number
-    private int counter;
 
     // Display who win
     // Are using in signalR
@@ -75,8 +87,8 @@
     protected override async Task OnInitializedAsync()
     {
         GameStatus = "Game in progress";
-
-        await HandleGameForAuthenticatedUser();
+        user = await GameInitializeProcess.HandleGameForAuthenticatedUser(authState);
+        CurrentGame = GameInitializeProcess.CurrentGame;
 
         currentPlayerHost = _playerRepository.GetById(CurrentGame.PlayerHostId);
         currentPlayerGuest = _playerRepository.GetById(CurrentGame.PlayerGuestId);
@@ -152,6 +164,7 @@
         await hubConnection.SendAsync("JoinGame", CurrentGame.UniqueId);
 
         UpdatePlayersGameData(hubConnection.ConnectionId);
+        MakeMovesGameManager.InitializePlayers(currentPlayerHost, currentPlayerGuest, hubConnection);
     }
     private void UpdatePlayersGameData(string connectionId)
     {
@@ -163,172 +176,13 @@
         currentPlayerHost = _playerRepository.GetById(CurrentGame.PlayerHostId);
         currentPlayerGuest = _playerRepository.GetById(CurrentGame.PlayerGuestId);
     }
-    public async Task HandleGameForAuthenticatedUser()
-    {
-        authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
-        user = authState.User;
-
-        if (IsAuthenticatedUserWithGame(user, out var userId))
-        {
-            CurrentGame = _gameRepository.GetByUsersId(userId);
-        }
-        else
-        {
-            RedirectManager.RedirectTo("/");
-        }
-    }
-
-    private bool IsAuthenticatedUserWithGame(ClaimsPrincipal? user, out string userId)
-    {
-        userId = string.Empty;
-
-        if (user?.Identity?.IsAuthenticated == true)
-        {
-            userId = user.Claims.First().Value.ToString();
-            return _gameRepository.GetByUsersId(userId) is not null;
-        }
-
-        return false;
-    }
+    
     private async Task MakeMove(int index)
     {
-        if (board[index] == BoardElements.Empty && CurrentGame.GameResult == GameState.Starting)
-        {
-            // Check if it's the correct player's turn
-            if (await IsCurrentPlayersTurn())
-            {
-                // Put X or O on cell
-                PlaceMoveOnCell(index);
-
-                // Only after 3 movements can a player win
-                await CheckForWinnerAfterMoves();
-
-                // Switch player turns
-                await SentGameState();
-            }
-        }
+        await MakeMovesGameManager.MakeMove(index, board, CurrentGame, authState, user);
+       
     }
-    private void PlaceMoveOnCell(int index)
-    {
-        board[index] = (CurrentGame.CurrentTurn == PlayerType.Host) ? BoardElements.X : BoardElements.O;
-        counter++;
-    }
-    private async Task CheckForWinnerAfterMoves()
-    {
-        if (counter >= TicTacToeRules.MIN_COUNT_OF_MOVE_TO_WIN)
-        {
-            if (CheckForWinner())
-            {
-                await FinishGameAndPutInHistory();
-            }
-        }
-    }
-    private async Task<bool> IsCurrentPlayersTurn()
-    {
-        authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
-        user = authState.User;
-
-        return (CurrentGame.CurrentTurn == PlayerType.Host && user.Claims.First().Subject.Name == currentPlayerHost.UserName) ||
-        (CurrentGame.CurrentTurn == PlayerType.Guest && user.Claims.First().Subject.Name == currentPlayerGuest.UserName);
-
-    }
-    private async Task FinishGameAndPutInHistory()
-    {
-        CurrentGame.GameResult = GameState.Finished;
-
-        GamesHistory hostGamesHistory = await _gamesStatisticsService.GetGamesHistoryByPlayerId(currentPlayerHost.Id);
-        GamesHistory guestGamesHistory = await _gamesStatisticsService.GetGamesHistoryByPlayerId(currentPlayerGuest.Id);
-
-        CurrentGame.GamesHistoryHostId = hostGamesHistory.Id;
-        CurrentGame.GamesHistoryGuestId = guestGamesHistory.Id;
-
-        CurrentGame.Winner = CurrentGame.CurrentTurn;
-
-        _gameRepository.UpdateEntity(CurrentGame);
-
-        await SendGameStatus();
-    }
-
-    private async Task SentGameState()
-    {
-        PlayerType nextPlayerTurn = (CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
-        await hubConnection.SendAsync("SendGameState", board, nextPlayerTurn, CurrentGame.UniqueId);
-    }
-
-    private async Task SendGameStatus()
-    {
-        await hubConnection.SendAsync("SendGameStatus", CurrentGame.GameResult, GameStatus, CurrentGame.UniqueId);
-    }
-
-    private bool CheckForWinner()
-    {
-        if (CheckRowsForWinner() || CheckColumnsForWinner() || CheckDiagonalsForWinner())
-        {
-            return true;
-        }
-
-        // Check for a tie
-        if (board.All(cell => cell != BoardElements.Empty))
-        {
-            GameStatus = "It's a tie!";
-            return true;
-        }
-
-        return false;
-    }
-    private bool CheckRowsForWinner()
-    {
-
-        for (int row = TicTacToeRules.FIRST_ROW_OF_BOARD; row < TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS; row++)
-        {
-            if (AreAllEqual(board[row * TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS],
-                board[row * TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS + 1], board[row * TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS + 2]))
-            {
-                GameStatus = $"{board[row * TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS]} wins!";
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private bool CheckColumnsForWinner()
-    {
-        for (int col = TicTacToeRules.FIRST_ROW_OF_BOARD; col < TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS; col++)
-        {
-            if (AreAllEqual(board[col], board[col + TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS],
-                board[col + 2 * TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS]))
-            {
-                GameStatus = $"{board[col]} wins!";
-                return true;
-            }
-        }
-
-        return false;
-    }
-    private bool CheckDiagonalsForWinner()
-    {
-        if (AreAllEqual(board[TicTacToeRules.FIRST_ELEMENT_OF_DIAGONAL],
-            board[TicTacToeRules.SECOND_ELEMENT_OF_DIAGONAL], board[TicTacToeRules.THIRD_ELEMENT_OF_DIAGONAL]))
-        {
-            GameStatus = $"{board[TicTacToeRules.FIRST_ELEMENT_OF_DIAGONAL]} wins!";
-            return true;
-        }
-
-        if (AreAllEqual(board[TicTacToeRules.FIRST_ELEMENT_OF_REVERSE_DIAGONAL],
-            board[TicTacToeRules.SECOND_ELEMENT_OF_REVERSE_DIAGONAL], board[TicTacToeRules.THIRD_ELEMENT_OF_REVERSE_DIAGONAL]))
-        {
-            GameStatus = $"{board[TicTacToeRules.FIRST_ELEMENT_OF_REVERSE_DIAGONAL]} wins!";
-            return true;
-        }
-
-        return false;
-    }
-    private bool AreAllEqual(BoardElements a, BoardElements b, BoardElements c)
-    {
-        return a != BoardElements.Empty && a == b && b == c;
-    }
-
+    
 
     private string GetSquareValue(int index)
     {
@@ -338,6 +192,11 @@
     private bool IsButtonDisabled(int index)
     {
         return CurrentGame.GameResult == GameState.Finished;
+    }
+
+    private void GoToHomePage()
+    {
+        NavigationManager.NavigateTo("/");
     }
 
     public void Dispose()
