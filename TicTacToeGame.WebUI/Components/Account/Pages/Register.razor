@@ -30,9 +30,9 @@
             <hr />
             <ValidationSummary class="text-danger" role="alert" />
             <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                <label for="email">Email</label>
-                <ValidationMessage For="() => Input.Email" class="text-danger" />
+                <InputText @bind-Value="Input.UserName" class="form-control" autocomplete="username" aria-required="true" placeholder="Username" />
+                <label for="username">Username</label>
+                <ValidationMessage For="() => Input.UserName" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
                 <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
@@ -71,9 +71,8 @@
     {
         var user = CreateUser();
 
-        await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
-        var emailStore = GetEmailStore();
-        await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
+        user.UserName = Input.UserName;  // Set the username using the provided value
+
         var result = await UserManager.CreateAsync(user, Input.Password);
 
         if (!result.Succeeded)
@@ -87,9 +86,9 @@
         var userId = await UserManager.GetUserIdAsync(user);
 
         GamesHistory gamesHistory = new()
-        {
-            PlayerId = userId
-        };
+            {
+                PlayerId = userId
+            };
 
         GamesHistoryRepository.AddEntity(gamesHistory);
 
@@ -99,13 +98,11 @@
             NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
             new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code, ["returnUrl"] = ReturnUrl });
 
-        await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
+        await EmailSender.SendConfirmationLinkAsync(user, user.UserName, HtmlEncoder.Default.Encode(callbackUrl));
 
         if (UserManager.Options.SignIn.RequireConfirmedAccount)
         {
-            RedirectManager.RedirectTo(
-                "Account/RegisterConfirmation",
-                new() { ["email"] = Input.Email, ["returnUrl"] = ReturnUrl });
+            RedirectManager.RedirectTo("/");
         }
 
         await SignInManager.SignInAsync(user, isPersistent: false);
@@ -125,21 +122,26 @@
         }
     }
 
-    private IUserEmailStore<Player> GetEmailStore()
-    {
-        if (!UserManager.SupportsUserEmail)
-        {
-            throw new NotSupportedException("The default UI requires a user store with email support.");
-        }
-        return (IUserEmailStore<Player>)UserStore;
-    }
+    // private IUserEmailStore<Player> GetEmailStore()
+    // {
+    //     if (!UserManager.SupportsUserEmail)
+    //     {
+    //         throw new NotSupportedException("The default UI requires a user store with email support.");
+    //     }
+    //     return (IUserEmailStore<Player>)UserStore;
+    // }
 
     private sealed class InputModel
     {
-        [Required]
+
         [EmailAddress]
         [Display(Name = "Email")]
         public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "The Username field is required.")]
+        [StringLength(50, ErrorMessage = "The {0} must be at least {2} and at most {1} characters long.", MinimumLength = 3)]
+        [Display(Name = "Username")]
+        public string UserName { get; set; }
 
         [Required]
         [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]

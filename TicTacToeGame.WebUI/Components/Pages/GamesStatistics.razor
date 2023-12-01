@@ -23,14 +23,22 @@
             Player guestPlayer = GamesStatisticsService.GetPlayerById(game.PlayerGuestId);
 
             Player winner = GamesStatisticsService.GetWinner(game.Winner, hostPlayer, guestPlayer);
+            bool currentUserWon = (winner != null && winner.Id == _currentPlayer.Id);
+            bool currentUserLost = (winner != null && winner.Id != _currentPlayer.Id);
+            bool isDraw = (winner == null);
 
-            <div class="card m-1">
+            <div class="card m-1 @(currentUserWon ? "bg-success" : currentUserLost ? "bg-danger" : isDraw ? "bg-warning" : "")">
                 @* <img src="@game.ImageUrl" class="card-img-top" alt="@game.Name"> *@
-                <div class="card-body">
-                    <h5 class="card-title">@(winner == null ? "Draw" : winner.UserName)</h5>
-                    <p class="card-text">@($"{hostPlayer.UserName} vs {guestPlayer.UserName}")</p>
-                    <p class="card-text">@game.CreatedAt.ToString("D")</p>
+                <div class="card-body"> 
                     @* <a href="@game.Link" class="btn btn-primary">Go to game</a> *@
+                    <div class="card m-1">
+                        @* <img src="@game.ImageUrl" class="card-img-top" alt="@game.Name"> *@
+                        <div class="card-body">
+                            <h5 class="card-title">@(winner == null ? "Draw" : winner.UserName)</h5>
+                            <p class="card-text">@($"{hostPlayer.UserName} vs {guestPlayer.UserName}")</p>
+                            <p class="card-text">@game.CreatedAt.ToString("D")</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         }
@@ -44,7 +52,7 @@
     private GamesHistory gamesHistory = new GamesHistory();
     private Player _currentPlayer;
     /* TODO:
-
+     *
     - Add to tables in database pobility to delete cascade
     - Make that when player loses block was red and if win green and if draw yellow
     - Make that if data of game was more than 1 week it displays an data and if less
