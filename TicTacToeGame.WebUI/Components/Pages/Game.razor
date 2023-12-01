@@ -7,6 +7,7 @@
 @using System.Security.Claims
 @using TicTacToeGame.Domain.Repositories
 @using TicTacToeGame.Services.GamesStatisticServices
+
 @inject NavigationManager _navigationManager
 @inject PlayerRepository _playerRepository
 @inject GameRepository _gameRepository
@@ -15,7 +16,7 @@
 @inject IGamesStatisticsService _gamesStatisticsService
 @implements IDisposable
 @rendermode InteractiveServer
-                             
+
 <h1 style="text-align: center;">Tic Tac Toe Game</h1>
 
 <div style="display: flex; flex-direction: column; align-items: center;">
@@ -37,14 +38,26 @@
 <p>@GameStatus</p>
 
 @code {
-
+    // Board
     private BoardElements[] board = new BoardElements[TicTacToeRules.BOARD_SIZE];
-    private string GameStatus = "";
+
+    // For checking current move number
     private int counter;
+
+    // Display who win
+    // Are using in signalR
+    private string GameStatus = "";
+    private string gameId = "";
+    // Current game
     private TicTacToeGame.Domain.Models.Game CurrentGame = new();
-    private HubConnection hubConnection;
     Player currentPlayerHost;
     Player currentPlayerGuest;
+
+    // SignalR
+    private HubConnection hubConnection;
+
+    private bool canDisplay = false;
+
     protected override async Task OnInitializedAsync()
     {
         GameStatus = "Game in progress";
@@ -52,7 +65,7 @@
         AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
         ClaimsPrincipal? user = authState.User;
 
-        // if user is in some game that is starting 
+        // if user is in some game that is starting
         // Do
         // else redirect him to the home page
 
@@ -61,36 +74,53 @@
 
         currentPlayerHost = _playerRepository.GetById(CurrentGame.PlayerHostId);
         currentPlayerGuest = _playerRepository.GetById(CurrentGame.PlayerGuestId);
-        
-        
 
         hubConnection = new HubConnectionBuilder()
             .WithUrl(_navigationManager.ToAbsoluteUri("/gameHub"))
             .Build();
 
-        hubConnection.On<BoardElements[], PlayerType>("SendGameState", (receivedBoard, nextPlayerTurn) =>
+        hubConnection.On<BoardElements[], PlayerType, Guid>("SendGameState", (receivedBoard, nextPlayerTurn, gameId) =>
         {
             InvokeAsync(() =>
             {
-                board = receivedBoard;
-                CurrentGame.CurrentTurn = nextPlayerTurn;
-                StateHasChanged();
+                if (CurrentGame.UniqueId == gameId)
+                {
+                    board = receivedBoard;
+                    CurrentGame.CurrentTurn = nextPlayerTurn;
+                    StateHasChanged();
+                }
             });
         });
-        hubConnection.On<GameState,string>("SendGameStatus", (receiveGameResult,receiveGameStatus) =>
+        hubConnection.On<GameState, string, Guid>("SendGameStatus", (receiveGameResult, receiveGameStatus, gameId) =>
         {
             InvokeAsync(() =>
             {
-                CurrentGame.GameResult = receiveGameResult;
-                GameStatus = receiveGameStatus;
-                StateHasChanged();
+                if (CurrentGame.UniqueId == gameId)
+                {
+                    CurrentGame.GameResult = receiveGameResult;
+                    GameStatus = receiveGameStatus;
+                    StateHasChanged();
+                }
+            });
+        });
+
+        hubConnection.On<Guid>("SendGroupMessage", (gameId) =>
+        {
+            InvokeAsync(() =>
+            {
+                if (CurrentGame.UniqueId == gameId)
+                {
+                    this.gameId = gameId.ToString();
+                    canDisplay = true;
+                    StateHasChanged();
+                }
             });
         });
         await hubConnection.StartAsync();
     }
 
     private async Task MakeMove(int index)
-    {   
+    {
         if (board[index] == BoardElements.Empty && CurrentGame.GameResult == GameState.Starting)
         {
             // Check if it's the correct player's turn
@@ -102,7 +132,7 @@
 
                 // Only after 3 movements can a player win
                 if (counter >= TicTacToeRules.MIN_COUNT_OF_MOVE_TO_WIN)
-                {             
+                {
                     if (CheckForWinner())
                     {
                         await FinishGameAndPutInHistory();
@@ -143,12 +173,12 @@
     private async Task SentGameState()
     {
         PlayerType nextPlayerTurn = (CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
-        await hubConnection.SendAsync("SendGameState", board, nextPlayerTurn);
+        await hubConnection.SendAsync("SendGameState", board, nextPlayerTurn,CurrentGame.UniqueId);
     }
 
     private async Task SendGameStatus()
     {
-        await hubConnection.SendAsync("SendGameStatus", CurrentGame.GameResult, GameStatus);
+        await hubConnection.SendAsync("SendGameStatus", CurrentGame.GameResult, GameStatus, CurrentGame.UniqueId);
     }
 
 
@@ -173,7 +203,7 @@
             }
         }
         // Check diagonals
-        if (AreAllEqual(board[TicTacToeRules.FIRST_ELEMENT_OF_DIAGONAL], 
+        if (AreAllEqual(board[TicTacToeRules.FIRST_ELEMENT_OF_DIAGONAL],
             board[TicTacToeRules.SECOND_ELEMENT_OF_DIAGONAL], board[TicTacToeRules.THIRD_ELEMENT_OF_DIAGONAL]))
         {
             GameStatus = $"{board[TicTacToeRules.FIRST_ELEMENT_OF_DIAGONAL]} wins!";

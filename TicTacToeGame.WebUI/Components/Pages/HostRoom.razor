@@ -1,4 +1,5 @@
 ﻿@page "/host-room"
+@using Microsoft.AspNetCore.SignalR.Client
 
 @using Microsoft.AspNetCore.SignalR.Client
 @using System.Security.Claims
@@ -8,7 +9,8 @@
 @using TicTacToeGame.Domain.Models
 @using TicTacToeGame.Domain.Repositories
 @using TicTacToeGame.Services.RoomServices
-@using TicTacToeGame.WebUI.Services
+@using TicTacToeGame.WebUI.Services;
+@using TicTacToeGame.WebUI.Services.RoomBackgroundServices
 
 @inject NavigationManager _navigationManager
 @inject RoomRepository _roomRepository
@@ -21,7 +23,14 @@
 @rendermode InteractiveServer
 @implements IDisposable
 
+
+
 <h3>HostRoom</h3>
+@if (isLoading)
+{
+    <h2>Loading...</h2>
+}
+
 @if (isTimerElapsed)
 {
     <div class="container">
@@ -56,6 +65,8 @@
     private Timer stopwatchtimer;
     private int waitingTime;// 30 seconds
 
+    private bool isLoading = false;
+
     private void InitializeRoom()
     {
         isTimerElapsed = false;
@@ -66,7 +77,7 @@
         {
             waitingTime--;
             InvokeAsync(StateHasChanged);
-            if(waitingTime == 0)
+            if (waitingTime == 0)
             {
                 stopwatchtimer.Stop();
                 stopwatchtimer.Dispose();
@@ -77,10 +88,10 @@
         stopwatchtimer.Start();
 
         Room room = new Room()
-        {
-            ConnectionId = new Random().Next(100_000, 1_000_000),
-            IsOpen = true
-        };
+            {
+                ConnectionId = new Random().Next(100_000, 1_000_000),
+                IsOpen = true
+            };
         _connectionId = room.ConnectionId.ToString();
 
         _roomBackgroundService.OnRoomDeleted = () =>
@@ -121,17 +132,25 @@
 
                     // add checking if user is null
                     TicTacToeGame.Domain.Models.Game game = new()
-                    {
-                        PlayerHostId = user.Claims.First().Value.ToString(),
-                        PlayerGuestId = joinPlayer.Id,
-                        RoomId = roomId,
-                        GameResult = GameState.Starting,
-                        CurrentTurn = PlayerType.Host
-                    };
+                        {
+                            PlayerHostId = user.Claims.First().Value.ToString(),
+                            PlayerGuestId = joinPlayer.Id,
+                            RoomId = roomId,
+                            GameResult = GameState.Starting,
+                            CurrentTurn = PlayerType.Host
+                        };
 
                     _gameRepository.AddEntity(game);
-                    await hubConnection.SendAsync("AcceptJoining", room.ConnectionId);
+                    await hubConnection.SendAsync("JoinGame", game.UniqueId);
+
+                    await hubConnection.SendAsync("AcceptJoining", room.ConnectionId, game.UniqueId);
                     _navigationManager.NavigateTo("/game");
+
+                    await InvokeAsync(() =>
+                         {
+                             isLoading = true;
+                             StateHasChanged();
+                         });
                     // maybe update player type
 
                     // connect game to room
@@ -147,37 +166,6 @@
         });
         await hubConnection.StartAsync();
     }
-
-    // private void UpdateTime(object sender, ElapsedEventArgs e)
-    // {
-    //     if (_stopwatch.IsRunning)
-    //     {
-    //         InvokeAsync(StateHasChanged);
-    //     }
-
-    // }
-
-    // private void DeleteRoom(Room room, Timer timer)
-    // {
-    //     InvokeAsync(() =>
-    //     {
-    //         _stopwatch.Stop();
-    //         _stopwatch.Reset();
-
-    //         isTimerElapsed = true;
-    //         //room.IsOpen = false;
-    //         rooms[room].Stop();
-    //         rooms.Where(k => k.Key.ConnectionId == room.ConnectionId).Select(k => k.Key).First().IsOpen = false;
-    //         rooms.Remove(room);
-    //         StateHasChanged();
-    //     });
-    // }
-    // maybe add deleting room and in another methods
-
-    // private void OnTimerElapsed(object sender, ElapsedEventArgs e)
-    // {
-
-    // }
     public void Dispose()
     {
         hubConnection.DisposeAsync();

@@ -7,9 +7,17 @@ namespace TicTacToeGame.Domain.Repositories
 {
     public abstract class BaseRepository<T> where T : class
     {
-        protected readonly Policy policy = Policy.Handle<SqlException>()
-            .WaitAndRetry(2, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
-
+        protected readonly Policy policy = Policy.Handle<SqlException>(e => e.Number == -2) // Only retry on SQL timeout exceptions
+        .Or<TimeoutException>() // Also retry on general timeout exceptions
+        .WaitAndRetry(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+        onRetry: (exception, timeSpan, retryCount, context) =>
+        {
+            // Only retry if the operation is not user-initiated
+            if (context.ContainsKey("UserInitiated") && (bool)context["UserInitiated"])
+            {
+                throw new Exception("Operation failed", exception);
+            }
+        });
         private readonly IDbConnection _db;
         public BaseRepository(string connstring)
         {

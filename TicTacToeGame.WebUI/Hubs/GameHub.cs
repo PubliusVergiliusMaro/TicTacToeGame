@@ -6,9 +6,10 @@ namespace TicTacToeGame.WebUI.Hubs
 {
     public class GameHub : Hub
     {
-        public async Task AcceptJoining(int roomId)
+        public async Task AcceptJoining(int roomId, Guid gameId)
         {
-            await Clients.All.SendAsync("AcceptJoining", roomId);
+            await Groups.AddToGroupAsync(Context.ConnectionId, gameId.ToString());
+            await Clients.All.SendAsync("AcceptJoining", roomId,gameId);
         }
         public async Task JoinRoom(int roomId, Player player)
         {
@@ -18,31 +19,50 @@ namespace TicTacToeGame.WebUI.Hubs
         {
             await Clients.Group(roomId.ToString()).SendAsync("ReceiveUpdatedBoard", updatedBoard);
         }*/
-        public async Task SendGameState(BoardElements[] board, PlayerType nextPlayerTurn)
+        public async Task SendGameState(BoardElements[] board, PlayerType nextPlayerTurn,Guid gameId)
         {
-            await Clients.All.SendAsync("SendGameState", board, nextPlayerTurn);
+            await Clients.All.SendAsync("SendGameState", board, nextPlayerTurn,gameId);
         }
-        public async Task SendGameStatus(GameState gameState,string gameStatus)
+        public async Task SendGameStatus(GameState gameState,string gameStatus, Guid gameId)
         {
-            await Clients.All.SendAsync("SendGameStatus", gameState, gameStatus);
+            await Clients.All.SendAsync("SendGameStatus", gameState, gameStatus,gameId);
         }
         public async Task DeclineJoining(string message)
         {
             await Clients.All.SendAsync("DeclineJoining", message);
         }
-        //public async Task JoinGroup(string groupName)
+        public async Task JoinGame(Guid gameId)
+        {
+             await Groups.AddToGroupAsync(Context.ConnectionId, gameId.ToString());
+        }
+        public async Task SendGroupMessage(Guid gameId)
+        {
+            await Clients.All.SendAsync("SendGroupMessage", gameId.ToString());
+            //await Clients.Group(gameId.ToString()).SendAsync("SendGroupMessage",gameId.ToString());
+        }
+        //public async Task ReceiveGroupMessage(Guid gameId)
         //{
-        //    await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
+        //    await Clients.Group(gameId.ToString()).SendAsync("ReceiveGroupMessage",gameId.ToString());
         //}
+        public async Task LeaveGame(string groupName)
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
+        }
+        public async Task SendMessageToGroup(Guid gameId, string message)
+        {
+            await Clients.Group(gameId.ToString()).SendAsync("ReceiveMessage", message);
+        }
 
-        //public async Task SendGameStateToGroup(string groupName, BoardElements[] board, PlayerType nextPlayerTurn)
-        //{
-        //    await Clients.Group(groupName).SendAsync("SendGameStateToGroup", board, nextPlayerTurn);
-        //}
+        public override async Task OnConnectedAsync()// Implement
+        {
+            Console.WriteLine(Context.ConnectionId + " connected.");
+            await base.OnConnectedAsync();
+        }
 
-        //public async Task SendGameStatusToGroup(string groupName, GameState gameState, string gameStatus)
-        //{
-        //    await Clients.Group(groupName).SendAsync("SendGameStatusToGroup", gameState, gameStatus);
-        //}
+        public override async Task OnDisconnectedAsync(Exception exception)// Implement
+        {
+            Console.WriteLine(Context.ConnectionId + " disconnected.");
+            await base.OnDisconnectedAsync(exception);
+        }
     }
 }

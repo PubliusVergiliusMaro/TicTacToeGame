@@ -45,10 +45,11 @@
             .WithUrl(_navigationManager.ToAbsoluteUri("/gameHub"))
             .Build();
 
-        hubConnection.On<int>("AcceptJoining", (joinedRoomId) =>
+        hubConnection.On<int,Guid>("AcceptJoining", async(joinedRoomId,gameId) =>
         {
             if (_roomId == joinedRoomId)
             {
+                await hubConnection.SendAsync("JoinGame", gameId);
                 _navigationManager.NavigateTo("/game");
             }
         });
