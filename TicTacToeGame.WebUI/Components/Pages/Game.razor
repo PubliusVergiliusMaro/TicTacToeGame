@@ -1,6 +1,7 @@
 ﻿@page "/game"
 
 @using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.AspNetCore.SignalR;
 @using TicTacToeGame.Domain.Constants
 @using TicTacToeGame.Domain.Enums
 @using TicTacToeGame.Domain.Models
@@ -8,6 +9,7 @@
 @using TicTacToeGame.Domain.Repositories
 @using TicTacToeGame.Services.GamesStatisticServices
 @using TicTacToeGame.WebUI.Components.Account
+
 @inject NavigationManager _navigationManager
 @inject PlayerRepository _playerRepository
 @inject GameRepository _gameRepository
@@ -18,9 +20,13 @@
 
 @implements IDisposable
 @rendermode InteractiveServer
-                             
-<h1 style="text-align: center;">Tic Tac Toe Game</h1>
 
+<h1 style="text-align: center;">Tic Tac Toe Game</h1>
+@if (opponentLeaves)
+{
+    <h3 style="text-align: center;">Player @livedPlayerName leaves game</h3>
+
+}
 <div style="display: flex; flex-direction: column; align-items: center;">
     @for (int row = TicTacToeRules.FIRST_ROW_OF_BOARD; row < TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS; row++)
     {
@@ -40,29 +46,44 @@
 <p>@GameStatus</p>
 
 @code {
-
+    // Board
     private BoardElements[] board = new BoardElements[TicTacToeRules.BOARD_SIZE];
-    private string GameStatus = "";
+
+    // For checking current move number
     private int counter;
+
+    // Display who win
+    // Are using in signalR
+    private string GameStatus = "";
+    private string gameId = "";
+    // Current game
     private TicTacToeGame.Domain.Models.Game CurrentGame = new();
-    private HubConnection hubConnection;
     Player currentPlayerHost;
     Player currentPlayerGuest;
+
+    // SignalR
+    private HubConnection hubConnection;
+
+    private bool canDisplay = false;
+    private bool opponentLeaves = false;
+
+    private string livedPlayerName = "";
+
     protected override async Task OnInitializedAsync()
     {
         GameStatus = "Game in progress";
+
         await HandleGameForAuthenticatedUser();
         
         currentPlayerHost = _playerRepository.GetById(CurrentGame.PlayerHostId);
         currentPlayerGuest = _playerRepository.GetById(CurrentGame.PlayerGuestId);
-        
-        
+
 
         hubConnection = new HubConnectionBuilder()
             .WithUrl(_navigationManager.ToAbsoluteUri("/gameHub"))
             .Build();
 
-        hubConnection.On<BoardElements[], PlayerType>("SendGameState", (receivedBoard, nextPlayerTurn) =>
+        hubConnection.On<BoardElements[], PlayerType, Guid>("SendGameState", (receivedBoard, nextPlayerTurn, gameId) =>
         {
             InvokeAsync(() =>
             {
@@ -71,7 +92,7 @@
                 StateHasChanged();
             });
         });
-        hubConnection.On<GameState,string>("SendGameStatus", (receiveGameResult,receiveGameStatus) =>
+        hubConnection.On<GameState, string, Guid>("SendGameStatus", (receiveGameResult, receiveGameStatus, gameId) =>
         {
             InvokeAsync(() =>
             {
@@ -80,7 +101,61 @@
                 StateHasChanged();
             });
         });
+
+        hubConnection.On<Guid>("SendGroupMessage", (gameId) =>
+        {
+            InvokeAsync(() =>
+            {
+                this.gameId = gameId.ToString();
+                canDisplay = true;
+                StateHasChanged();
+            });
+        });
+
+        hubConnection.On<string>("UserDisconnected", (connectionId) =>
+        {
+            InvokeAsync(() =>
+            {
+                if (currentPlayerHost.GameConnectionId == connectionId
+                    || currentPlayerGuest.GameConnectionId == connectionId)
+                {
+                    if (currentPlayerHost.GameConnectionId == connectionId)
+                    {
+                        livedPlayerName = currentPlayerHost.UserName;
+                    }
+                    else
+                    {
+                        livedPlayerName = currentPlayerGuest.UserName;
+                    }
+                    // - Firstly we should know if it this connectionId contains one of our players, host or guest
+                    // - Then we should display message that opponent leaved the game only for the player that was opponent for
+                    //   the player that leaved the game
+
+                    opponentLeaves = true;
+                    StateHasChanged();
+                    // TODO: 
+                    // - Add manipulation with game and players in DB
+                    
+                    CurrentGame.GameResult = GameState.Declined;
+                    CurrentGame.Winner = PlayerType.None;
+
+                    _gameRepository.UpdateEntity(CurrentGame);
+                }
+            });
+        });
+
         await hubConnection.StartAsync();
+        await hubConnection.SendAsync("JoinGame", CurrentGame.UniqueId);
+
+        string currentClientConnectionId = hubConnection.ConnectionId;
+
+        // maybe add valdiation if users is null
+        _playerRepository.UpdatePlayerGameContextId(currentClientConnectionId, currentPlayerHost, currentPlayerGuest, user);
+        // maybe make some method for updating another player because on one client updates only one player
+
+        currentPlayerHost = _playerRepository.GetById(CurrentGame.PlayerHostId);
+        currentPlayerGuest = _playerRepository.GetById(CurrentGame.PlayerGuestId);
+
     }
     public async Task HandleGameForAuthenticatedUser()
     {
@@ -171,15 +246,13 @@
     private async Task SentGameState()
     {
         PlayerType nextPlayerTurn = (CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
-        await hubConnection.SendAsync("SendGameState", board, nextPlayerTurn);
+        await hubConnection.SendAsync("SendGameState", board, nextPlayerTurn, CurrentGame.UniqueId);
     }
 
     private async Task SendGameStatus()
     {
-        await hubConnection.SendAsync("SendGameStatus", CurrentGame.GameResult, GameStatus);
+        await hubConnection.SendAsync("SendGameStatus", CurrentGame.GameResult, GameStatus, CurrentGame.UniqueId);
     }
-
-
 
     private bool CheckForWinner()
     {
@@ -199,6 +272,7 @@
     }
     private bool CheckRowsForWinner()
     {
+
         for (int row = TicTacToeRules.FIRST_ROW_OF_BOARD; row < TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS; row++)
         {
             if (AreAllEqual(board[row * TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS],
@@ -258,7 +332,6 @@
     private bool IsButtonDisabled(int index)
     {
         return CurrentGame.GameResult == GameState.Finished;
-
     }
 
     public void Dispose()

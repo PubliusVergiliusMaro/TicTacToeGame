@@ -16,7 +16,7 @@
 
 <h3>JoinRoom</h3>
 <h4>@_declineMessage</h4>
-<div class="card">
+
     <div class="row">
         <h4 class="col-5">Enter Room Id:</h4>
         <input type="text" class="col-5" @bind="@_roomId" />
@@ -26,7 +26,7 @@
             Join Room
         </button>
     </div>
-</div>
+
 
 @code {
     private HubConnection hubConnection;
@@ -45,10 +45,11 @@
             .WithUrl(_navigationManager.ToAbsoluteUri("/gameHub"))
             .Build();
 
-        hubConnection.On<int>("AcceptJoining", (joinedRoomId) =>
+        hubConnection.On<int,Guid>("AcceptJoining", async(joinedRoomId,gameId) =>
         {
             if (_roomId == joinedRoomId)
             {
+                await hubConnection.SendAsync("JoinGame", gameId);
                 _navigationManager.NavigateTo("/game");
             }
         });

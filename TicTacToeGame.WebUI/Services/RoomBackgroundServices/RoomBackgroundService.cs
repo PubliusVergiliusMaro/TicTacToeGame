@@ -1,7 +1,7 @@
 ﻿using TicTacToeGame.Domain.Models;
 using Timer = System.Timers.Timer;
 
-namespace TicTacToeGame.WebUI.Services
+namespace TicTacToeGame.WebUI.Services.RoomBackgroundServices
 {
     public class RoomBackgroundService : BackgroundService
     {
@@ -20,7 +20,7 @@ namespace TicTacToeGame.WebUI.Services
         public Dictionary<Room, (Timer, Action)> OpenedRooms => _openedRooms;
         public void AddRoom(Room room, Action onRoomDeleted)
         {
-            System.Timers.Timer timer = new System.Timers.Timer(10_000); // Example 5 seconds
+            Timer timer = new Timer(10_000); // Example 5 seconds
             timer.Elapsed += (sender, e) => DeleteRoom(room);
             timer.AutoReset = false;
             timer.Start();
