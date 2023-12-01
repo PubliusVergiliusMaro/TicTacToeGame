@@ -21,24 +21,26 @@ namespace TicTacToeGame.WebUI.Hubs
         }*/
         public async Task SendGameState(BoardElements[] board, PlayerType nextPlayerTurn,Guid gameId)
         {
-            await Clients.All.SendAsync("SendGameState", board, nextPlayerTurn,gameId);
+            await Clients.Group(gameId.ToString()).SendAsync("SendGameState", board, nextPlayerTurn, gameId);
+            //await Clients.All.SendAsync("SendGameState", board, nextPlayerTurn,gameId);
         }
         public async Task SendGameStatus(GameState gameState,string gameStatus, Guid gameId)
         {
-            await Clients.All.SendAsync("SendGameStatus", gameState, gameStatus,gameId);
-        }
-        public async Task DeclineJoining(string message)
-        {
-            await Clients.All.SendAsync("DeclineJoining", message);
+            await Clients.Group(gameId.ToString()).SendAsync("SendGameStatus", gameState, gameStatus,gameId);
+            //await Clients.All.SendAsync("SendGameStatus", gameState, gameStatus,gameId);
         }
         public async Task JoinGame(Guid gameId)
         {
              await Groups.AddToGroupAsync(Context.ConnectionId, gameId.ToString());
         }
+        public async Task DeclineJoining(string message)
+        {
+            await Clients.All.SendAsync("DeclineJoining", message);
+        }
         public async Task SendGroupMessage(Guid gameId)
         {
-            await Clients.All.SendAsync("SendGroupMessage", gameId.ToString());
-            //await Clients.Group(gameId.ToString()).SendAsync("SendGroupMessage",gameId.ToString());
+            //await Clients.All.SendAsync("SendGroupMessage", gameId.ToString());
+            await Clients.Group(gameId.ToString()).SendAsync("SendGroupMessage",gameId.ToString());
         }
         //public async Task ReceiveGroupMessage(Guid gameId)
         //{
@@ -59,9 +61,9 @@ namespace TicTacToeGame.WebUI.Hubs
             await base.OnConnectedAsync();
         }
 
-        public override async Task OnDisconnectedAsync(Exception exception)// Implement
+        public override async Task OnDisconnectedAsync(Exception exception)
         {
-            Console.WriteLine(Context.ConnectionId + " disconnected.");
+            await Clients.All.SendAsync("UserDisconnected", Context.ConnectionId);
             await base.OnDisconnectedAsync(exception);
         }
     }

@@ -7,6 +7,7 @@ namespace TicTacToeGame.Domain.Repositories
 {
     public abstract class BaseRepository<T> where T : class
     {
+        // check for polly configuration
         protected readonly Policy policy = Policy.Handle<SqlException>(e => e.Number == -2) // Only retry on SQL timeout exceptions
         .Or<TimeoutException>() // Also retry on general timeout exceptions
         .WaitAndRetry(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
@@ -19,8 +20,10 @@ namespace TicTacToeGame.Domain.Repositories
             }
         });
         private readonly IDbConnection _db;
+        private string _connectionString;
         public BaseRepository(string connstring)
         {
+            _connectionString = connstring;
             _db = new SqlConnection(connstring);
         }
 
@@ -45,9 +48,16 @@ namespace TicTacToeGame.Domain.Repositories
         }
         public virtual void UpdateEntity(T entity)
         {
-            _db.Open();
-            _db.BulkUpdate(entity);
-            _db.Close();
+            policy.Execute(() =>
+            {
+                // check if here needs this using
+                using (var db = new SqlConnection(_connectionString))
+                {
+                    db.Open();
+                    db.BulkUpdate(entity);
+                    db.Close();
+                }
+            });
         }
         public virtual void DeleteEntity(T entity)
         {

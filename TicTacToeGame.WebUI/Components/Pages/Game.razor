@@ -1,6 +1,7 @@
 ﻿@page "/game"
 
 @using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.AspNetCore.SignalR;
 @using TicTacToeGame.Domain.Constants
 @using TicTacToeGame.Domain.Enums
 @using TicTacToeGame.Domain.Models
@@ -18,7 +19,11 @@
 @rendermode InteractiveServer
 
 <h1 style="text-align: center;">Tic Tac Toe Game</h1>
+@if (opponentLeaves)
+{
+    <h3 style="text-align: center;">Player @livedPlayerName leaves game</h3>
 
+}
 <div style="display: flex; flex-direction: column; align-items: center;">
     @for (int row = 0; row < 3; row++)
     {
@@ -57,6 +62,9 @@
     private HubConnection hubConnection;
 
     private bool canDisplay = false;
+    private bool opponentLeaves = false;
+
+    private string livedPlayerName = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -75,6 +83,7 @@
         currentPlayerHost = _playerRepository.GetById(CurrentGame.PlayerHostId);
         currentPlayerGuest = _playerRepository.GetById(CurrentGame.PlayerGuestId);
 
+
         hubConnection = new HubConnectionBuilder()
             .WithUrl(_navigationManager.ToAbsoluteUri("/gameHub"))
             .Build();
@@ -83,24 +92,18 @@
         {
             InvokeAsync(() =>
             {
-                if (CurrentGame.UniqueId == gameId)
-                {
-                    board = receivedBoard;
-                    CurrentGame.CurrentTurn = nextPlayerTurn;
-                    StateHasChanged();
-                }
+                board = receivedBoard;
+                CurrentGame.CurrentTurn = nextPlayerTurn;
+                StateHasChanged();
             });
         });
         hubConnection.On<GameState, string, Guid>("SendGameStatus", (receiveGameResult, receiveGameStatus, gameId) =>
         {
             InvokeAsync(() =>
             {
-                if (CurrentGame.UniqueId == gameId)
-                {
-                    CurrentGame.GameResult = receiveGameResult;
-                    GameStatus = receiveGameStatus;
-                    StateHasChanged();
-                }
+                CurrentGame.GameResult = receiveGameResult;
+                GameStatus = receiveGameStatus;
+                StateHasChanged();
             });
         });
 
@@ -108,15 +111,53 @@
         {
             InvokeAsync(() =>
             {
-                if (CurrentGame.UniqueId == gameId)
+                this.gameId = gameId.ToString();
+                canDisplay = true;
+                StateHasChanged();
+            });
+        });
+
+        hubConnection.On<string>("UserDisconnected", (connectionId) =>
+        {
+            InvokeAsync(() =>
+            {
+                if (currentPlayerHost.GameConnectionId == connectionId
+                    || currentPlayerGuest.GameConnectionId == connectionId)
                 {
-                    this.gameId = gameId.ToString();
-                    canDisplay = true;
+                    if (currentPlayerHost.GameConnectionId == connectionId)
+                    {
+                        livedPlayerName = currentPlayerHost.UserName;
+                    }
+                    else
+                    {
+                        livedPlayerName = currentPlayerGuest.UserName;
+                    }
+                    // - Firstly we should know if it this connectionId contains one of our players, host or guest
+                    // - Then we should display message that opponent leaved the game only for the player that was opponent for
+                    //   the player that leaved the game
+
+                    opponentLeaves = true;
                     StateHasChanged();
+                    // TODO: 
+                    // - Add manipulation with game and players in DB
+                    
+                    //CurrentGame.GameResult == GameState.Finished;
                 }
             });
         });
+
         await hubConnection.StartAsync();
+        await hubConnection.SendAsync("JoinGame", CurrentGame.UniqueId);
+
+        string currentClientConnectionId = hubConnection.ConnectionId;
+
+        // maybe add valdiation if users is null
+        _playerRepository.UpdatePlayerGameContextId(currentClientConnectionId, currentPlayerHost, currentPlayerGuest, user);
+        // maybe make some method for updating another player because on one client updates only one player
+
+        currentPlayerHost = _playerRepository.GetById(CurrentGame.PlayerHostId);
+        currentPlayerGuest = _playerRepository.GetById(CurrentGame.PlayerGuestId);
+
     }
 
     private async Task MakeMove(int index)
@@ -173,7 +214,7 @@
     private async Task SentGameState()
     {
         PlayerType nextPlayerTurn = (CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
-        await hubConnection.SendAsync("SendGameState", board, nextPlayerTurn,CurrentGame.UniqueId);
+        await hubConnection.SendAsync("SendGameState", board, nextPlayerTurn, CurrentGame.UniqueId);
     }
 
     private async Task SendGameStatus()
@@ -181,11 +222,8 @@
         await hubConnection.SendAsync("SendGameStatus", CurrentGame.GameResult, GameStatus, CurrentGame.UniqueId);
     }
 
-
-
     private bool CheckForWinner()
     {
-
         for (int row = TicTacToeRules.FIRST_ROW_OF_BOARD; row < TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS; row++)
         {   //Check row
             if (AreAllEqual(board[row * TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS],
@@ -243,7 +281,6 @@
     private bool IsButtonDisabled(int index)
     {
         return CurrentGame.GameResult == GameState.Finished;
-
     }
 
     public void Dispose()

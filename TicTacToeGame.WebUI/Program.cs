@@ -19,12 +19,14 @@ using TicTacToeGame.WebUI.Services.RoomBackgroundServices;
         Game:
       
          - Divide players into groups and make that they can`t see each other moves
-         - I think MediatR should be added to the game         
+
          - When user leaves the game - game should signal another player that he left
+
          - And when user back to the game - he should see the game state
          
         HostRoom:
          - Fix bug that when you refresh Room connection Id loads twice
+
          - Add service that will return unique Id according to that he already generated        
 
         JoinRoom:
@@ -37,6 +39,8 @@ using TicTacToeGame.WebUI.Services.RoomBackgroundServices;
         Global: 
         - Add error handling to the pages (I think it should be SignalR that will return to specific page some error)
         - Fix slow loading game component (I think it is because if intervals of waiting of Polly in repositories)
+
+        - Add two buttons 
  */
 
 
