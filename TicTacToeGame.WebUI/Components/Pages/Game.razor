@@ -64,20 +64,22 @@
     // SignalR
     private HubConnection hubConnection;
 
-    private bool canDisplay = false;
+
     private bool opponentLeaves = false;
 
     private string livedPlayerName = "";
+
+    private AuthenticationState authState;
+    private ClaimsPrincipal? user;
 
     protected override async Task OnInitializedAsync()
     {
         GameStatus = "Game in progress";
 
         await HandleGameForAuthenticatedUser();
-        
+
         currentPlayerHost = _playerRepository.GetById(CurrentGame.PlayerHostId);
         currentPlayerGuest = _playerRepository.GetById(CurrentGame.PlayerGuestId);
-
 
         hubConnection = new HubConnectionBuilder()
             .WithUrl(_navigationManager.ToAbsoluteUri("/gameHub"))
@@ -107,7 +109,6 @@
             InvokeAsync(() =>
             {
                 this.gameId = gameId.ToString();
-                canDisplay = true;
                 StateHasChanged();
             });
         });
@@ -116,8 +117,9 @@
         {
             InvokeAsync(() =>
             {
+
                 if (currentPlayerHost.GameConnectionId == connectionId
-                    || currentPlayerGuest.GameConnectionId == connectionId)
+                || currentPlayerGuest.GameConnectionId == connectionId)
                 {
                     if (currentPlayerHost.GameConnectionId == connectionId)
                     {
@@ -133,13 +135,15 @@
 
                     opponentLeaves = true;
                     StateHasChanged();
-                    // TODO: 
+                    // TODO:
                     // - Add manipulation with game and players in DB
-                    
-                    CurrentGame.GameResult = GameState.Declined;
-                    CurrentGame.Winner = PlayerType.None;
+                    if (CurrentGame.GameResult == GameState.InProgress)
+                    {
+                        CurrentGame.GameResult = GameState.Declined;
+                        CurrentGame.Winner = PlayerType.None;
 
-                    _gameRepository.UpdateEntity(CurrentGame);
+                        _gameRepository.UpdateEntity(CurrentGame);
+                    }
                 }
             });
         });
@@ -147,20 +151,22 @@
         await hubConnection.StartAsync();
         await hubConnection.SendAsync("JoinGame", CurrentGame.UniqueId);
 
-        string currentClientConnectionId = hubConnection.ConnectionId;
-
+        UpdatePlayersGameData(hubConnection.ConnectionId);
+    }
+    private void UpdatePlayersGameData(string connectionId)
+    {
         // maybe add valdiation if users is null
-        _playerRepository.UpdatePlayerGameContextId(currentClientConnectionId, currentPlayerHost, currentPlayerGuest, user);
+
         // maybe make some method for updating another player because on one client updates only one player
+        _playerRepository.UpdatePlayerGameContextId(connectionId, currentPlayerHost, currentPlayerGuest, user);
 
         currentPlayerHost = _playerRepository.GetById(CurrentGame.PlayerHostId);
         currentPlayerGuest = _playerRepository.GetById(CurrentGame.PlayerGuestId);
-
     }
     public async Task HandleGameForAuthenticatedUser()
     {
-        AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
-        ClaimsPrincipal? user = authState.User;
+        authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
+        user = authState.User;
 
         if (IsAuthenticatedUserWithGame(user, out var userId))
         {
@@ -219,8 +225,8 @@
     }
     private async Task<bool> IsCurrentPlayersTurn()
     {
-        AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
-        ClaimsPrincipal? user = authState.User;
+        authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
+        user = authState.User;
 
         return (CurrentGame.CurrentTurn == PlayerType.Host && user.Claims.First().Subject.Name == currentPlayerHost.UserName) ||
         (CurrentGame.CurrentTurn == PlayerType.Guest && user.Claims.First().Subject.Name == currentPlayerGuest.UserName);

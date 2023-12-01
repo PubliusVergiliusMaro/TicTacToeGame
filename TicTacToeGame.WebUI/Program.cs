@@ -16,6 +16,8 @@ using TicTacToeGame.WebUI.Services.RoomBackgroundServices;
          ? Create procedure where I just enters user id and it returns all his games
 
         Game:
+         - Add that current player can`t play with himself
+
          - Add Board To Db
 
          - Finish with player leaving the game(add updated game to db)
