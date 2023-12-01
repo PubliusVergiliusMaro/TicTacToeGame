@@ -13,11 +13,13 @@ using TicTacToeGame.WebUI.Services.RoomBackgroundServices;
 
 /*  // TODO:
         GamesStatistics:
-
          ? Create procedure where I just enters user id and it returns all his games
 
         Game:
-      
+         - Add Board To Db
+
+         - Finish with player leaving the game(add updated game to db)
+
          - Divide players into groups and make that they can`t see each other moves
 
          - When user leaves the game - game should signal another player that he left

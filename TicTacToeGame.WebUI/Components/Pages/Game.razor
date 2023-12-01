@@ -141,7 +141,10 @@
                     // TODO: 
                     // - Add manipulation with game and players in DB
                     
-                    //CurrentGame.GameResult == GameState.Finished;
+                    CurrentGame.GameResult = GameState.Declined;
+                    CurrentGame.Winner = PlayerType.None;
+
+                    _gameRepository.UpdateEntity(CurrentGame);
                 }
             });
         });
