@@ -24,14 +24,15 @@ public class GameInitializeProcess :GameManagerBase
         _gameRepository = gameRepository;
         _navigationManager = navigationManager;
     }
+
     public async Task<ClaimsPrincipal> HandleGameForAuthenticatedUser(AuthenticationState authState)
     {
         authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
         ClaimsPrincipal? user = authState.User;
 
-        if (IsAuthenticatedUserWithGame(user, out var userId))
+        
+        if (IsAuthenticatedUserWithGame(user, out var userId)&&CurrentGame.GameResult==GameState.Starting)
         {
-            CurrentGame = _gameRepository.GetByUsersId(userId);
             return user;
         }
         else
@@ -49,7 +50,8 @@ public class GameInitializeProcess :GameManagerBase
         if (user?.Identity?.IsAuthenticated == true)
         {
             userId = user.Claims.First().Value.ToString();
-            return _gameRepository.GetByUsersId(userId) is not null;
+            CurrentGame = _gameRepository.GetByUsersId(userId);
+            return CurrentGame is not null;
         }
 
         return false;

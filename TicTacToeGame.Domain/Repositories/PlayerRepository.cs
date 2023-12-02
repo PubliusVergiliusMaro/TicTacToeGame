@@ -21,6 +21,7 @@ namespace TicTacToeGame.Domain.Repositories
 
         public Player? GetById(string id)
         {
+            //try cath
             return policy.Execute(() =>
             {
                 // check if here needs this using

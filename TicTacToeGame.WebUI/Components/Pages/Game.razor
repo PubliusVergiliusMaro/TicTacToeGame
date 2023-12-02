@@ -201,11 +201,6 @@
 
     public void Dispose()
     {
-        if (CurrentGame is not null)
-        {
-            CurrentGame.GameResult = GameState.Finished;
-            _gameRepository.UpdateEntity(CurrentGame);
-        }
         hubConnection?.DisposeAsync();
     }
 }
