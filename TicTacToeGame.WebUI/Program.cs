@@ -14,38 +14,20 @@ using TicTacToeGame.WebUI.Services.RoomBackgroundServices;
 
 /*  // TODO:
         GamesStatistics:
+         
          ? Create procedure where I just enters user id and it returns all his games
 
         Game:
-         - Add that current player can`t play with himself
 
-         - Add Board To Db
+         ? And when user back to the game - he should see the game state
 
-         - Finish with player leaving the game(add updated game to db)
-
-         - Divide players into groups and make that they can`t see each other moves
-
-         - When user leaves the game - game should signal another player that he left
-
-         - And when user back to the game - he should see the game state
-         
-        HostRoom:
-         - Fix bug that when you refresh Room connection Id loads twice
-
-         - Add service that will return unique Id according to that he already generated        
-
-        JoinRoom:
-        - Fix bug with timers that when message comes before timer elapsed - timer elapsing will also affect
-        new comming messages
-
-        Db:
-        - Add to the procedures not taking that entities that are soft deleted
+         ? Add Board To Db
 
         Global: 
-        - Add error handling to the pages (I think it should be SignalR that will return to specific page some error)
-        - Fix slow loading game component (I think it is because if intervals of waiting of Polly in repositories)
 
-        - Add two buttons 
+        - Add error handling to the pages (I think it should be SignalR that will return to specific page some error)
+        
+        ? Fix slow loading game component (I think it is because if intervals of waiting of Polly in repositories)
  */
 
 

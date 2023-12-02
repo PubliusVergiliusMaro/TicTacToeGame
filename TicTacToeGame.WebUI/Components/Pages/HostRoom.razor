@@ -16,43 +16,49 @@
 @inject GameRepository _gameRepository
 @inject PlayerRepository _playerRepository
 @inject AuthenticationStateProvider _authenticationStateProvider
-@* @inject RoomService _roomService *@
 @inject RoomBackgroundService _roomBackgroundService
 
 @rendermode InteractiveServer
 @implements IDisposable
 
-
-
-<h3>HostRoom</h3>
-@if (isLoading)
-{
-    <h2>Loading...</h2>
-}
-
-@if (isTimerElapsed)
-{
-    <div class="container">
-        <div class="row d-flex align-items-center">
-            <div class="col-7">
-                <div class="alert alert-secondary">Time of your room Id has run out</div>
-            </div>
-            <div class="col-3">
-                <input type="button" class="btn btn-primary" value="Refresh" @onclick="InitializeRoom" />
-            </div>
+<section>
+    <div>
+        <div class="top-row d-flex justify-content-end">
+            <a href="join-room">Enter Code</a>
         </div>
-    </div>
-}
+        <h3>HostRoom</h3>
+        @if (isLoading)
+        {
+            <h2>Loading...</h2>
+        }
 
-<h4>Room Id: @_connectionId</h4>
-<h4>@waitingTime</h4>
+        @if (isTimerElapsed)
+        {
+            <div class="container">
+                <div class="row d-flex align-items-center">
+                    <div class="col-7">
+                        <div class="alert alert-secondary">Time of your room Id has run out</div>
+                    </div>
+                    <div class="col-3">
+                        <input type="button" class="btn btn-primary" value="Refresh" @onclick="InitializeRoom" />
+                    </div>
+                </div>
+            </div>
+        }
+
+        <h4>Room Id: @_connectionId</h4>
+        <h4>@waitingTime</h4>
+    </div>
+</section>
+
 @code {
-    // TODO:
-    // - Add validation if user if authorized and if not redirect to login page
+    // Constants
+    private const int WAITING_TIME = 10;//seconds
+    private const string LOADING_MESSAGE = "Loading...";
 
     // Room
-    //private static Dictionary<Room, Timer> rooms = new();
-    private string _connectionId;
+    private string _connectionId = LOADING_MESSAGE;
+    private Room room;
 
     // Timer
     private bool isTimerElapsed = false;
@@ -62,14 +68,15 @@
 
     // Stopwatch
     private Timer stopwatchtimer;
-    private int waitingTime;// 30 seconds
+    private int waitingTime = WAITING_TIME;// 30 seconds
 
+    // Loading
     private bool isLoading = false;
 
     private void InitializeRoom()
     {
+        waitingTime = WAITING_TIME;
         isTimerElapsed = false;
-        waitingTime = 10;
         stopwatchtimer = new Timer(1000);
         stopwatchtimer.AutoReset = true;
         stopwatchtimer.Elapsed += (sender, e) =>
@@ -86,7 +93,7 @@
         };
         stopwatchtimer.Start();
 
-        Room room = new Room()
+        room = new Room()
             {
                 ConnectionId = new Random().Next(100_000, 1_000_000),
                 IsOpen = true
@@ -108,8 +115,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        InitializeRoom();
-
         hubConnection = new HubConnectionBuilder()
             .WithUrl(_navigationManager.ToAbsoluteUri("/gameHub"))
             .Build();
@@ -132,13 +137,13 @@
 
                     // add checking if user is null
                     TicTacToeGame.Domain.Models.Game game = new()
-                    {
+                        {
                             PlayerHostId = user.Claims.First().Value.ToString(),
                             PlayerGuestId = joinPlayer.Id,
                             RoomId = roomId,
                             GameResult = GameState.Starting,
                             CurrentTurn = PlayerType.Host
-                    };
+                        };
 
                     _gameRepository.AddEntity(game);
                     await hubConnection.SendAsync("JoinGame", game.UniqueId);
@@ -166,6 +171,18 @@
         });
         await hubConnection.StartAsync();
     }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if (_connectionId == LOADING_MESSAGE)
+            {
+                InitializeRoom();
+            }
+        }
+    }
+
     public void Dispose()
     {
         hubConnection.DisposeAsync();

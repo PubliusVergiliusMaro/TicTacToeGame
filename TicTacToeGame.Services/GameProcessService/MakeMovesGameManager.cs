@@ -20,13 +20,15 @@ public class MakeMovesGameManager : GameManagerBase
     private readonly IGamesStatisticsService _gamesStatisticsService;
     private HubConnection _connection;
     private readonly CheckForWinnerManager _checkForWinnerManager;
+    private readonly GameRepository _gameRepository;
 
     public MakeMovesGameManager(AuthenticationStateProvider authenticationStateProvider,
-        IGamesStatisticsService gamesStatisticsService, CheckForWinnerManager checkForWinnerManager)
+        IGamesStatisticsService gamesStatisticsService, CheckForWinnerManager checkForWinnerManager, GameRepository gameRepository)
         : base(authenticationStateProvider)
     {
         _gamesStatisticsService = gamesStatisticsService;
         _checkForWinnerManager = checkForWinnerManager;
+        _gameRepository = gameRepository;
     }
     public void InitializePlayers(Player PlayerHost, Player PlayerGuest, HubConnection hubConnection)
     {
@@ -88,6 +90,10 @@ public class MakeMovesGameManager : GameManagerBase
 
         CurrentGame.GamesHistoryHostId = hostGamesHistory.Id;
         CurrentGame.GamesHistoryGuestId = guestGamesHistory.Id;
+        CurrentGame.Winner = CurrentGame.CurrentTurn;
+
+        _gameRepository.UpdateEntity(CurrentGame);
+
         await SendGameStatus(_checkForWinnerManager.GameStatus,CurrentGame);
     }
 

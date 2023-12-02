@@ -14,18 +14,25 @@
 @implements IDisposable
 @rendermode InteractiveServer
 
-<h3>JoinRoom</h3>
-<h4>@_declineMessage</h4>
+<section>
+    <div>
+        <div class="top-row d-flex justify-content-end">
+            <a href="host-room">Generate Code</a>
+        </div>
+        <h3>JoinRoom</h3>
+        <h4>@_declineMessage</h4>
 
-    <div class="row">
-        <h4 class="col-5">Enter Room Id:</h4>
-        <input type="text" class="col-5" @bind="@_roomId" />
+        <div class="row">
+            <h4 class="col-5">Enter Room Id:</h4>
+            <input type="text" class="col-5" @bind="@_roomId" />
+        </div>
+        <div class="row">
+            <button style="margin:30px 10px 10px 10px;height:50px; width:100px;" @onclick="JoinGameRoom">
+                Join Room
+            </button>
+        </div>
     </div>
-    <div class="row">
-        <button style="margin:30px 10px 10px 10px;height:50px; width:100px;" @onclick="JoinGameRoom">
-            Join Room
-        </button>
-    </div>
+</section>
 
 
 @code {
@@ -34,7 +41,7 @@
     private int _roomId;
     private string _userId;
     private string _declineMessage;
-
+    private Timer _resetTimer;
     protected override async Task OnInitializedAsync()
     {
         AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
@@ -45,7 +52,7 @@
             .WithUrl(_navigationManager.ToAbsoluteUri("/gameHub"))
             .Build();
 
-        hubConnection.On<int,Guid>("AcceptJoining", async(joinedRoomId,gameId) =>
+        hubConnection.On<int, Guid>("AcceptJoining", async (joinedRoomId, gameId) =>
         {
             if (_roomId == joinedRoomId)
             {
@@ -58,26 +65,34 @@
         hubConnection.On<string>("DeclineJoining", (declineMessage) =>
         {
             InvokeAsync(() =>
-            {
-                _declineMessage = declineMessage;
-                StateHasChanged();
-
-                var resetTimer = new Timer(4000);
-                resetTimer.Elapsed += (sender, e) =>
                 {
-                    InvokeAsync(() =>
-                {
-                    _declineMessage = "";
+                    _declineMessage = declineMessage;
                     StateHasChanged();
-                });
-                    // Dispose of the timer as it's no longer needed
-                    resetTimer.Dispose();
-                };
-                resetTimer.AutoReset = false;
-                resetTimer.Start();
-            });
-        });
 
+                    // Stop and reset the timer if it's already running
+                    if (_resetTimer != null)
+                    {
+                        _resetTimer.Stop();
+                        _resetTimer.Start();
+                    }
+                    else
+                    {
+                        _resetTimer = new Timer(4000);
+                        _resetTimer.Elapsed += (sender, e) =>
+                        {
+                            InvokeAsync(() =>
+                            {
+                                _declineMessage = "";
+                                StateHasChanged();
+                            });
+                            // Stop the timer as it's no longer needed
+                            _resetTimer.Stop();
+                        };
+                        _resetTimer.AutoReset = false;
+                        _resetTimer.Start();
+                    }
+                });
+        });
         await hubConnection.StartAsync();
     }
     private async Task JoinGameRoom()
@@ -93,9 +108,12 @@
         {
             await hubConnection.DisposeAsync();
         }
+        _resetTimer?.Dispose();
     }
+
     public void Dispose()
     {
         hubConnection?.DisposeAsync();
+        _resetTimer?.Dispose();
     }
 }
