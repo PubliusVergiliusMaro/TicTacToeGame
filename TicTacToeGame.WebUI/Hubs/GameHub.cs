@@ -51,7 +51,10 @@ namespace TicTacToeGame.WebUI.Hubs
         {
             await Clients.Group(gameId.ToString()).SendAsync("ReceiveMessage", message);
         }
-
+        public async Task UserLeaves(Guid gameId, string connectionId)
+        {
+            await Clients.Group(gameId.ToString()).SendAsync("OpponentLeaves", gameId, connectionId);
+        }
         public override async Task OnConnectedAsync()// Implement
         {
             Console.WriteLine(Context.ConnectionId + " connected.");

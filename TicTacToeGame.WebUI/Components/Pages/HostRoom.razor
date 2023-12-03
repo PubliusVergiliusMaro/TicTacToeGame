@@ -73,22 +73,22 @@
     // Loading
     private bool isLoading = false;
 
-    private void InitializeRoom()
+    private async Task InitializeRoom()
     {
         waitingTime = WAITING_TIME;
         isTimerElapsed = false;
         stopwatchtimer = new Timer(1000);
         stopwatchtimer.AutoReset = true;
-        stopwatchtimer.Elapsed += (sender, e) =>
+        stopwatchtimer.Elapsed += async (sender, e) =>
         {
             waitingTime--;
-            InvokeAsync(StateHasChanged);
+            await InvokeAsync(StateHasChanged);
             if (waitingTime == 0)
             {
                 stopwatchtimer.Stop();
                 stopwatchtimer.Dispose();
                 isTimerElapsed = true;
-                InvokeAsync(StateHasChanged);
+               await InvokeAsync(StateHasChanged);
             }
         };
         stopwatchtimer.Start();
@@ -100,16 +100,16 @@
             };
         _connectionId = room.ConnectionId.ToString();
 
-        _roomBackgroundService.OnRoomDeleted = () =>
+        _roomBackgroundService.OnRoomDeleted = async() =>
        {
            isTimerElapsed = true;
-           InvokeAsync(StateHasChanged);
+           await InvokeAsync(StateHasChanged);
        };
 
-        _roomBackgroundService.AddRoom(room, () =>
+        _roomBackgroundService.AddRoom(room, async() =>
        {
            isTimerElapsed = true;
-           InvokeAsync(StateHasChanged);
+           await InvokeAsync(StateHasChanged);
        });
     }
 
@@ -178,7 +178,7 @@
         {
             if (_connectionId == LOADING_MESSAGE)
             {
-                InitializeRoom();
+                await InitializeRoom();
             }
         }
     }
