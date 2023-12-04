@@ -22,9 +22,8 @@ namespace TicTacToeGame.Services.GamesStatisticServices
         {
             GamesHistory gamesHistory = await _gamesHistoryRepository.GetGamesHistoryByPlayerId(playerId);
             if (gamesHistory == null)
-            {  // handle null
-                // maybe send message to user that error occured
-                throw new Exception("Games history not found");
+            {
+                return null;
             }
             return gamesHistory;
         }
@@ -63,22 +62,49 @@ namespace TicTacToeGame.Services.GamesStatisticServices
 
         // Maybe refactor this method and return only GamesHistory with list of games
         public async Task<List<Game>> GetPlayedGames(string playerId)
-        {
-            // 1. we should know the player
-            // 2. we should get id of user's games history
-            // 3. we should get games by id of games history
-            GamesHistory gamesHistory = await GetGamesHistoryByPlayerId(playerId);
-
-            List<Game>? games = _gameRepository.GetGamesByGamesHistoryId(gamesHistory.Id);
-            if (games == null)
+        { // 1. we should know the player
+          // 2. we should get id of user's games history
+          // 3. we should get games by id of games history
+            try
             {
-                // handle null
-                // maybe send message to user that error occured
-                throw new Exception("Games not found");
-            }
+                // 1. Get the player's game history
+                GamesHistory gamesHistory = await GetGamesHistoryByPlayerId(playerId);
 
-            return games;
+                if (gamesHistory == null)
+                {
+                    throw new ArgumentNullException(nameof(gamesHistory), "Games history not found for the player");
+                }
+
+                // 2. Get games by the id of the games history
+                List<Game> games = _gameRepository.GetGamesByGamesHistoryId(gamesHistory.Id);
+
+                if (games == null)
+                {
+                    throw new InvalidOperationException("Games not found for the player");
+                }
+
+                return games;
+            }
+            catch (ArgumentNullException ex)
+            {
+                // Log the ArgumentNullException
+                Console.WriteLine($"ArgumentNullException in GetPlayedGames: {ex.Message}");
+                return null;
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Log the InvalidOperationException
+                Console.WriteLine($"InvalidOperationException in GetPlayedGames: {ex.Message}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                // Log any other exceptions for further analysis
+                Console.WriteLine($"Exception in GetPlayedGames: {ex.Message}");
+                return null;
+            }
         }
+
         public Player GetWinner(PlayerType? playerType, Player hostPlayer, Player guestPlayer)
         {
             switch (playerType)
@@ -96,9 +122,7 @@ namespace TicTacToeGame.Services.GamesStatisticServices
             Player player = _playerRepository.GetById(playerId);
             if (player == null)
             {
-                // handle null
-                // maybe send message to user that error occured
-                throw new Exception("Player not found");
+                return null;
             }
             return player;
         }

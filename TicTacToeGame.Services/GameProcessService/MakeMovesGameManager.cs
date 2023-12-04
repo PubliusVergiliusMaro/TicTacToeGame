@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics.Metrics;
 using System.Linq;
 using System.Security.Claims;
@@ -39,22 +41,50 @@ public class MakeMovesGameManager : GameManagerBase
     }
     public async Task MakeMove(int index, BoardElements[] board, Game CurrentGame, AuthenticationState authState, ClaimsPrincipal? user)
     {
-        if (board[index] == BoardElements.Empty && CurrentGame.GameResult == GameState.Starting)
+        try
         {
-            // Check if it's the correct player's turn
-            if (await IsCurrentPlayersTurn(CurrentGame,authState,user))
+            if (index < 0 || index >= board.Length)
             {
-                // Put X or O on cell
-                PlaceMoveOnCell(index, board, CurrentGame);
+                throw new IndexOutOfRangeException("Invalid index");
+            }
 
-                // Only after 3 movements can a player win
-                await CheckForWinnerAfterMoves(board, CurrentGame);
+            if (board[index] == BoardElements.Empty && CurrentGame.GameResult == GameState.Starting)
+            {
+                // Check if it's the correct player's turn
+                if (await IsCurrentPlayersTurn(CurrentGame, authState, user))
+                {
+                    // Put X or O on cell
+                    PlaceMoveOnCell(index, board, CurrentGame);
 
-                // Switch player turns
-                await SentGameState(board, CurrentGame);
+                    // Only after 3 movements can a player win
+                    await CheckForWinnerAfterMoves(board, CurrentGame);
+
+                    // Switch player turns
+                    await SentGameState(board, CurrentGame);
+                }
             }
         }
+        catch (IndexOutOfRangeException ex)
+        {
+            // Log or handle index out of range exception
+            Console.WriteLine($"Index out of range: {ex.Message}");
+            // You might want to throw or log here based on your application's needs
+        }
+        catch (NullReferenceException ex)
+        {
+            // Log or handle null reference exception
+            Console.WriteLine($"Null reference: {ex.Message}");
+            // You might want to throw or log here based on your application's needs
+        }
+        catch (Exception ex)
+        {
+            // Log or handle other exceptions
+            Console.WriteLine($"An unexpected error occurred: {ex.Message}");
+            // You might want to throw or log here based on your application's needs
+        }
     }
+
+
     private async Task<bool> IsCurrentPlayersTurn(Game CurrentGame, AuthenticationState authState, ClaimsPrincipal? user)
     {
         authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
@@ -83,19 +113,60 @@ public class MakeMovesGameManager : GameManagerBase
 
     private async Task FinishGameAndPutInHistory(Game CurrentGame)
     {
-        CurrentGame.GameResult = GameState.Finished;
+        try
+        {
+            CurrentGame.GameResult = GameState.Finished;
 
-        GamesHistory hostGamesHistory = await _gamesStatisticsService.GetGamesHistoryByPlayerId(CurrentPlayerHost.Id);
-        GamesHistory guestGamesHistory = await _gamesStatisticsService.GetGamesHistoryByPlayerId(CurrentPlayerGuest.Id);
+            if (_gamesStatisticsService == null || CurrentPlayerHost == null || CurrentPlayerGuest == null)
+            {
+                // Handle the case where required objects are null
+                throw new InvalidOperationException("One or more required objects are null.");
+            }
 
-        CurrentGame.GamesHistoryHostId = hostGamesHistory.Id;
-        CurrentGame.GamesHistoryGuestId = guestGamesHistory.Id;
-        CurrentGame.Winner = CurrentGame.CurrentTurn;
+            GamesHistory hostGamesHistory = await _gamesStatisticsService.GetGamesHistoryByPlayerId(CurrentPlayerHost.Id);
+            GamesHistory guestGamesHistory = await _gamesStatisticsService.GetGamesHistoryByPlayerId(CurrentPlayerGuest.Id);
 
-        _gameRepository.UpdateEntity(CurrentGame);
+            if (hostGamesHistory == null || guestGamesHistory == null)
+            {
+                // Handle the case where games history is not found
+                throw new InvalidOperationException("Games history not found for one or more players.");
+            }
 
-        await SendGameStatus(_checkForWinnerManager.GameStatus,CurrentGame);
+            CurrentGame.GamesHistoryHostId = hostGamesHistory.Id;
+            CurrentGame.GamesHistoryGuestId = guestGamesHistory.Id;
+            CurrentGame.Winner = CurrentGame.CurrentTurn;
+
+            _gameRepository.UpdateEntity(CurrentGame);
+
+            await SendGameStatus(_checkForWinnerManager.GameStatus, CurrentGame);
+        }
+        catch (NullReferenceException ex)
+        {
+            // Handle NullReferenceException
+            Console.WriteLine($"NullReferenceException: {ex.Message}");
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Handle InvalidOperationException
+            Console.WriteLine($"InvalidOperationException: {ex.Message}");
+        }
+        catch (DbUpdateException ex)
+        {
+            // Handle DbUpdateException
+            Console.WriteLine($"DbUpdateException: {ex.Message}");
+        }
+        catch (DataException ex)
+        {
+            // Handle DataException
+            Console.WriteLine($"DataException: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            // Handle any other unexpected exceptions
+            Console.WriteLine($"An unexpected error occurred: {ex.Message}");
+        }
     }
+
 
     private async Task SendGameStatus(string GameStatus, Game CurrentGame)
     {
