@@ -96,9 +96,13 @@ public class MakeMovesGameManager : GameManagerBase
 
     private void PlaceMoveOnCell(int index, BoardElements[] board,Game CurrentGame)
     {
-        board[index] = (CurrentGame.CurrentTurn == PlayerType.Host) ? BoardElements.X : BoardElements.O;
+        board[index] = DetermineWhoMakeMoveNow(CurrentGame);
         Counter++;
     }
+
+    public BoardElements DetermineWhoMakeMoveNow( Game CurrentGame) => 
+        (CurrentGame.CurrentTurn == PlayerType.Host) ? BoardElements.X : BoardElements.O;
+
 
     private async Task CheckForWinnerAfterMoves(BoardElements[] board,Game CurrentGame)
     {

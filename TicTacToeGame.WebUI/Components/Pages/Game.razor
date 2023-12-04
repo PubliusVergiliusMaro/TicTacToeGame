@@ -34,6 +34,9 @@
     <p style="margin-top: 20px; font-size: 18px; color: #fff; background-color: #14bdac; padding: 10px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
         @GameStatus
     </p>
+    <p style="margin-top: 20px; font-size: 18px; color: #fff; background-color: #14bdac; padding: 10px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+        Current turn now: @MakeMovesGameManager.DetermineWhoMakeMoveNow(CurrentGame).ToString()
+    </p>
     <table jsname="z2IlVe" class="KD6xlc" style="border-collapse: separate; border-spacing: 10px;">
         <tbody>
             @for (int row = TicTacToeRules.FIRST_ROW_OF_BOARD; row < TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS; row++)
