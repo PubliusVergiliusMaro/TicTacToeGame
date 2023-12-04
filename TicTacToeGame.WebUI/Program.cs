@@ -38,8 +38,11 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddCascadingAuthenticationState();
+
 builder.Services.AddScoped<IdentityUserAccessor>();
+
 builder.Services.AddScoped<IdentityRedirectManager>();
+
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
 
@@ -51,8 +54,10 @@ builder.Services.AddAuthentication(options =>
     .AddIdentityCookies();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
+
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddIdentityCore<Player>(options => options.SignIn.RequireConfirmedAccount = false)
@@ -61,8 +66,11 @@ builder.Services.AddIdentityCore<Player>(options => options.SignIn.RequireConfir
     .AddDefaultTokenProviders();
 
 builder.Services.AddSingleton<GamesHistoryRepository>(rep => new GamesHistoryRepository(connectionString));
+
 builder.Services.AddSingleton<GameRepository>(rep => new GameRepository(connectionString));
+
 builder.Services.AddSingleton<PlayerRepository>(rep => new PlayerRepository(connectionString));
+
 builder.Services.AddSingleton<RoomRepository>(rep => new RoomRepository(connectionString));
 
 builder.Services.AddScoped<IGamesStatisticsService, GamesStatisticsService>();
@@ -70,10 +78,14 @@ builder.Services.AddScoped<IGamesStatisticsService, GamesStatisticsService>();
 builder.Services.AddSingleton<IEmailSender<Player>, IdentityNoOpEmailSender>();
 
 builder.Services.AddSingleton<RoomBackgroundService>();
+
 builder.Services.AddScoped<GameInitializeProcess>();
+
 builder.Services.AddScoped<CheckForWinnerManager>();
+
 builder.Services.AddScoped<MakeMovesGameManager>();
-builder.Services.AddScoped<Game>();
+
+builder.Services.AddTransient<PlayerDisconectingTrackingService>();
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
