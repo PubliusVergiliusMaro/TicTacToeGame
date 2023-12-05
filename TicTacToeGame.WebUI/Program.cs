@@ -12,25 +12,6 @@ using TicTacToeGame.WebUI.Data;
 using TicTacToeGame.WebUI.Hubs;
 using TicTacToeGame.WebUI.Services.RoomBackgroundServices;
 
-/*  // TODO:
-        GamesStatistics:
-         
-         ? Create procedure where I just enters user id and it returns all his games
-
-        Game:
-
-         ? And when user back to the game - he should see the game state
-
-         ? Add Board To Db
-
-        Global: 
-
-        - Add error handling to the pages (I think it should be SignalR that will return to specific page some error)
-        
-        ? Fix slow loading game component (I think it is because if intervals of waiting of Polly in repositories)
- */
-
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -87,6 +68,12 @@ builder.Services.AddScoped<MakeMovesGameManager>();
 
 builder.Services.AddTransient<PlayerDisconectingTrackingService>();
 
+builder.Services.AddServerSideBlazor(options =>
+{
+    options.DisconnectedCircuitMaxRetained = 100;
+    options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromSeconds(5);
+});
+
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
     .WriteTo.Console()
@@ -113,7 +100,10 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
 
-app.MapHub<GameHub>("/gamehub");
+app.MapHub<GameHub>("/gamehub", options =>
+{
+
+});
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

@@ -18,7 +18,7 @@ namespace TicTacToeGame.Services.GameProcessService
         // SignalR Events
         public event Action UpdateComponent;
         public bool OpponentLeaved { get; set; } = false;
-        public string LivedPlayerName { get; set; } = "";// maybe remove and take from player
+        public string LivedPlayerName { get; set; } = "";
 
         // Timers
         public Timer _moveTimer;

@@ -83,6 +83,7 @@
     private HubConnection hubConnection;
     private string send = "";
 
+    // Authentication data
     private AuthenticationState authState;
     private ClaimsPrincipal? user;
 
@@ -96,6 +97,7 @@
         currentPlayerGuest = _playerRepository.GetById(CurrentGame.PlayerGuestId);
 
         hubConnection = new HubConnectionBuilder()
+            .WithKeepAliveInterval(TimeSpan.FromSeconds(30))
             .WithUrl(_navigationManager.ToAbsoluteUri("/gameHub"))
             .Build();
 
