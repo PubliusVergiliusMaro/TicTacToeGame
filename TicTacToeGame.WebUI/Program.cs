@@ -12,25 +12,6 @@ using TicTacToeGame.WebUI.Data;
 using TicTacToeGame.WebUI.Hubs;
 using TicTacToeGame.WebUI.Services.RoomBackgroundServices;
 
-/*  // TODO:
-        GamesStatistics:
-         
-         ? Create procedure where I just enters user id and it returns all his games
-
-        Game:
-
-         ? And when user back to the game - he should see the game state
-
-         ? Add Board To Db
-
-        Global: 
-
-        - Add error handling to the pages (I think it should be SignalR that will return to specific page some error)
-        
-        ? Fix slow loading game component (I think it is because if intervals of waiting of Polly in repositories)
- */
-
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -38,8 +19,11 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddCascadingAuthenticationState();
+
 builder.Services.AddScoped<IdentityUserAccessor>();
+
 builder.Services.AddScoped<IdentityRedirectManager>();
+
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
 
@@ -51,8 +35,10 @@ builder.Services.AddAuthentication(options =>
     .AddIdentityCookies();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
+
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddIdentityCore<Player>(options => options.SignIn.RequireConfirmedAccount = false)
@@ -61,8 +47,11 @@ builder.Services.AddIdentityCore<Player>(options => options.SignIn.RequireConfir
     .AddDefaultTokenProviders();
 
 builder.Services.AddSingleton<GamesHistoryRepository>(rep => new GamesHistoryRepository(connectionString));
+
 builder.Services.AddSingleton<GameRepository>(rep => new GameRepository(connectionString));
+
 builder.Services.AddSingleton<PlayerRepository>(rep => new PlayerRepository(connectionString));
+
 builder.Services.AddSingleton<RoomRepository>(rep => new RoomRepository(connectionString));
 
 builder.Services.AddScoped<IGamesStatisticsService, GamesStatisticsService>();
@@ -70,10 +59,20 @@ builder.Services.AddScoped<IGamesStatisticsService, GamesStatisticsService>();
 builder.Services.AddSingleton<IEmailSender<Player>, IdentityNoOpEmailSender>();
 
 builder.Services.AddSingleton<RoomBackgroundService>();
+
 builder.Services.AddScoped<GameInitializeProcess>();
+
 builder.Services.AddScoped<CheckForWinnerManager>();
+
 builder.Services.AddScoped<MakeMovesGameManager>();
-builder.Services.AddScoped<Game>();
+
+builder.Services.AddTransient<PlayerDisconectingTrackingService>();
+
+builder.Services.AddServerSideBlazor(options =>
+{
+    options.DisconnectedCircuitMaxRetained = 100;
+    options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromSeconds(5);
+});
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
@@ -101,7 +100,10 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
 
-app.MapHub<GameHub>("/gamehub");
+app.MapHub<GameHub>("/gamehub", options =>
+{
+
+});
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

@@ -58,7 +58,7 @@ namespace TicTacToeGame.Domain.Repositories
             }
         }
 
-        public void UpdatePlayerGameContextId(string ContextId, Player host, Player guest, ClaimsPrincipal claimsPrincipal)
+        public Player GetCurrentPlayer(Player host, Player guest, ClaimsPrincipal claimsPrincipal)
         {
             string? userId = claimsPrincipal.Claims.FirstOrDefault()?.Value;
 
@@ -69,14 +69,21 @@ namespace TicTacToeGame.Domain.Repositories
 
             if (host.Id == userId)
             {
-                host.GameConnectionId = ContextId;
-                UpdateEntity(host);
+                return host;
             }
             else if (guest.Id == userId)
             {
-                guest.GameConnectionId = ContextId;
-                UpdateEntity(guest);
+                return guest;
             }
+            else throw new Exception("User is not recognized");
+        }
+
+        public void UpdatePlayerGameContextId(string ContextId, Player host, Player guest, ClaimsPrincipal claimsPrincipal)
+        {
+            Player currentPlayer = GetCurrentPlayer(host, guest, claimsPrincipal);
+
+            currentPlayer.GameConnectionId = ContextId;
+            UpdateEntity(currentPlayer);
         }
 
         public override void AddEntity(Player entity)

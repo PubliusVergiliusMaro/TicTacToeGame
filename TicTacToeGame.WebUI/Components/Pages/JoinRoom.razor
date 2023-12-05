@@ -62,9 +62,9 @@
         });
 
         // fix bug with not showing decline message when it comes when timer is elapsed
-        hubConnection.On<string>("DeclineJoining", (declineMessage) =>
+        hubConnection.On<string>("DeclineJoining", async(declineMessage) =>
         {
-            InvokeAsync(() =>
+           await InvokeAsync(() =>
                 {
                     _declineMessage = declineMessage;
                     StateHasChanged();
@@ -78,9 +78,9 @@
                     else
                     {
                         _resetTimer = new Timer(4000);
-                        _resetTimer.Elapsed += (sender, e) =>
+                        _resetTimer.Elapsed += async(sender, e) =>
                         {
-                            InvokeAsync(() =>
+                            await InvokeAsync(() =>
                             {
                                 _declineMessage = "";
                                 StateHasChanged();

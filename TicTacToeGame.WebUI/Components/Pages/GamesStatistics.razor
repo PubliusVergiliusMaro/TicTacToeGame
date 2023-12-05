@@ -34,7 +34,7 @@
                     <div class="card m-1">
                         @* <img src="@game.ImageUrl" class="card-img-top" alt="@game.Name"> *@
                         <div class="card-body">
-                            <h5 class="card-title">@(winner == null ? "Draw" : winner.UserName)</h5>
+                            <h5 class="card-title">@(winner == null ? "Draw" : $"Winner: {winner.UserName}")</h5>
                             <p class="card-text">@($"{hostPlayer.UserName} vs {guestPlayer.UserName}")</p>
                             <p class="card-text">@game.CreatedAt.ToString("D")</p>
                         </div>
