@@ -6,11 +6,11 @@ using TicTacToeGame.Domain.Models;
 using TicTacToeGame.Domain.Repositories;
 using TicTacToeGame.Services.GameProcessService;
 using TicTacToeGame.Services.GamesStatisticServices;
+using TicTacToeGame.Services.RoomServices;
 using TicTacToeGame.WebUI.Components;
 using TicTacToeGame.WebUI.Components.Account;
 using TicTacToeGame.WebUI.Data;
 using TicTacToeGame.WebUI.Hubs;
-using TicTacToeGame.WebUI.Services.RoomBackgroundServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,11 +54,13 @@ builder.Services.AddSingleton<PlayerRepository>(rep => new PlayerRepository(conn
 
 builder.Services.AddSingleton<RoomRepository>(rep => new RoomRepository(connectionString));
 
-builder.Services.AddScoped<IGamesStatisticsService, GamesStatisticsService>();
+builder.Services.AddScoped<GamesStatisticsService>();
 
 builder.Services.AddSingleton<IEmailSender<Player>, IdentityNoOpEmailSender>();
 
-builder.Services.AddSingleton<RoomBackgroundService>();
+builder.Services.AddSingleton<RoomManagerService>();
+
+builder.Services.AddTransient<TemporaryRoomService>();
 
 builder.Services.AddScoped<GameInitializeProcess>();
 

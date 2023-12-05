@@ -34,14 +34,16 @@
     </div>
 </section>
 
-
 @code {
     private HubConnection hubConnection;
-    private Player testPlaye;
+
     private int _roomId;
-    private string _userId;
-    private string _declineMessage;
-    private Timer _resetTimer;
+
+    private string _userId = "";
+
+    private string _declineMessage = "";
+    private Timer _messageTimer;
+
     protected override async Task OnInitializedAsync()
     {
         AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
@@ -57,63 +59,58 @@
             if (_roomId == joinedRoomId)
             {
                 await hubConnection.SendAsync("JoinGame", gameId);
+
                 _navigationManager.NavigateTo("/game");
             }
         });
 
-        // fix bug with not showing decline message when it comes when timer is elapsed
-        hubConnection.On<string>("DeclineJoining", async(declineMessage) =>
+        hubConnection.On<string>("DeclineJoining", (declineMessage) =>
         {
-           await InvokeAsync(() =>
-                {
-                    _declineMessage = declineMessage;
-                    StateHasChanged();
-
-                    // Stop and reset the timer if it's already running
-                    if (_resetTimer != null)
-                    {
-                        _resetTimer.Stop();
-                        _resetTimer.Start();
-                    }
-                    else
-                    {
-                        _resetTimer = new Timer(4000);
-                        _resetTimer.Elapsed += async(sender, e) =>
-                        {
-                            await InvokeAsync(() =>
-                            {
-                                _declineMessage = "";
-                                StateHasChanged();
-                            });
-                            // Stop the timer as it's no longer needed
-                            _resetTimer.Stop();
-                        };
-                        _resetTimer.AutoReset = false;
-                        _resetTimer.Start();
-                    }
-                });
+            InvokeAsync(() =>
+            {
+                _declineMessage = declineMessage;
+                ResetMessageTimer();
+                
+                StateHasChanged();
+            });
         });
         await hubConnection.StartAsync();
     }
+
     private async Task JoinGameRoom()
     {
-        // add validation to the input text field
         Player currentPlayer = _playerRepository.GetById(_userId);
+
         await hubConnection.SendAsync("JoinRoom", _roomId, currentPlayer);
     }
 
-    public async ValueTask DisposeAsync()
+    private void ResetMessageTimer()
     {
-        if (hubConnection != null)
+        if (_messageTimer != null)
         {
-            await hubConnection.DisposeAsync();
+            _messageTimer.Stop();
+            _messageTimer.Start();
         }
-        _resetTimer?.Dispose();
+        else
+        {
+            _messageTimer = new Timer(4000);
+            _messageTimer.Elapsed += async (sender, e) =>
+        {
+            await InvokeAsync(() =>
+            {
+                _declineMessage = "";
+                StateHasChanged();
+            });
+            _messageTimer.Stop();
+        };
+            _messageTimer.AutoReset = false;
+            _messageTimer.Start();
+        }
     }
 
     public void Dispose()
     {
         hubConnection?.DisposeAsync();
-        _resetTimer?.Dispose();
+        _messageTimer?.Dispose();
     }
 }

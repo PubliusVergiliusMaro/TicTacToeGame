@@ -9,14 +9,9 @@
 @using TicTacToeGame.Services.GameProcessService
 @using TicTacToeGame.Services.GamesStatisticServices
 @using TicTacToeGame.WebUI.Components.Account
-@using Timer = System.Timers.Timer;
 
-@inject NavigationManager _navigationManager
 @inject PlayerRepository _playerRepository
-@inject GameRepository _gameRepository
 @inject AuthenticationStateProvider _authenticationStateProvider
-@inject GamesHistoryRepository _gamesHistoryRepository
-@inject IGamesStatisticsService _gamesStatisticsService
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 @inject GameInitializeProcess GameInitializeProcess
@@ -65,13 +60,8 @@
                     <div style="height: 5px; background-color: #70757a; width: 100%; "></div>
                 }
             }
-
         </tbody>
     </table>
-
-</div>
-<div>
-    <p>@send</p>
 </div>
 
 
@@ -102,7 +92,6 @@
 
     // SignalR
     private HubConnection hubConnection;
-    private string send = "";
 
     // Authentication data
     private AuthenticationState authState;
@@ -119,7 +108,7 @@
 
         hubConnection = new HubConnectionBuilder()
             .WithKeepAliveInterval(TimeSpan.FromSeconds(30))
-            .WithUrl(_navigationManager.ToAbsoluteUri("/gameHub"))
+            .WithUrl(NavigationManager.ToAbsoluteUri("/gameHub"))
             .Build();
 
         hubConnection.On<BoardElements[], PlayerType, Guid>("SendGameState", (receivedBoard, nextPlayerTurn, gameId) =>

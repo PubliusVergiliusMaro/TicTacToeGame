@@ -3,7 +3,7 @@
 @using TicTacToeGame.Domain.Models
 @using TicTacToeGame.Services.GamesStatisticServices
 
-@inject IGamesStatisticsService GamesStatisticsService
+@inject GamesStatisticsService GamesStatisticsService
 @inject AuthenticationStateProvider _authenticationStateProvider
 @rendermode InteractiveServer
 <h3>Games Statistics</h3>
@@ -12,7 +12,6 @@
     @if (gamesHistory.Games.Count == 0)
     {
         <h2 class="text-danger">You have no games played</h2>
-        @* maybe add some button to main page and maybe add some message where will be instructions how to play *@
     }
     else
     {
@@ -28,11 +27,8 @@
             bool isDraw = (winner == null);
 
             <div class="card m-1 @(currentUserWon ? "bg-success" : currentUserLost ? "bg-danger" : isDraw ? "bg-warning" : "")">
-                @* <img src="@game.ImageUrl" class="card-img-top" alt="@game.Name"> *@
                 <div class="card-body"> 
-                    @* <a href="@game.Link" class="btn btn-primary">Go to game</a> *@
                     <div class="card m-1">
-                        @* <img src="@game.ImageUrl" class="card-img-top" alt="@game.Name"> *@
                         <div class="card-body">
                             <h5 class="card-title">@(winner == null ? "Draw" : $"Winner: {winner.UserName}")</h5>
                             <p class="card-text">@($"{hostPlayer.UserName} vs {guestPlayer.UserName}")</p>
@@ -46,42 +42,17 @@
 </div>
 
 @code {
-    /// <summary>
-    /// Abstraction of games history
-    /// </summary>
     private GamesHistory gamesHistory = new GamesHistory();
     private Player _currentPlayer;
-    /* TODO:
-     *
-    - Add to tables in database pobility to delete cascade
-    - Make that when player loses block was red and if win green and if draw yellow
-    - Make that if data of game was more than 1 week it displays an data and if less
-         than 1 week it displays how many days ago it was played
-    - Displays players nicknames instead of ids
-
-         * Make that if player clicks on game it redirects to game page
-         * Maybe make some history of moves and display it on that page too
-    */
-
+   
     protected override async Task OnInitializedAsync()
     {
-
         AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
         ClaimsPrincipal? user = authState.User;
         string? _userId = user.Claims.FirstOrDefault()?.Value;
         if (_userId != null)
         {
-            //_currentPlayer = GamesStatisticsService.GetPlayerById(_userId);
-            //gamesHistory.Games = await GamesStatisticsService.GetPlayedGames(_userId);
             _currentPlayer = GamesStatisticsService.GetPlayerById(_userId);
-            // make stored procedure for getting all games that was played by current user
-            // and get only that games where game was finished
-
-
-            //await GamesStatisticsService.CreateTestGames();
-
-
-            // add try catch for if user has no games played because it returns null
             gamesHistory.Games = await GamesStatisticsService.GetPlayedGames(_userId);
         }
     }

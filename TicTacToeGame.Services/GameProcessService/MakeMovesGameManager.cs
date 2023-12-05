@@ -19,13 +19,13 @@ namespace TicTacToeGame.Services.GameProcessService;
 public class MakeMovesGameManager : GameManagerBase
 {
 
-    private readonly IGamesStatisticsService _gamesStatisticsService;
+    private readonly GamesStatisticsService _gamesStatisticsService;
     private HubConnection _connection;
     private readonly CheckForWinnerManager _checkForWinnerManager;
     private readonly GameRepository _gameRepository;
 
     public MakeMovesGameManager(AuthenticationStateProvider authenticationStateProvider,
-        IGamesStatisticsService gamesStatisticsService, CheckForWinnerManager checkForWinnerManager, GameRepository gameRepository)
+        GamesStatisticsService gamesStatisticsService, CheckForWinnerManager checkForWinnerManager, GameRepository gameRepository)
         : base(authenticationStateProvider)
     {
         _gamesStatisticsService = gamesStatisticsService;
