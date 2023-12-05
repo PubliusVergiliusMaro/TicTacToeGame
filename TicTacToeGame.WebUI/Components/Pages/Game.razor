@@ -31,37 +31,58 @@
 @if (DisconectingTrackingService.OpponentLeaved)
 {
     <h3 style="text-align: center;">Player @DisconectingTrackingService.LivedPlayerName leaves game</h3>
-
 }
-<p style="margin-top: 20px; font-size: 18px; color: #333; background-color: #f8f9fa; padding: 10px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
-    @GameStatus
-</p>
-<div style="display: flex; flex-direction: column; align-items: center;">
-    @for (int row = TicTacToeRules.FIRST_ROW_OF_BOARD; row < TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS; row++)
-    {
-        <div>
-            @for (int col = TicTacToeRules.FIRST_COLUMN_OF_BOARD; col < TicTacToeRules.MAX_COUNT_OF_BOARD_COLUMNS; col++)
+<div class="xED3T" style="display: flex; flex-direction: column; align-items: center; padding: 20px; background-color: #14bdac;">
+    <p style="margin-top: 20px; font-size: 18px; color: #fff; background-color: #14bdac; padding: 10px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+        @GameStatus
+    </p>
+    <p style="margin-top: 20px; font-size: 18px; color: #fff; background-color: #14bdac; padding: 10px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+        Current turn now: @MakeMovesGameManager.DetermineWhoMakeMoveNow(CurrentGame).ToString()
+    </p>
+    <table jsname="z2IlVe" class="KD6xlc" style="border-collapse: separate; border-spacing: 10px;">
+        <tbody>
+            @for (int row = TicTacToeRules.FIRST_ROW_OF_BOARD; row < TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS; row++)
             {
-                int index = row * 3 + col;
-                <button style="width: 100px; height: 100px; font-size: 24px; text-align: center; vertical-align: middle; margin-bottom: 5px;"
-                        @onclick="(async () => await MakeMove(index))" disabled="@IsButtonDisabled(index)">
-                    @GetSquareValue(index)
-                </button>
+                <div style="display: flex;">
+                    @for (int col = TicTacToeRules.FIRST_COLUMN_OF_BOARD; col < TicTacToeRules.MAX_COUNT_OF_BOARD_COLUMNS; col++)
+                    {
+                        int index = row * 3 + col;
+                        <button style="width: 100px; height: 100px; font-size: 48px; text-align: center; vertical-align: middle;
+                                background-color: #14bdac; border: none; color: #fff;"
+                                @onclick="(async () => await MakeMove(index))" disabled="@IsButtonDisabled(index)">
+                            @GetSquareValue(index)
+                        </button>
+                        @if (col < TicTacToeRules.MAX_COUNT_OF_BOARD_COLUMNS - 1)
+                        {
+                            <!-- This div will create a vertical separator between buttons -->
+                            <div style="width: 5px; background-color: #70757a; height: 100px; "></div>
+                        }
+                    }
+                </div>
+                @if (row < TicTacToeRules.MAX_COUNT_OF_BOARD_COLUMNS - 1)
+                {
+                    <!-- This div will create a vertical separator between buttons -->
+                    <div style="height: 5px; background-color: #70757a; width: 100%; "></div>
+                }
             }
-        </div>
-    }
+
+        </tbody>
+    </table>
+
 </div>
 <div>
     <p>@send</p>
 </div>
 
+
 @if (CurrentGame.GameResult == GameState.Finished)
 {
-    <button style="margin-top: 10px; padding: 10px 15px; font-size: 16px; background-color: #4CAF50; color: #fff; border: none; cursor: pointer;"
+    <button style="margin-top: 10px; padding: 10px 15px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;"
             @onclick="GoToHomePage">
         Go to Home Page
     </button>
 }
+
 
 @code {
 

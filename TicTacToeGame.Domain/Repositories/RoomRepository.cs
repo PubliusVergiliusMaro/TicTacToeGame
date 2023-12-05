@@ -21,17 +21,48 @@ namespace TicTacToeGame.Domain.Repositories
         //public Room? GetById(int id) => _db.Query<Room>("SelectById", new { Id = id }, commandType: CommandType.StoredProcedure).FirstOrDefault();// maybe check check if null
         public int AddEntity(Room entity)
         {
-            int id = _db.Query<int>("InsertRoom", new 
+            try
             {
-                ConnectionId = entity.ConnectionId,
-                IsOpen = entity.IsOpen,
-                UniqueID = entity.UniqueId,
-                CreatedAt = entity.CreatedAt,
-                UpdatedAt = entity.UpdatedAt,
-                IsDeleted = entity.IsDeleted
-            }, commandType: CommandType.StoredProcedure).Single();
-            return id;
+                int id = _db.Query<int>("InsertRoom", new
+                {
+                    ConnectionId = entity.ConnectionId,
+                    IsOpen = entity.IsOpen,
+                    UniqueId = entity.UniqueId,
+                    CreatedAt = entity.CreatedAt,
+                    UpdatedAt = entity.UpdatedAt,
+                    IsDeleted = entity.IsDeleted
+                }, commandType: CommandType.StoredProcedure).Single();
+                return id;
+            }
+            catch (SqlException ex)
+            {
+                // Handle SQL-specific exceptions
+                // Log or handle the exception as needed
+                Console.WriteLine($"SqlException: {ex.Message}");
+                return -1; // or throw a custom exception
+            }
+            catch (TimeoutException ex)
+            {
+                // Handle timeout exceptions
+                Console.WriteLine($"TimeoutException: {ex.Message}");
+                return -1; // or throw a custom exception
+            }
+            catch (ArgumentNullException ex)
+            {
+                // Handle invalid operation exceptions
+                Console.WriteLine($"ArgumentNullException : {ex.Message}");
+                return -1; // or throw a custom exception
+            }
+            catch (Exception ex)
+            {
+                // Handle any other unexpected exceptions
+                Console.WriteLine($"Exception: {ex.Message}");
+                return -1; // or throw a custom exception
+            }
+
+           
         }
+
         //public override void AddEntity(Room entity)
         //{
         //    base.AddEntity(entity);

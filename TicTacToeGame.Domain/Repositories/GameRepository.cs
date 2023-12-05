@@ -19,24 +19,47 @@ namespace TicTacToeGame.Domain.Repositories
         public Game? GetById(int id) => _db.Query<Game>("SelectById", new { Id = id }, commandType: CommandType.StoredProcedure).FirstOrDefault();
         public Game? GetByUsersId(string userId)
         {
-            return policy.Execute(() =>
+            try
             {
-                using (var connection = new SqlConnection(_connectionString))
+                return policy.Execute(() =>
                 {
-                    Game game = connection.Query<Game>("SelectGameByPlayersId", new { Id = userId }, commandType: CommandType.StoredProcedure).FirstOrDefault();
+                    using (var connection = new SqlConnection(_connectionString))
+                    {
+                        Game game = connection.Query<Game>("SelectGameByPlayersId", new { Id = userId }, commandType: CommandType.StoredProcedure).FirstOrDefault();
 
-                    if (game != null)
-                    {
-                        return game;
+                        if (game != null)
+                        {
+                            return game;
+                        }
+                        else
+                        {
+                            // handle error or maybe return error message to the user using SignalR
+                            return null;
+                        }
                     }
-                    else
-                    {
-                        // handle error or maybe return error message to the user using SignalR
-                        return null;
-                    }
-                }
-            });
+                });
+            }
+            catch (SqlException ex)
+            {
+                // Handle SQL-specific exceptions
+                // Log or handle the exception as needed
+                Console.WriteLine($"SqlException: {ex.Message}");
+                return null; // or throw a custom exception
+            }
+            catch (ArgumentNullException ex)
+            {
+                // Handle invalid operation exceptions
+                Console.WriteLine($"ArgumentNullException : {ex.Message}");
+                return null; // or throw a custom exception
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Handle invalid operation exceptions
+                Console.WriteLine($"InvalidOperationException: {ex.Message}");
+                return null; // or throw a custom exception
+            }
         }
+
         public override void AddEntity(Game entity)
         {
             base.AddEntity(entity);
@@ -50,21 +73,40 @@ namespace TicTacToeGame.Domain.Repositories
             base.DeleteEntity(entity);
         }
 
-        public List<Game>? GetGamesByGamesHistoryId(int id)// Implement
+        public List<Game>? GetGamesByGamesHistoryId(int id)
         {
             try
             {
+                if (id == null)
+                {
+                    throw new ArgumentNullException(nameof(id), "id cannot be null.");
+                }
 
                 return _db.Query<Game>("SelectGamesByGamesHistoryId", new
                 {
                     GamesHistoryId = id
                 }, commandType: CommandType.StoredProcedure).AsList();
             }
-            catch (Exception ex)
+            catch (SqlException ex)
             {
-                // handle error
-                throw new Exception(ex.Message);
+                // Handle SQL-specific exceptions
+                // Log or handle the exception as needed
+                Console.WriteLine($"SqlException: {ex.Message}");
+                return null; // or throw a custom exception
+            }
+            catch (ArgumentNullException ex)
+            {
+                // Handle invalid operation exceptions
+                Console.WriteLine($"ArgumentNullException : {ex.Message}");
+                return null; // or throw a custom exception
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Handle invalid operation exceptions
+                Console.WriteLine($"InvalidOperationException: {ex.Message}");
+                return null; // or throw a custom exception
             }
         }
+
     }
 }

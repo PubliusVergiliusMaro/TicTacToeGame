@@ -21,23 +21,50 @@ namespace TicTacToeGame.Domain.Repositories
 
         public Player? GetById(string id)
         {
-            //try cath
-            return policy.Execute(() =>
+            try
             {
-                // check if here needs this using
-                using (var connection = new SqlConnection(_connectionString))
+                return policy.Execute(() =>
                 {
-                    return connection.Query<Player>("SelectUserById", new { Id = id }, commandType: CommandType.StoredProcedure).ToList().LastOrDefault();
-                }
-            });
+                    using (var connection = new SqlConnection(_connectionString))
+                    {
+                        return connection.Query<Player>("SelectUserById", new { Id = id }, commandType: CommandType.StoredProcedure).ToList().LastOrDefault();
+                    }
+                });
+            }
+            catch (SqlException ex)
+            {
+                // Handle SQL-specific exceptions
+                // Log or handle the exception as needed
+                Console.WriteLine($"SqlException: {ex.Message}");
+                return null; // or throw a custom exception
+            }
+            catch (TimeoutException ex)
+            {
+                // Handle timeout exceptions
+                Console.WriteLine($"TimeoutException: {ex.Message}");
+                return null; // or throw a custom exception
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Handle invalid operation exceptions
+                Console.WriteLine($"InvalidOperationException: {ex.Message}");
+                return null; // or throw a custom exception
+            }
+            catch (Exception ex)
+            {
+                // Handle any other unexpected exceptions
+                Console.WriteLine($"Exception: {ex.Message}");
+                return null; // or throw a custom exception
+            }
         }
+
         public Player GetCurrentPlayer(Player host, Player guest, ClaimsPrincipal claimsPrincipal)
         {
-            string? userId = claimsPrincipal.Claims.FirstOrDefault().Value.ToString();
+            string? userId = claimsPrincipal.Claims.FirstOrDefault()?.Value;
 
             if (userId == null)
             {
-                throw new Exception("User is not authenticated");
+                throw new InvalidOperationException("User is not authenticated");
             }
 
             if (host.Id == userId)
@@ -58,6 +85,7 @@ namespace TicTacToeGame.Domain.Repositories
             currentPlayer.GameConnectionId = ContextId;
             UpdateEntity(currentPlayer);
         }
+
         public override void AddEntity(Player entity)
         {
             base.AddEntity(entity);
