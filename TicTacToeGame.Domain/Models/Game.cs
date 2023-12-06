@@ -6,16 +6,20 @@ namespace TicTacToeGame.Domain.Models
     public class Game : EntityBase
     {
         public PlayerType? Winner { get; set; } = PlayerType.None;
-        public GameState GameResult { get; set; } = GameState.Starting; // Maybe rename as gameState
-        public PlayerType CurrentTurn { get; set; }//= Maybe add here rundomize or make in the manager
+        public GameState GameResult { get; set; } = GameState.Starting;
+        public PlayerType CurrentTurn { get; set; }
         
-        public string PlayerHostId { get; set; }// in db int
-        public string PlayerGuestId { get; set; }// in db int
+        public string PlayerHostId { get; set; }
+        public string PlayerGuestId { get; set; }
 
-        public int? GamesHistoryHostId { get; set; }// in db int
-        public int? GamesHistoryGuestId { get; set; }// in db int
+        public int? GamesHistoryHostId { get; set; }
+        [Write(false)]
+        public GamesHistory? GamesHistoryHost { get; set; }
+        public int? GamesHistoryGuestId { get; set; }
+        [Write(false)]
+        public GamesHistory? GamesHistoryGuest { get; set; }
         
-        public int RoomId { get; set; }
+        public int? RoomId { get; set; }
         [Write(false)]
         public Room? Room { get; set; }
     }

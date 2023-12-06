@@ -11,5 +11,8 @@ namespace TicTacToeGame.Domain.Models
         public PlayerType PlayerType { get; set; }
         public string? Nickname { get; set; }
         public string? GameConnectionId { get; set;}
+
+        [Write(false)]
+        public GamesHistory GamesHistory { get; set; }
     }
 }

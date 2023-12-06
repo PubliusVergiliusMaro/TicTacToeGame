@@ -14,21 +14,11 @@ namespace TicTacToeGame.WebUI.Data
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
-            
-            builder.Entity<Game>()
-                .HasOne(g => g.Room)
-                .WithMany()
-                .HasForeignKey(g => g.RoomId);
 
-            builder.Entity<Game>()
-                .HasOne<GamesHistory>()
-                .WithMany(gh => gh.Games)
-                .HasForeignKey(g => g.GamesHistoryHostId);
-
-            builder.Entity<Game>()
-                .HasOne<GamesHistory>()
-                .WithMany(gh => gh.Games)
-                .HasForeignKey(g => g.GamesHistoryGuestId);
+            builder.ApplyConfiguration(new Configurations.GameConfiguration());
+            builder.ApplyConfiguration(new Configurations.GamesHistoryConfiguration());
+            builder.ApplyConfiguration(new Configurations.PlayerConfiguration());
+            builder.ApplyConfiguration(new Configurations.RoomConfiguration());
         }
     }
 }
