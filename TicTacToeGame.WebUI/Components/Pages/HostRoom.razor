@@ -1,5 +1,4 @@
 ﻿@page "/host-room"
-@using Microsoft.AspNetCore.SignalR.Client
 
 @using Microsoft.AspNetCore.SignalR.Client
 @using System.Security.Claims
@@ -10,6 +9,7 @@
 @using TicTacToeGame.Domain.Models
 @using TicTacToeGame.Domain.Repositories
 @using TicTacToeGame.Services.RoomServices
+@using TicTacToeGame.WebUI.Hubs
 
 @inject NavigationManager _navigationManager
 @inject RoomRepository _roomRepository
@@ -93,7 +93,7 @@
         _temporaryRoomService.UpdateComponent += async () => await InvokeAsync(StateHasChanged);
 
         hubConnection = new HubConnectionBuilder()
-            .WithUrl(_navigationManager.ToAbsoluteUri("/gameHub"))
+            .WithUrl(_navigationManager.ToAbsoluteUri(GameHub.HubUrl))
             .Build();
 
         hubConnection.On<int, Player>("JoinRoom", async (joinedRoomId, joinPlayer) =>

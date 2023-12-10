@@ -9,6 +9,7 @@
 @using TicTacToeGame.Services.GameProcessService
 @using TicTacToeGame.Services.GamesStatisticServices
 @using TicTacToeGame.WebUI.Components.Account
+@using TicTacToeGame.WebUI.Hubs
 
 @inject PlayerRepository _playerRepository
 @inject AuthenticationStateProvider _authenticationStateProvider
@@ -107,8 +108,7 @@
         currentPlayerGuest = _playerRepository.GetById(CurrentGame.PlayerGuestId);
 
         hubConnection = new HubConnectionBuilder()
-            .WithKeepAliveInterval(TimeSpan.FromSeconds(30))
-            .WithUrl(NavigationManager.ToAbsoluteUri("/gameHub"))
+            .WithUrl(NavigationManager.ToAbsoluteUri(GameHub.HubUrl))
             .Build();
 
         hubConnection.On<BoardElements[], PlayerType, Guid>("SendGameState", (receivedBoard, nextPlayerTurn, gameId) =>

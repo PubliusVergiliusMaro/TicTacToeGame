@@ -102,10 +102,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
 
-app.MapHub<GameHub>("/gamehub", options =>
-{
-
-});
+app.MapHub<GameHub>(GameHub.HubUrl);
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

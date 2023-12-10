@@ -112,10 +112,18 @@ public class MakeMovesGameManager : GameManagerBase
             {
                 await FinishGameAndPutInHistory(CurrentGame);
             }
+            else if (_checkForWinnerManager.CheckForTie(board))
+            {
+                await FinishGameAndPutInHistory(CurrentGame, true);
+            }
         }
     }
+    public bool CheckForTie(BoardElements[] board)
+    {
+        return !board.Contains(BoardElements.Empty);
+    }
 
-    private async Task FinishGameAndPutInHistory(Game CurrentGame)
+    private async Task FinishGameAndPutInHistory(Game CurrentGame, bool isTie = false)
     {
         try
         {
@@ -138,7 +146,12 @@ public class MakeMovesGameManager : GameManagerBase
 
             CurrentGame.GamesHistoryHostId = hostGamesHistory.Id;
             CurrentGame.GamesHistoryGuestId = guestGamesHistory.Id;
-            CurrentGame.Winner = CurrentGame.CurrentTurn;
+            if (isTie)
+            {
+                CurrentGame.Winner = PlayerType.None;
+            }
+            else
+                CurrentGame.Winner = CurrentGame.CurrentTurn;
 
             _gameRepository.UpdateEntity(CurrentGame);
 

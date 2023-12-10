@@ -6,6 +6,7 @@
 @using System.Security.Claims
 @using TicTacToeGame.Domain.Models
 @using TicTacToeGame.Domain.Repositories
+@using TicTacToeGame.WebUI.Hubs
 
 @inject NavigationManager _navigationManager
 @inject PlayerRepository _playerRepository
@@ -51,7 +52,7 @@
         _userId = user.Claims.First().Value.ToString();
 
         hubConnection = new HubConnectionBuilder()
-            .WithUrl(_navigationManager.ToAbsoluteUri("/gameHub"))
+            .WithUrl(_navigationManager.ToAbsoluteUri(GameHub.HubUrl))
             .Build();
 
         hubConnection.On<int, Guid>("AcceptJoining", async (joinedRoomId, gameId) =>

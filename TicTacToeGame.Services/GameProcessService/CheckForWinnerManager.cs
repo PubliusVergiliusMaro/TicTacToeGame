@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Polly.Caching;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -17,13 +18,16 @@ public class CheckForWinnerManager
             return true;
         }
 
+        return false;
+    }
+    public bool CheckForTie(BoardElements[] board)
+    {
         // Check for a tie
         if (board.All(cell => cell != BoardElements.Empty))
         {
             GameStatus = "It's a tie!";
             return true;
         }
-
         return false;
     }
     private bool CheckRowsForWinner(BoardElements[] board)

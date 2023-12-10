@@ -6,6 +6,7 @@ namespace TicTacToeGame.WebUI.Hubs
 {
     public class GameHub : Hub
     {
+        public const string HubUrl = "/gamehub";
         //HostRoom
         public async Task JoinRoom(int roomId, Player player)
         {
