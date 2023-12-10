@@ -70,6 +70,8 @@ builder.Services.AddScoped<MakeMovesGameManager>();
 
 builder.Services.AddTransient<PlayerDisconectingTrackingService>();
 
+builder.Services.AddTransient<GameChatService>(); 
+
 builder.Services.AddServerSideBlazor(options =>
 {
     options.DisconnectedCircuitMaxRetained = 100;
@@ -102,10 +104,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
 
-app.MapHub<GameHub>("/gamehub", options =>
-{
-
-});
+app.MapHub<GameHub>(GameHub.HubUrl);
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

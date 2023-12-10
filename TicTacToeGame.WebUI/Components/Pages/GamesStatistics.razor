@@ -9,34 +9,41 @@
 <h3>Games Statistics</h3>
 
 <div class="row">
-    @if (gamesHistory.Games.Count == 0)
+    @if (IsLoading)
     {
-        <h2 class="text-danger">You have no games played</h2>
+        <h2 class="text-black">@LoadingMessage</h2>
     }
     else
     {
-        <h4>Games played: @gamesHistory.Games.Count</h4>
-        @foreach (var game in gamesHistory.Games)
+    @if (gamesHistory.Games.Count == 0)
         {
-            Player hostPlayer = GamesStatisticsService.GetPlayerById(game.PlayerHostId);
-            Player guestPlayer = GamesStatisticsService.GetPlayerById(game.PlayerGuestId);
+            <h2 class="text-danger">You have no games played</h2>
+        }
+        else
+        {
+            <h4>Games played: @gamesHistory.Games.Count</h4>
+            @foreach (var game in gamesHistory.Games)
+            {
+                Player hostPlayer = GamesStatisticsService.GetPlayerById(game.PlayerHostId);
+                Player guestPlayer = GamesStatisticsService.GetPlayerById(game.PlayerGuestId);
 
-            Player winner = GamesStatisticsService.GetWinner(game.Winner, hostPlayer, guestPlayer);
-            bool currentUserWon = (winner != null && winner.Id == _currentPlayer.Id);
-            bool currentUserLost = (winner != null && winner.Id != _currentPlayer.Id);
-            bool isDraw = (winner == null);
+                Player winner = GamesStatisticsService.GetWinner(game.Winner, hostPlayer, guestPlayer);
+                bool currentUserWon = (winner != null && winner.Id == _currentPlayer.Id);
+                bool currentUserLost = (winner != null && winner.Id != _currentPlayer.Id);
+                bool isDraw = (winner == null);
 
-            <div class="card m-1 @(currentUserWon ? "bg-success" : currentUserLost ? "bg-danger" : isDraw ? "bg-warning" : "")">
-                <div class="card-body"> 
-                    <div class="card m-1">
-                        <div class="card-body">
-                            <h5 class="card-title">@(winner == null ? "Draw" : $"Winner: {winner.UserName}")</h5>
-                            <p class="card-text">@($"{hostPlayer.UserName} vs {guestPlayer.UserName}")</p>
-                            <p class="card-text">@game.CreatedAt.ToString("D")</p>
+                <div class="card m-1 @(currentUserWon ? "bg-success" : currentUserLost ? "bg-danger" : isDraw ? "bg-warning" : "")">
+                    <div class="card-body">
+                        <div class="card m-1">
+                            <div class="card-body">
+                                <h5 class="card-title">@(winner == null ? "Draw" : $"Winner: {winner.UserName}")</h5>
+                                <p class="card-text">@($"{hostPlayer.UserName} vs {guestPlayer.UserName}")</p>
+                                <p class="card-text">@game.CreatedAt.ToString("D")</p>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            }
         }
     }
 </div>
@@ -44,7 +51,10 @@
 @code {
     private GamesHistory gamesHistory = new GamesHistory();
     private Player _currentPlayer;
-   
+    private string LoadingMessage = "Loading...";
+    private string EmptyMessage = "You have no games played";
+    private bool IsLoading = true;
+
     protected override async Task OnInitializedAsync()
     {
         AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
@@ -55,5 +65,6 @@
             _currentPlayer = GamesStatisticsService.GetPlayerById(_userId);
             gamesHistory.Games = await GamesStatisticsService.GetPlayedGames(_userId);
         }
+        IsLoading = false;
     }
 }
