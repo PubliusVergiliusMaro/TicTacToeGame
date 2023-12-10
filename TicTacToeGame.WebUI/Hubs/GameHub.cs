@@ -52,5 +52,9 @@ namespace TicTacToeGame.WebUI.Hubs
             await Clients.All.SendAsync("UserDisconnected", Context.ConnectionId);
             await base.OnDisconnectedAsync(exception);
         }
+        public async Task SendChatMessage(Guid gameId, string senderNickname,string message)
+        {
+            await Clients.Group(gameId.ToString()).SendAsync("ReceiveChatMessage", senderNickname, message);
+        }
     }
 }

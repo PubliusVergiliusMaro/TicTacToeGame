@@ -38,12 +38,14 @@
 @code {
     private HubConnection hubConnection;
 
-    private int _roomId;
+    private string? _roomId;
+    private int roomId;
 
     private string _userId = "";
 
     private string _declineMessage = "";
     private Timer _messageTimer;
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -57,7 +59,7 @@
 
         hubConnection.On<int, Guid>("AcceptJoining", async (joinedRoomId, gameId) =>
         {
-            if (_roomId == joinedRoomId)
+            if (roomId == joinedRoomId)
             {
                 await hubConnection.SendAsync("JoinGame", gameId);
 
@@ -71,7 +73,7 @@
             {
                 _declineMessage = declineMessage;
                 ResetMessageTimer();
-                
+
                 StateHasChanged();
             });
         });
@@ -82,7 +84,20 @@
     {
         Player currentPlayer = _playerRepository.GetById(_userId);
 
-        await hubConnection.SendAsync("JoinRoom", _roomId, currentPlayer);
+        if(int.TryParse(_roomId, out roomId))
+        {
+            await hubConnection.SendAsync("JoinRoom", roomId, currentPlayer);
+        }
+        else
+        {
+           InvokeAsync(() =>
+           {
+               _declineMessage = "Invalid room id";
+               ResetMessageTimer();
+
+               StateHasChanged();
+           });
+        }
     }
 
     private void ResetMessageTimer()
