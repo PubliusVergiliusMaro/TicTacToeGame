@@ -21,6 +21,7 @@
 @inject PlayerDisconectingTrackingService DisconectingTrackingService
 @inject GameChatService ChatService
 @inject GameReconnectingService GameReconnectingService
+@inject GameRepository GameRepository
 
 @implements IDisposable
 @rendermode InteractiveServer
@@ -145,6 +146,7 @@
             {
                 board = receivedBoard;
                 CurrentGame.CurrentTurn = nextPlayerTurn;
+
                 MakeMovesGameManager.UpdateGameAfterMove(CurrentGame);
                 StateHasChanged();
             });
@@ -258,6 +260,8 @@
         DisconectingTrackingService._moveTimer?.Dispose();
         DisconectingTrackingService._responseTimer?.Dispose();
         if (hubConnection != null)
+        {
             await hubConnection.DisposeAsync();
+        }
     }
 }

@@ -71,7 +71,7 @@ namespace TicTacToeGame.Services.GameProcessService
 
             _responseTimer = new Timer(DisconnectingTrackingConstants.RESPONSE_TIME * 1000);
             _responseTimer.AutoReset = false;
-            _responseTimer.Elapsed += (sender, e) => OpponentIsNotAlive();
+            _responseTimer.Elapsed += async(sender, e) => await OpponentIsNotAlive();
 
             _moveTimer.Start();
         }
@@ -82,13 +82,14 @@ namespace TicTacToeGame.Services.GameProcessService
             _responseTimer.Start();
         }
 
-        private async void OpponentIsNotAlive()
+        private async Task OpponentIsNotAlive()
         {
             OpponentLeaved = true;
             _moveTimer.Stop();
             _responseTimer.Stop();
 
-            if (CurrentGame.GameResult != GameState.Finished)
+            Game game = _gameRepository.GetById(CurrentGame.UniqueId);
+            if (game.GameResult != GameState.Finished)
             {
                 CurrentGame.GameResult = GameState.Finished;
                 CurrentGame.Winner = PlayerType.None;
@@ -97,6 +98,8 @@ namespace TicTacToeGame.Services.GameProcessService
                 
                 await _hubConnection.SendAsync("OpponentLeft", CurrentGame.UniqueId);
             }
+            UpdateComponent?.Invoke();
+            await _hubConnection.SendAsync("SendGameStatus", CurrentGame.GameResult, "Game over", CurrentGame.UniqueId);
         }
         public string GetOpponentName(string connectionId)
         {

@@ -27,6 +27,9 @@ namespace TicTacToeGame.WebUI.Data.Configurations
             .Property(g => g.GameConnectionId)
             .HasMaxLength(450);
 
+            builder
+               .Property(g => g.UpdatedAt)
+               .HasColumnType("datetime");
         }
     }
 }

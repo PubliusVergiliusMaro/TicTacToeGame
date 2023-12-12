@@ -45,11 +45,5 @@
         string userId = user.Claims.First().Value.ToString();
       
         GameReconnectingService.RecconectPlayer(userId);
-         // ExistingGame = GameRepository.GetByUsersId(userId);
-
-         // if(ExistingGame != null)
-         // {
-         //     NavigationManager.NavigateTo("/game");
-         // }
     }
 }

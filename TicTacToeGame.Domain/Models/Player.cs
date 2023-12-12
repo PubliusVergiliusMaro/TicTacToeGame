@@ -10,6 +10,7 @@ namespace TicTacToeGame.Domain.Models
     {
         public string? GameConnectionId { get; set;}
         public bool IsPlaying { get; set; }
+        public DateTime? UpdatedAt { get; set; } = DateTime.UtcNow;
         [Write(false)]
         public GamesHistory GamesHistory { get; set; }
     }

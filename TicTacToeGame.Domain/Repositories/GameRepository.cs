@@ -16,7 +16,7 @@ namespace TicTacToeGame.Domain.Repositories
             _db = new SqlConnection(connstring);
         }
         public List<Game> GetAll() => _db.Query<Game>("Select", commandType: CommandType.StoredProcedure).AsList();
-        public Game? GetById(int id) => _db.Query<Game>("SelectById", new { Id = id }, commandType: CommandType.StoredProcedure).FirstOrDefault();
+        public Game? GetById(Guid id) => _db.Query<Game>("SelectGameById", new { UniqueId = id }, commandType: CommandType.StoredProcedure).FirstOrDefault();
         public Game? GetByUsersId(string userId)
         {
             try
