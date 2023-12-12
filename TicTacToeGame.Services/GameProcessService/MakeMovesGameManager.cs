@@ -1,15 +1,8 @@
 ﻿using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Diagnostics.Metrics;
-using System.Linq;
 using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
-using TicTacToeGame.Domain.Constants;
 using TicTacToeGame.Domain.Enums;
 using TicTacToeGame.Domain.Models;
 using TicTacToeGame.Domain.Repositories;
@@ -34,7 +27,7 @@ public class MakeMovesGameManager : GameManagerBase
     }
     public void InitializePlayers(Player PlayerHost, Player PlayerGuest, HubConnection hubConnection)
     {
-        CurrentPlayerHost = PlayerHost; 
+        CurrentPlayerHost = PlayerHost;
         CurrentPlayerGuest = PlayerGuest;
         _connection = hubConnection;
 
@@ -94,28 +87,22 @@ public class MakeMovesGameManager : GameManagerBase
                (CurrentGame.CurrentTurn == PlayerType.Guest && user.Claims.First().Subject.Name == CurrentPlayerGuest.UserName);
     }
 
-    private void PlaceMoveOnCell(int index, BoardElements[] board,Game CurrentGame)
+    private void PlaceMoveOnCell(int index, BoardElements[] board, Game CurrentGame)
     {
         board[index] = DetermineWhoMakeMoveNow(CurrentGame);
-        Counter++;
     }
 
-    public BoardElements DetermineWhoMakeMoveNow( Game CurrentGame) => 
-        (CurrentGame.CurrentTurn == PlayerType.Host) ? BoardElements.X : BoardElements.O;
+    public BoardElements DetermineWhoMakeMoveNow(Game CurrentGame) => (CurrentGame.CurrentTurn == PlayerType.Host) ? BoardElements.X : BoardElements.O;
 
-
-    private async Task CheckForWinnerAfterMoves(BoardElements[] board,Game CurrentGame)
-    {
-        if (Counter >= TicTacToeRules.MIN_COUNT_OF_MOVE_TO_WIN)
+    private async Task CheckForWinnerAfterMoves(BoardElements[] board, Game CurrentGame)
+    {   
+        if (_checkForWinnerManager.CheckForWinner(board))
         {
-            if (_checkForWinnerManager.CheckForWinner(board))
-            {
-                await FinishGameAndPutInHistory(CurrentGame);
-            }
-            else if (_checkForWinnerManager.CheckForTie(board))
-            {
-                await FinishGameAndPutInHistory(CurrentGame, true);
-            }
+            await FinishGameAndPutInHistory(CurrentGame);
+        }
+        else if (_checkForWinnerManager.CheckForTie(board))
+        {
+            await FinishGameAndPutInHistory(CurrentGame, true);
         }
     }
     public bool CheckForTie(BoardElements[] board)
@@ -184,17 +171,19 @@ public class MakeMovesGameManager : GameManagerBase
         }
     }
 
-
     private async Task SendGameStatus(string GameStatus, Game CurrentGame)
     {
         await _connection.SendAsync("SendGameStatus", CurrentGame.GameResult, GameStatus, CurrentGame.UniqueId);
     }
 
-    private async Task SentGameState(BoardElements[] board,Game CurrentGame)
+    private async Task SentGameState(BoardElements[] board, Game CurrentGame)
     {
         PlayerType nextPlayerTurn = (CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
         await _connection.SendAsync("SendGameState", board, nextPlayerTurn, CurrentGame.UniqueId);
     }
 
-   
+    public void UpdateGameAfterMove(Game game)
+    {
+        _gameRepository.UpdateEntity(game);
+    }
 }

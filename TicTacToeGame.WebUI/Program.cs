@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using TicTacToeGame.Domain.Constants;
 using TicTacToeGame.Domain.Models;
 using TicTacToeGame.Domain.Repositories;
 using TicTacToeGame.Services.GameProcessService;
@@ -75,7 +76,7 @@ builder.Services.AddTransient<GameChatService>();
 builder.Services.AddServerSideBlazor(options =>
 {
     options.DisconnectedCircuitMaxRetained = 100;
-    options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromSeconds(5);
+    options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromSeconds(DisconnectingTrackingConstants.DISCONNECTED_CIRCUIT_RETENTION_PERIOD);
 });
 
 Log.Logger = new LoggerConfiguration()

@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using System.Net.NetworkInformation;
 using System.Security.Claims;
+using TicTacToeGame.Domain.Constants;
 using TicTacToeGame.Domain.Enums;
 using TicTacToeGame.Domain.Models;
 using TicTacToeGame.Domain.Repositories;
@@ -53,9 +54,6 @@ namespace TicTacToeGame.Services.GameProcessService
         {
             _hubConnection = hubConnection;
 
-            hubConnection.On<string>("UserDisconnected", (connectionId) =>
-                UserDisconnected(connectionId));
-
             hubConnection.On<Guid, string>("OpponentLeaves", (gameId, connectionId) =>
                 OpponentLeaves(gameId, connectionId));
 
@@ -67,11 +65,11 @@ namespace TicTacToeGame.Services.GameProcessService
         }
         public void InitializeTimers()
         {
-            _moveTimer = new Timer(10_000);// set more time
+            _moveTimer = new Timer(DisconnectingTrackingConstants.MOVE_TIME * 1000);
             _moveTimer.AutoReset = false;
             _moveTimer.Elapsed += async (sender, e) => await CheckIfPlayerAlive();
 
-            _responseTimer = new Timer(10_000);
+            _responseTimer = new Timer(DisconnectingTrackingConstants.RESPONSE_TIME * 1000);
             _responseTimer.AutoReset = false;
             _responseTimer.Elapsed += (sender, e) => OpponentIsNotAlive();
 
@@ -84,7 +82,7 @@ namespace TicTacToeGame.Services.GameProcessService
             _responseTimer.Start();
         }
 
-        private void OpponentIsNotAlive()
+        private async void OpponentIsNotAlive()
         {
             OpponentLeaved = true;
             _moveTimer.Stop();
@@ -94,8 +92,10 @@ namespace TicTacToeGame.Services.GameProcessService
             {
                 CurrentGame.GameResult = GameState.Finished;
                 CurrentGame.Winner = PlayerType.None;
-
+                
                 _gameRepository.UpdateEntity(CurrentGame);
+                
+                await _hubConnection.SendAsync("OpponentLeft", CurrentGame.UniqueId);
             }
         }
         public string GetOpponentName(string connectionId)
@@ -116,18 +116,6 @@ namespace TicTacToeGame.Services.GameProcessService
             _moveTimer.Start();
         }
 
-        private void UserDisconnected(string connectionId)
-        {
-            if (CurrentPlayerHost.GameConnectionId == connectionId ||
-                CurrentPlayerGuest.GameConnectionId == connectionId)
-            {
-                LivedPlayerName = GetOpponentName(connectionId);
-
-                OpponentIsNotAlive();
-
-                UpdateComponent?.Invoke();
-            }
-        }
         private void OpponentLeaves(Guid gameId, string connectionId)
         {
             if (CurrentGame.UniqueId == gameId)
@@ -151,9 +139,7 @@ namespace TicTacToeGame.Services.GameProcessService
         {
             if (CurrentPlayer.GameConnectionId != connectionId)
             {
-                _responseTimer.Stop();
-                _moveTimer.Stop();
-                _moveTimer.Start();
+                ReloadMoveTimer();
             }
         }
     }

@@ -47,10 +47,17 @@ namespace TicTacToeGame.WebUI.Hubs
         {
             await Clients.Group(gameId.ToString()).SendAsync("OpponentLeaves", gameId, connectionId);
         }
-        public override async Task OnDisconnectedAsync(Exception exception)
+        public async Task OpponentLeft(Guid gameId)
         {
-            await Clients.All.SendAsync("UserDisconnected", Context.ConnectionId);
-            await base.OnDisconnectedAsync(exception);
+            await Clients.Group(gameId.ToString()).SendAsync("OpponentLeft");
+        }
+        public async Task AskAnotherPlayerBoard(Guid gameId,string userId)
+        {
+            await Clients.Group(gameId.ToString()).SendAsync("AskAnotherPlayerBoard", userId, gameId);
+        }
+        public async Task SendAnotherPlayerBoard(Guid gameId,string userId, BoardElements[] board)
+        {
+            await Clients.Group(gameId.ToString()).SendAsync("SendAnotherPlayerBoard",userId,board);
         }
         public async Task SendChatMessage(Guid gameId, string senderNickname,string message)
         {

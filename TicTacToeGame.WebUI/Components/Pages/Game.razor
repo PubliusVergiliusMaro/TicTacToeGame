@@ -27,14 +27,17 @@
 <h1 style="text-align: center;">Tic Tac Toe Game</h1>
 @if (DisconectingTrackingService.OpponentLeaved)
 {
-    <h3 style="text-align: center;">Player @DisconectingTrackingService.LivedPlayerName leaves game</h3>
+    <h3 style="text-align: center;">Opponent @DisconectingTrackingService.LivedPlayerName leaves game</h3>
 }
 <div class="xED3T" style="display: flex; flex-direction: column; align-items: center; padding: 20px; background-color: #14bdac;">
     <p style="margin-top: 20px; font-size: 18px; color: #fff; background-color: #14bdac; padding: 10px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+        @{
+
+        }
         @GameStatus
     </p>
     <p style="margin-top: 20px; font-size: 18px; color: #fff; background-color: #14bdac; padding: 10px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
-        Current turn now: @MakeMovesGameManager.DetermineWhoMakeMoveNow(CurrentGame).ToString()
+        Current turn now: @MakeMovesGameManager.DetermineWhoMakeMoveNow(CurrentGame).ToString();
     </p>
     <table jsname="z2IlVe" class="KD6xlc" style="border-collapse: separate; border-spacing: 10px;">
         <tbody>
@@ -68,16 +71,17 @@
 
 <div class="d-flex">
 
-@if(CurrentGame.GameResult == GameState.Finished)
-{
-    <button style="margin-top: 10px; padding: 10px 15px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;"
-            @onclick="GoToHomePage">
-        Go to Home Page
+    @if (CurrentGame.GameResult == GameState.Finished)
+    {
+        <button style="margin-top: 10px; padding: 10px 15px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;"
+                @onclick="GoToHomePage">
+            Go to Home Page
+        </button>
+    }
+    <button style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;"
+            @onclick="ChatService.ToggleChat">
+        Toggle Chat
     </button>
-}
-<button style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;" 
-        @onclick="ChatService.ToggleChat">
-        Toggle Chat</button>
 </div>
 
 @if (ChatService._isChatVisible)
@@ -96,7 +100,7 @@
 }
 
 @code {
-    
+
     // Board
     private BoardElements[] board = new BoardElements[TicTacToeRules.BOARD_SIZE];
 
@@ -120,6 +124,7 @@
 
     // Chat
     string message = "";
+
     protected override async Task OnInitializedAsync()
     {
         GameStatus = "Game in progress";
@@ -139,6 +144,7 @@
             {
                 board = receivedBoard;
                 CurrentGame.CurrentTurn = nextPlayerTurn;
+                MakeMovesGameManager.UpdateGameAfterMove(CurrentGame);
                 StateHasChanged();
             });
         });
@@ -151,7 +157,34 @@
                 StateHasChanged();
             });
         });
-
+        ///
+        hubConnection.On("OpponentLeft", () =>
+        {
+            InvokeAsync(() =>
+            {
+                DisconectingTrackingService.OpponentLeaved = true;
+                GameStatus = "Game Over";
+                StateHasChanged();
+            });
+        });
+        hubConnection.On<string,Guid>("AskAnotherPlayerBoard", async (userId,gameId) =>
+        {
+            string currentUserId = DisconectingTrackingService.CurrentPlayer.Id;
+            if (userId != currentUserId)
+                await hubConnection.SendAsync("SendAnotherPlayerBoard", CurrentGame.UniqueId, currentUserId, board);
+        });
+        hubConnection.On<string, BoardElements[]>("SendAnotherPlayerBoard", (userId, playerBoard) =>
+         {
+             InvokeAsync(() =>
+             {
+                 if (userId != DisconectingTrackingService.CurrentPlayer.Id)
+                 {
+                     board = playerBoard;
+                     StateHasChanged();
+                 }
+             });
+         });
+         ///
         DisconectingTrackingService.SetHubConnection(hubConnection);
 
         ChatService.SetHubConnection(hubConnection);
@@ -175,6 +208,8 @@
         ChatService.SetSender(CurrentGame, DisconectingTrackingService.CurrentPlayer);
 
         ChatService.UpdateComponent += () => InvokeAsync(StateHasChanged);
+
+        await hubConnection.SendAsync("AskAnotherPlayerBoard", CurrentGame.UniqueId, DisconectingTrackingService.CurrentPlayer.Id);
     }
 
     private void UpdatePlayersGameData(string connectionId)
@@ -211,14 +246,10 @@
     void UpdateSendButton(ChangeEventArgs e) => message = e.Value.ToString();
 
     public async void Dispose()
-    {   
-        if(CurrentGame != null && DisconectingTrackingService.CurrentPlayer != null && hubConnection != null)
-        {
-            await hubConnection.SendAsync("UserLeaves", CurrentGame.UniqueId, DisconectingTrackingService.CurrentPlayer.GameConnectionId);
-        }
+    {
         DisconectingTrackingService._moveTimer?.Dispose();
         DisconectingTrackingService._responseTimer?.Dispose();
-        if(hubConnection != null)
-        await hubConnection.DisposeAsync();
+        if (hubConnection != null)
+            await hubConnection.DisposeAsync();
     }
 }
