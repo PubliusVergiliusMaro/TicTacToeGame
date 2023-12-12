@@ -73,6 +73,8 @@ builder.Services.AddTransient<PlayerDisconectingTrackingService>();
 
 builder.Services.AddTransient<GameChatService>(); 
 
+builder.Services.AddTransient<GameReconnectingService>();
+
 builder.Services.AddServerSideBlazor(options =>
 {
     options.DisconnectedCircuitMaxRetained = 100;

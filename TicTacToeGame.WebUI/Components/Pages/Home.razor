@@ -4,12 +4,17 @@
 @using System.Security.Claims
 @using TicTacToeGame.Domain.Repositories
 @using TicTacToeGame.Domain.Models
+@using TicTacToeGame.Services.GameProcessService
+
 
 @inject AuthenticationStateProvider _authenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject GameRepository GameRepository
+@inject GameReconnectingService GameReconnectingService
+
 @rendermode InteractiveServer
 @attribute [Authorize]
+
 <h1 style="text-align: center;">Tic Tac Toe Game</h1>
 
 <div style="display: flex; justify-content: center; margin-top: 20px;">
@@ -39,11 +44,12 @@
 
         string userId = user.Claims.First().Value.ToString();
       
-        ExistingGame = GameRepository.GetByUsersId(userId);
+        GameReconnectingService.RecconectPlayer(userId);
+         // ExistingGame = GameRepository.GetByUsersId(userId);
 
-        if(ExistingGame != null)
-        {
-            NavigationManager.NavigateTo("/game");
-        }
+         // if(ExistingGame != null)
+         // {
+         //     NavigationManager.NavigateTo("/game");
+         // }
     }
 }

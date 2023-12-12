@@ -85,7 +85,16 @@ namespace TicTacToeGame.Domain.Repositories
             currentPlayer.GameConnectionId = ContextId;
             UpdateEntity(currentPlayer);
         }
-
+        public void UpdatePlayerStatus(string playerId, bool isPlaying)
+        {
+            policy.Execute(() =>
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    return connection.Query("UpdatePlayerStatus", new { Id = playerId, IsPlaying = isPlaying }, commandType: CommandType.StoredProcedure);
+                }
+            });
+        }
         public override void AddEntity(Player entity)
         {
             base.AddEntity(entity);

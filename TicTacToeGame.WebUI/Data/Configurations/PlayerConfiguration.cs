@@ -24,10 +24,6 @@ namespace TicTacToeGame.WebUI.Data.Configurations
             .HasMaxLength(50);
 
             builder
-            .Property(g => g.Nickname)
-            .HasMaxLength(256);
-
-            builder
             .Property(g => g.GameConnectionId)
             .HasMaxLength(450);
 

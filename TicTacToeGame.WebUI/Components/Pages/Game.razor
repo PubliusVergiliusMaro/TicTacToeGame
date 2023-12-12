@@ -20,6 +20,7 @@
 @inject MakeMovesGameManager MakeMovesGameManager
 @inject PlayerDisconectingTrackingService DisconectingTrackingService
 @inject GameChatService ChatService
+@inject GameReconnectingService GameReconnectingService
 
 @implements IDisposable
 @rendermode InteractiveServer
@@ -184,7 +185,7 @@
                  }
              });
          });
-         ///
+        ///
         DisconectingTrackingService.SetHubConnection(hubConnection);
 
         ChatService.SetHubConnection(hubConnection);
@@ -247,6 +248,13 @@
 
     public async void Dispose()
     {
+        if (user != null)
+        {
+            string userId = user.Claims.First().Value.ToString();
+
+            GameReconnectingService.MakePlayerNotPlaying(userId);        
+        }
+
         DisconectingTrackingService._moveTimer?.Dispose();
         DisconectingTrackingService._responseTimer?.Dispose();
         if (hubConnection != null)
