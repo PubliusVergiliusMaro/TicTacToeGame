@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TicTacToeGame.WebUI.Data;
 
@@ -11,9 +12,11 @@ using TicTacToeGame.WebUI.Data;
 namespace TicTacToeGame.WebUI.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20231212112617_Deploy")]
+    partial class Deploy
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -175,7 +178,8 @@ namespace TicTacToeGame.WebUI.Migrations
                     b.Property<int?>("GamesHistoryGuestId")
                         .HasColumnType("int");
 
-                    
+                    b.Property<int?>("GamesHistoryGuestId1")
+                        .HasColumnType("int");
 
                     b.Property<int?>("GamesHistoryHostId")
                         .HasColumnType("int");

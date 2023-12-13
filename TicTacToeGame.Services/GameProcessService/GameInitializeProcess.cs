@@ -12,6 +12,7 @@ public class GameInitializeProcess : GameManagerBase
     private readonly GameRepository _gameRepository;
     private readonly NavigationManager _navigationManager;
     private readonly GameReconnectingService _gameReconnectingService;
+  
 
     public GameInitializeProcess(AuthenticationStateProvider authenticationStateProvider, GameRepository gameRepository, NavigationManager navigationManager, GameReconnectingService gameReconnectingService)
         : base(authenticationStateProvider)

@@ -21,7 +21,7 @@
 @inject PlayerDisconectingTrackingService DisconectingTrackingService
 @inject GameChatService ChatService
 @inject GameReconnectingService GameReconnectingService
-
+@inject GameRepository GameRepository
 @implements IDisposable
 @rendermode InteractiveServer
 
@@ -99,6 +99,7 @@
         <button @onclick="SendMessage" disabled="@string.IsNullOrEmpty(message)" style="width: 28%; padding: 5px 10px; background-color: @(string.IsNullOrEmpty(message) ? "#ccc" : "#14bdac"); color: #fff; border: none; cursor: pointer;">Send</button>
     </div>
 }
+<script src="_content/TicTacToeDeployWithReloadPage/interopFunctions.js"></script>
 
 @code {
 
@@ -125,94 +126,104 @@
 
     // Chat
     string message = "";
+    private bool isInitialized = false;
 
-    protected override async Task OnInitializedAsync()
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        GameStatus = "Game in progress";
-        user = await GameInitializeProcess.HandleGameForAuthenticatedUser(authState);
-        CurrentGame = GameInitializeProcess.CurrentGame;
-
-        currentPlayerHost = _playerRepository.GetById(CurrentGame.PlayerHostId);
-        currentPlayerGuest = _playerRepository.GetById(CurrentGame.PlayerGuestId);
-
-        hubConnection = new HubConnectionBuilder()
-            .WithUrl(NavigationManager.ToAbsoluteUri(GameHub.HubUrl))
-            .Build();
-
-        hubConnection.On<BoardElements[], PlayerType, Guid>("SendGameState", (receivedBoard, nextPlayerTurn, gameId) =>
+        if (!isInitialized)
         {
-            InvokeAsync(() =>
+            isInitialized = true;
+            GameStatus = "Game in progress";
+            user = await GameInitializeProcess.HandleGameForAuthenticatedUser(authState);
+            CurrentGame = GameInitializeProcess.CurrentGame;
+            if (CurrentGame is null)
             {
-                board = receivedBoard;
-                CurrentGame.CurrentTurn = nextPlayerTurn;
-                MakeMovesGameManager.UpdateGameAfterMove(CurrentGame);
-                StateHasChanged();
-            });
-        });
-        hubConnection.On<GameState, string, Guid>("SendGameStatus", (receiveGameResult, receiveGameStatus, gameId) =>
-        {
-            InvokeAsync(() =>
+                return;
+            }
+        
+            currentPlayerHost = _playerRepository.GetById(CurrentGame.PlayerHostId);
+            currentPlayerGuest = _playerRepository.GetById(CurrentGame.PlayerGuestId);
+
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(NavigationManager.ToAbsoluteUri(GameHub.HubUrl))
+                .Build();
+
+            hubConnection.On<BoardElements[], PlayerType, Guid>("SendGameState", (receivedBoard, nextPlayerTurn, gameId) =>
             {
-                CurrentGame.GameResult = receiveGameResult;
-                GameStatus = receiveGameStatus;
-                StateHasChanged();
+                InvokeAsync(() =>
+                {
+                    board = receivedBoard;
+                    CurrentGame.CurrentTurn = nextPlayerTurn;
+                    MakeMovesGameManager.UpdateGameAfterMove(CurrentGame);
+                    StateHasChanged();
+                });
             });
-        });
-        ///
-        hubConnection.On("OpponentLeft", () =>
-        {
-            InvokeAsync(() =>
+            hubConnection.On<GameState, string, Guid>("SendGameStatus", (receiveGameResult, receiveGameStatus, gameId) =>
             {
-                DisconectingTrackingService.OpponentLeaved = true;
-                GameStatus = "Game Over";
-                StateHasChanged();
+                InvokeAsync(() =>
+                {
+                    CurrentGame.GameResult = receiveGameResult;
+                    GameStatus = receiveGameStatus;
+                    StateHasChanged();
+                });
             });
-        });
-        hubConnection.On<string,Guid>("AskAnotherPlayerBoard", async (userId,gameId) =>
-        {
-            string currentUserId = DisconectingTrackingService.CurrentPlayer.Id;
-            if (userId != currentUserId)
-                await hubConnection.SendAsync("SendAnotherPlayerBoard", CurrentGame.UniqueId, currentUserId, board);
-        });
-        hubConnection.On<string, BoardElements[]>("SendAnotherPlayerBoard", (userId, playerBoard) =>
-         {
-             InvokeAsync(() =>
+            ///
+            hubConnection.On("OpponentLeft", () =>
+            {
+                InvokeAsync(() =>
+                {
+                    DisconectingTrackingService.OpponentLeaved = true;
+                    GameStatus = "Game Over";
+                    StateHasChanged();
+                });
+            });
+            hubConnection.On<string, Guid>("AskAnotherPlayerBoard", async (userId, gameId) =>
+            {
+                string currentUserId = DisconectingTrackingService.CurrentPlayer.Id;
+                if (userId != currentUserId)
+                    await hubConnection.SendAsync("SendAnotherPlayerBoard", CurrentGame.UniqueId, currentUserId, board);
+            });
+            hubConnection.On<string, BoardElements[]>("SendAnotherPlayerBoard", (userId, playerBoard) =>
              {
-                 if (userId != DisconectingTrackingService.CurrentPlayer.Id)
+                 InvokeAsync(() =>
                  {
-                     board = playerBoard;
-                     StateHasChanged();
-                 }
+                     if (userId != DisconectingTrackingService.CurrentPlayer.Id)
+                     {
+                         board = playerBoard;
+                         StateHasChanged();
+                     }
+                 });
              });
-         });
-        ///
-        DisconectingTrackingService.SetHubConnection(hubConnection);
+            ///
+            DisconectingTrackingService.SetHubConnection(hubConnection);
 
-        ChatService.SetHubConnection(hubConnection);
+            ChatService.SetHubConnection(hubConnection);
 
-        await hubConnection.StartAsync();
+            await hubConnection.StartAsync();
 
-        await hubConnection.SendAsync("JoinGame", CurrentGame.UniqueId);
+            await hubConnection.SendAsync("JoinGame", CurrentGame.UniqueId);
 
-        UpdatePlayersGameData(hubConnection.ConnectionId);
+            UpdatePlayersGameData(hubConnection.ConnectionId);
 
-        DisconectingTrackingService.InitizalisePlayers(currentPlayerHost, currentPlayerGuest, user);
+            DisconectingTrackingService.InitizalisePlayers(currentPlayerHost, currentPlayerGuest, user);
 
-        DisconectingTrackingService.InitializeGame(CurrentGame);
+            DisconectingTrackingService.InitializeGame(CurrentGame);
 
-        DisconectingTrackingService.InitializeTimers();
+            DisconectingTrackingService.InitializeTimers();
 
-        DisconectingTrackingService.UpdateComponent += () => InvokeAsync(StateHasChanged);
+            DisconectingTrackingService.UpdateComponent += () => InvokeAsync(StateHasChanged);
 
-        MakeMovesGameManager.InitializePlayers(currentPlayerHost, currentPlayerGuest, hubConnection);
+            MakeMovesGameManager.InitializePlayers(currentPlayerHost, currentPlayerGuest, hubConnection);
 
-        ChatService.SetSender(CurrentGame, DisconectingTrackingService.CurrentPlayer);
+            ChatService.SetSender(CurrentGame, DisconectingTrackingService.CurrentPlayer);
 
-        ChatService.UpdateComponent += () => InvokeAsync(StateHasChanged);
+            ChatService.UpdateComponent += () => InvokeAsync(StateHasChanged);
 
-        await hubConnection.SendAsync("AskAnotherPlayerBoard", CurrentGame.UniqueId, DisconectingTrackingService.CurrentPlayer.Id);
+            await hubConnection.SendAsync("AskAnotherPlayerBoard", CurrentGame.UniqueId, DisconectingTrackingService.CurrentPlayer.Id);
+            StateHasChanged();
+        }
     }
-
     private void UpdatePlayersGameData(string connectionId)
     {
         _playerRepository.UpdatePlayerGameContextId(connectionId, currentPlayerHost, currentPlayerGuest, user);
@@ -251,10 +262,20 @@
         if (user != null)
         {
             string userId = user.Claims.First().Value.ToString();
-
-            GameReconnectingService.MakePlayerNotPlaying(userId);        
+            GameReconnectingService.MakePlayerNotPlaying(userId);
+        }        
+        currentPlayerHost = _playerRepository.GetById(CurrentGame.PlayerHostId);
+        currentPlayerGuest = _playerRepository.GetById(CurrentGame.PlayerGuestId);
+        if (currentPlayerGuest is not null && currentPlayerHost is not null)
+        {
+            if (!currentPlayerGuest.IsPlaying && !currentPlayerHost.IsPlaying)
+            {
+                CurrentGame = GameRepository.GetById(CurrentGame.Id);
+                CurrentGame.GameResult = GameState.Finished;
+                GameRepository.UpdateEntity(CurrentGame);
+            }
         }
-
+        
         DisconectingTrackingService._moveTimer?.Dispose();
         DisconectingTrackingService._responseTimer?.Dispose();
         if (hubConnection != null)

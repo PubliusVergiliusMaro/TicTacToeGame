@@ -16,7 +16,17 @@ namespace TicTacToeGame.Domain.Repositories
             _db = new SqlConnection(connstring);
         }
         public List<Game> GetAll() => _db.Query<Game>("Select", commandType: CommandType.StoredProcedure).AsList();
-        public Game? GetById(int id) => _db.Query<Game>("SelectById", new { Id = id }, commandType: CommandType.StoredProcedure).FirstOrDefault();
+        public Game? GetById(int id)
+        {
+          
+            return policy.Execute(() =>
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    return _db.Query<Game>("GetGameById", new { GameId = id }, commandType: CommandType.StoredProcedure).FirstOrDefault();
+                }
+            });
+        }
         public Game? GetByUsersId(string userId)
         {
             try

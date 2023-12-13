@@ -53,12 +53,10 @@ public class MakeMovesGameManager : GameManagerBase
                 {
                     // Put X or O on cell
                     PlaceMoveOnCell(index, board, CurrentGame);
-
-                    // Only after 3 movements can a player win
-                    await CheckForWinnerAfterMoves(board, CurrentGame);
-
                     // Switch player turns
                     await SentGameState(board, CurrentGame);
+                    // Only after 3 movements can a player win
+                    await CheckForWinnerAfterMoves(board, CurrentGame);
                 }
             }
         }
