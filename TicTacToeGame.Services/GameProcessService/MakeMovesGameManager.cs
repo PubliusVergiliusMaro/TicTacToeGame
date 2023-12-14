@@ -118,7 +118,6 @@ public class MakeMovesGameManager : GameManagerBase
         try
         {
             CurrentGame.GameResult = GameState.Finished;
-            await SendGameStatus(_checkForWinnerManager.GameStatus, CurrentGame);
 
             if (_gamesStatisticsService == null || CurrentPlayerHost == null || CurrentPlayerGuest == null)
             {
@@ -145,6 +144,7 @@ public class MakeMovesGameManager : GameManagerBase
                 CurrentGame.Winner = (CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
 
             _gameRepository.UpdateEntity(CurrentGame);
+            await SendGameStatus(_checkForWinnerManager.GameStatus, CurrentGame);
 
             _gameReconnectingService.MakePlayerNotPlaying(CurrentPlayerHost.Id);
             _gameReconnectingService.MakePlayerNotPlaying(CurrentPlayerGuest.Id);

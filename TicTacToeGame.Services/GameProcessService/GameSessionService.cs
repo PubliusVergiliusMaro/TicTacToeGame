@@ -72,15 +72,15 @@ namespace TicTacToeGame.Services.GameProcessService
             {
                 ApprovedNextGame = true;
                 DeclinedNextGame = false;
-
+                Random random = new Random();
                 Game newGame = new()
                 {
                     PlayerHostId = CurrentGame.PlayerHostId,
                     PlayerGuestId = CurrentGame.PlayerGuestId,
                     RoomId = CurrentGame.RoomId,
                     GameResult = GameState.Starting,
-                    CurrentTurn = PlayerType.Host
-                };
+                    CurrentTurn = random.Next(2) == 0 ? PlayerType.Host : PlayerType.Guest
+            };
 
                 _gameRepository.AddEntity(newGame);
                 // make that host becomes such player that sends request

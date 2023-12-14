@@ -24,7 +24,6 @@
 @inject GameRepository GameRepository
 @inject GamesStatisticsService GamesStatisticsService
 @inject GameSessionService GameSessionService
-
 @implements IAsyncDisposable
 @rendermode InteractiveServer
 
@@ -110,13 +109,13 @@
                 @onclick="GoToHomePage">
             Go to Home Page
         </button>
-        @if (GameSessionService.IsTwoPlayersPlaying && !GameSessionService.RequestForNextGame)
-        {
+        @* @if (GameSessionService.IsTwoPlayersPlaying && !GameSessionService.RequestForNextGame)
+        { *@
             <button style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;"
                     @onclick="PlayNextGame">
                 Send ask to another game
             </button>
-        }
+       @*  } *@
     }
     <button style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;"
             @onclick="ChatService.ToggleChat">
@@ -230,7 +229,7 @@ else
             {
                 return;
             }
-            
+
             UpdateCurrentPlayers();
             try
             {
@@ -304,7 +303,15 @@ else
                 return;
             }
 
-            await hubConnection.SendAsync("JoinGame", CurrentGame.RoomId);
+            try
+            {
+                await hubConnection.SendAsync("JoinGame", CurrentGame.RoomId);
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
 
             UpdatePlayersGameData(hubConnection.ConnectionId);
 
@@ -347,7 +354,7 @@ else
     {
         await GameSessionService.PlayNextGame();
     }
-    
+
     public List<TicTacToeGame.Domain.Models.Game> GetGamesByResultAndPlayers()
     {
         var gamesList =  GameRepository.GetGameHistoryInSession(GameState.Finished, currentPlayerHost.Id, currentPlayerGuest.Id,CurrentGame.RoomId);
@@ -388,7 +395,7 @@ else
 
     async Task SendMessage() => await ChatService.SendMessage(message);
     void UpdateSendButton(ChangeEventArgs e) => message = e.Value.ToString();
-    
+
     public async ValueTask DisposeAsync()
     {
         if (user != null && !GameInitializeProcess.IsPlayerAlreadyPlaying)
@@ -423,6 +430,14 @@ else
             {
                 CurrentGame = GameRepository.GetById(CurrentGame.Id);
                 CurrentGame.GameResult = GameState.Finished;
+                if (CheckForWinnerManager.CheckForTie(board))
+                {
+                    CurrentGame.Winner = PlayerType.None;
+                }
+                else
+                {
+                    CurrentGame.Winner = (CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host; 
+                }  
                 GameRepository.UpdateEntity(CurrentGame);
             }
         }
