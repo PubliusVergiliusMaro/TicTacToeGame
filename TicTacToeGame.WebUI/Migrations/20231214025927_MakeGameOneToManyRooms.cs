@@ -1,12 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
-using System;
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace TicTacToeGame.WebUI.Migrations
 {
     /// <inheritdoc />
-    public partial class CreateIdentitySchema : Migration
+    public partial class MakeGameOneToManyRooms : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -30,15 +30,17 @@ namespace TicTacToeGame.WebUI.Migrations
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    GameConnectionId = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
+                    IsPlaying = table.Column<bool>(type: "bit", nullable: false),
                     UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     NormalizedEmail = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     EmailConfirmed = table.Column<bool>(type: "bit", nullable: false),
-                    PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    SecurityStamp = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ConcurrencyStamp = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    PhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    PasswordHash = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
+                    SecurityStamp = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
+                    ConcurrencyStamp = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
+                    PhoneNumber = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
                     PhoneNumberConfirmed = table.Column<bool>(type: "bit", nullable: false),
                     TwoFactorEnabled = table.Column<bool>(type: "bit", nullable: false),
                     LockoutEnd = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
@@ -48,6 +50,24 @@ namespace TicTacToeGame.WebUI.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AspNetUsers", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Rooms",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ConnectionId = table.Column<int>(type: "int", nullable: false),
+                    IsOpen = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
+                    UniqueId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Rooms", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -156,6 +176,76 @@ namespace TicTacToeGame.WebUI.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "GamesHistory",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    PlayerId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
+                    UniqueId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GamesHistory", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_GamesHistory_AspNetUsers_PlayerId",
+                        column: x => x.PlayerId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Games",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Winner = table.Column<int>(type: "int", nullable: true),
+                    GameResult = table.Column<int>(type: "int", nullable: false),
+                    CurrentTurn = table.Column<int>(type: "int", nullable: false),
+                    PlayerHostId = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false),
+                    PlayerGuestId = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false),
+                    GamesHistoryHostId = table.Column<int>(type: "int", nullable: true),
+                    GamesHistoryGuestId = table.Column<int>(type: "int", nullable: true),
+                    GamesHistoryGuestId1 = table.Column<int>(type: "int", nullable: true),
+                    RoomId = table.Column<int>(type: "int", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
+                    UniqueId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Games", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Games_GamesHistory_GamesHistoryGuestId",
+                        column: x => x.GamesHistoryGuestId,
+                        principalTable: "GamesHistory",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Games_GamesHistory_GamesHistoryGuestId1",
+                        column: x => x.GamesHistoryGuestId1,
+                        principalTable: "GamesHistory",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Games_GamesHistory_GamesHistoryHostId",
+                        column: x => x.GamesHistoryHostId,
+                        principalTable: "GamesHistory",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Games_Rooms_RoomId",
+                        column: x => x.RoomId,
+                        principalTable: "Rooms",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
                 table: "AspNetRoleClaims",
@@ -194,6 +284,32 @@ namespace TicTacToeGame.WebUI.Migrations
                 column: "NormalizedUserName",
                 unique: true,
                 filter: "[NormalizedUserName] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Games_GamesHistoryGuestId",
+                table: "Games",
+                column: "GamesHistoryGuestId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Games_GamesHistoryGuestId1",
+                table: "Games",
+                column: "GamesHistoryGuestId1");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Games_GamesHistoryHostId",
+                table: "Games",
+                column: "GamesHistoryHostId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Games_RoomId",
+                table: "Games",
+                column: "RoomId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GamesHistory_PlayerId",
+                table: "GamesHistory",
+                column: "PlayerId",
+                unique: true);
         }
 
         /// <inheritdoc />
@@ -215,7 +331,16 @@ namespace TicTacToeGame.WebUI.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
+                name: "Games");
+
+            migrationBuilder.DropTable(
                 name: "AspNetRoles");
+
+            migrationBuilder.DropTable(
+                name: "GamesHistory");
+
+            migrationBuilder.DropTable(
+                name: "Rooms");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");

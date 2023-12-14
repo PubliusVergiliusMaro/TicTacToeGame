@@ -12,8 +12,8 @@ using TicTacToeGame.WebUI.Data;
 namespace TicTacToeGame.WebUI.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20231201023305_AddGameConnectionId")]
-    partial class AddGameConnectionId
+    [Migration("20231214025927_MakeGameOneToManyRooms")]
+    partial class MakeGameOneToManyRooms
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -158,6 +158,102 @@ namespace TicTacToeGame.WebUI.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("TicTacToeGame.Domain.Models.Game", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<int>("CurrentTurn")
+                        .HasColumnType("int");
+
+                    b.Property<int>("GameResult")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("GamesHistoryGuestId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("GamesHistoryGuestId1")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("GamesHistoryHostId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PlayerGuestId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("PlayerHostId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int?>("RoomId")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("UniqueId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<int?>("Winner")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GamesHistoryGuestId");
+
+                    b.HasIndex("GamesHistoryGuestId1");
+
+                    b.HasIndex("GamesHistoryHostId");
+
+                    b.HasIndex("RoomId");
+
+                    b.ToTable("Games");
+                });
+
+            modelBuilder.Entity("TicTacToeGame.Domain.Models.GamesHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PlayerId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid>("UniqueId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlayerId")
+                        .IsUnique();
+
+                    b.ToTable("GamesHistory");
+                });
+
             modelBuilder.Entity("TicTacToeGame.Domain.Models.Player", b =>
                 {
                     b.Property<string>("Id")
@@ -168,7 +264,8 @@ namespace TicTacToeGame.WebUI.Migrations
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
@@ -178,16 +275,17 @@ namespace TicTacToeGame.WebUI.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("GameConnectionId")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("IsPlaying")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("bit");
 
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("Nickname")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
@@ -198,19 +296,19 @@ namespace TicTacToeGame.WebUI.Migrations
                         .HasColumnType("nvarchar(256)");
 
                     b.Property<string>("PasswordHash")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("PhoneNumber")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
 
-                    b.Property<int>("PlayerType")
-                        .HasColumnType("int");
-
                     b.Property<string>("SecurityStamp")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
@@ -230,6 +328,37 @@ namespace TicTacToeGame.WebUI.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.ToTable("AspNetUsers", (string)null);
+                });
+
+            modelBuilder.Entity("TicTacToeGame.Domain.Models.Room", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ConnectionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsOpen")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("UniqueId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Rooms");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -281,6 +410,60 @@ namespace TicTacToeGame.WebUI.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("TicTacToeGame.Domain.Models.Game", b =>
+                {
+                    b.HasOne("TicTacToeGame.Domain.Models.GamesHistory", null)
+                        .WithMany("Games")
+                        .HasForeignKey("GamesHistoryGuestId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("TicTacToeGame.Domain.Models.GamesHistory", "GamesHistoryGuest")
+                        .WithMany()
+                        .HasForeignKey("GamesHistoryGuestId1");
+
+                    b.HasOne("TicTacToeGame.Domain.Models.GamesHistory", "GamesHistoryHost")
+                        .WithMany()
+                        .HasForeignKey("GamesHistoryHostId");
+
+                    b.HasOne("TicTacToeGame.Domain.Models.Room", "Room")
+                        .WithMany("Game")
+                        .HasForeignKey("RoomId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("GamesHistoryGuest");
+
+                    b.Navigation("GamesHistoryHost");
+
+                    b.Navigation("Room");
+                });
+
+            modelBuilder.Entity("TicTacToeGame.Domain.Models.GamesHistory", b =>
+                {
+                    b.HasOne("TicTacToeGame.Domain.Models.Player", "Player")
+                        .WithOne("GamesHistory")
+                        .HasForeignKey("TicTacToeGame.Domain.Models.GamesHistory", "PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Player");
+                });
+
+            modelBuilder.Entity("TicTacToeGame.Domain.Models.GamesHistory", b =>
+                {
+                    b.Navigation("Games");
+                });
+
+            modelBuilder.Entity("TicTacToeGame.Domain.Models.Player", b =>
+                {
+                    b.Navigation("GamesHistory")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TicTacToeGame.Domain.Models.Room", b =>
+                {
+                    b.Navigation("Game");
                 });
 #pragma warning restore 612, 618
         }

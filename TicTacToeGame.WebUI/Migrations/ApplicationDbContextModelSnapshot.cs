@@ -3,7 +3,6 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TicTacToeGame.WebUI.Data;
 
@@ -12,11 +11,9 @@ using TicTacToeGame.WebUI.Data;
 namespace TicTacToeGame.WebUI.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20231212112617_Deploy")]
-    partial class Deploy
+    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -217,9 +214,7 @@ namespace TicTacToeGame.WebUI.Migrations
 
                     b.HasIndex("GamesHistoryHostId");
 
-                    b.HasIndex("RoomId")
-                        .IsUnique()
-                        .HasFilter("[RoomId] IS NOT NULL");
+                    b.HasIndex("RoomId");
 
                     b.ToTable("Games");
                 });
@@ -430,8 +425,8 @@ namespace TicTacToeGame.WebUI.Migrations
                         .HasForeignKey("GamesHistoryHostId");
 
                     b.HasOne("TicTacToeGame.Domain.Models.Room", "Room")
-                        .WithOne("Game")
-                        .HasForeignKey("TicTacToeGame.Domain.Models.Game", "RoomId")
+                        .WithMany("Game")
+                        .HasForeignKey("RoomId")
                         .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("GamesHistoryGuest");

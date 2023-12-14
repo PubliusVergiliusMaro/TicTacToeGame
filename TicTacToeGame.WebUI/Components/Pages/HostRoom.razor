@@ -102,10 +102,10 @@
             {
                 if (_temporaryRoomService.ConnectionId == joinedRoomId.ToString())
                 {
-                    Guid createdGameId = _roomService.CreateGame(joinedRoomId, user, joinPlayer);
+                    int createdRoomId = _roomService.CreateGame(joinedRoomId, user, joinPlayer);
 
-                    await hubConnection.SendAsync("JoinGame", createdGameId);
-                    await hubConnection.SendAsync("AcceptJoining", _temporaryRoomService.Room.ConnectionId, createdGameId);
+                    await hubConnection.SendAsync("JoinGame", createdRoomId);
+                    await hubConnection.SendAsync("AcceptJoining", _temporaryRoomService.Room.ConnectionId, createdRoomId);
                     _navigationManager.NavigateTo("/game");
 
                     _ = InvokeAsync(() =>

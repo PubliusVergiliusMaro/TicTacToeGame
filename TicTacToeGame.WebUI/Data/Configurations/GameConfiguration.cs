@@ -26,8 +26,8 @@ namespace TicTacToeGame.WebUI.Data.Configurations
 
             builder
                 .HasOne(g => g.Room)
-                .WithOne(r => r.Game)
-                .HasForeignKey<Game>(g => g.RoomId)
+                .WithMany(r => r.Game)
+                .HasForeignKey(g => g.RoomId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder

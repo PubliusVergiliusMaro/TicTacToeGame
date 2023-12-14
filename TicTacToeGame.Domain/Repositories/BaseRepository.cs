@@ -35,16 +35,16 @@ namespace TicTacToeGame.Domain.Repositories
         }
         public virtual void AddEntity(T entity)
         {
-            try
+            policy.Execute(() =>
             {
-                _db.Open();
-                _db.BulkInsert(entity);
-                _db.Close();
-            }
-            catch (System.Exception ex)
-            {
-                throw ex;
-            }
+                // check if here needs this using
+                using (var db = new SqlConnection(_connectionString))
+                {
+                    db.Open();
+                    db.BulkInsert(entity);
+                    db.Close();
+                }
+            });
         }
         public virtual void UpdateEntity(T entity)
         {

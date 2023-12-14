@@ -35,7 +35,7 @@ namespace TicTacToeGame.Services.GameProcessService
         }
         public async Task SendMessage(string message)
         {
-            await _hubConnection.SendAsync("SendChatMessage",_currentGame.UniqueId, _sender.UserName ,message);
+            await _hubConnection.SendAsync("SendChatMessage",_currentGame.RoomId, _sender.UserName ,message);
         }
 
         public void ToggleChat()

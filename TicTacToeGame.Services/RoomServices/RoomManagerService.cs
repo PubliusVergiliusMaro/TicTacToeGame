@@ -44,7 +44,7 @@ namespace TicTacToeGame.Services.RoomServices
             }
         }
 
-        public Guid CreateGame(int joinedRoomId, ClaimsPrincipal user, Player joinedPlayer)
+        public int CreateGame(int joinedRoomId, ClaimsPrincipal user, Player joinedPlayer)
         {
             Room room = OpenedRooms.Keys.First(r => r.ConnectionId == joinedRoomId);
             room.IsOpen = false;
@@ -61,7 +61,7 @@ namespace TicTacToeGame.Services.RoomServices
 
             _gameRepository.AddEntity(game);
 
-            return game.UniqueId;
+            return roomId;
         }   
     }
 }

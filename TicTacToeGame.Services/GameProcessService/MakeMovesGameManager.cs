@@ -179,13 +179,13 @@ public class MakeMovesGameManager : GameManagerBase
 
     private async Task SendGameStatus(string GameStatus, Game CurrentGame)
     {
-        await _connection.SendAsync("SendGameStatus", CurrentGame.GameResult, GameStatus, CurrentGame.UniqueId);
+        await _connection.SendAsync("SendGameStatus", CurrentGame.GameResult, GameStatus, CurrentGame.RoomId);
     }
 
     private async Task SentGameState(BoardElements[] board, Game CurrentGame)
     {
         PlayerType nextPlayerTurn = (CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
-        await _connection.SendAsync("SendGameState", board, nextPlayerTurn, CurrentGame.UniqueId);
+        await _connection.SendAsync("SendGameState", board, nextPlayerTurn, CurrentGame.RoomId);
     }
 
     public void UpdateGameAfterMove(Game game)
