@@ -22,6 +22,8 @@
 @inject GameChatService ChatService
 @inject GameReconnectingService GameReconnectingService
 @inject GameRepository GameRepository
+@inject GameSessionService GameSessionService
+
 @implements IDisposable
 @rendermode InteractiveServer
 
@@ -66,9 +68,9 @@
             }
         </tbody>
     </table>
-    @if (RequestForNextGame)
+    @if (GameSessionService.RequestForNextGame)
     {
-        @if (!approved && !declined)
+        @if (!GameSessionService.ApprovedNextGame && !GameSessionService.DeclinedNextGame)
         {
             <div class="card" style="width: 18rem;">
                 <div class="card-body">
@@ -79,24 +81,24 @@
                 </div>
             </div>
         }
-        else if (approved)
-        {
-            <div class="card" style="width: 18rem;">
-                <div class="card-body">
-                    <h5 class="card-title">Game Invitation was accepted</h5>
-                    <p class="text-success"><i class="fas fa-check"></i> Game approved</p>
-                </div>
+    }
+    @if (GameSessionService.ApprovedNextGame)
+    {
+        <div class="card" style="width: 18rem;">
+            <div class="card-body">
+                <h5 class="card-title">Game Invitation was accepted</h5>
+                <p class="text-success"><i class="fas fa-check"></i> Game approved</p>
             </div>
-        }
-        else if (declined)
-        {
-            <div class="card" style="width: 18rem;">
-                <div class="card-body">
-                    <h5 class="card-title">Game Invitation was declined</h5>
-                    <p class="text-danger"><i class="fas fa-times"></i> Game declined</p>
-                </div>
+        </div>
+    }
+    else if (GameSessionService.DeclinedNextGame)
+    {
+        <div class="card" style="width: 18rem;">
+            <div class="card-body">
+                <h5 class="card-title">Game Invitation was declined</h5>
+                <p class="text-danger"><i class="fas fa-times"></i> Game declined</p>
             </div>
-        }
+        </div>
     }
 </div>
 
@@ -109,7 +111,7 @@
             Go to Home Page
         </button>
 
-        @if (isTwoPlayersPlaying && !RequestForNextGame)
+        @if (GameSessionService.IsTwoPlayersPlaying && !GameSessionService.RequestForNextGame)
         {
             <button style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;"
                     @onclick="PlayNextGame">
@@ -168,11 +170,11 @@
     private bool isInitialized = false;
 
     // Next game
-    private bool isTwoPlayersPlaying = false;
-    private bool RequestForNextGame = false;
+    // private bool isTwoPlayersPlaying = false;
+    // private bool RequestForNextGame = false;
 
-    private bool approved;
-    private bool declined;
+    // private bool approved;
+    // private bool declined;
 
 
 
@@ -227,9 +229,12 @@
             });
             hubConnection.On<string, int>("AskAnotherPlayerBoard", async (userId, gameId) =>
             {
-                string currentUserId = DisconectingTrackingService.CurrentPlayer.Id;
-                if (userId != currentUserId)
-                    await hubConnection.SendAsync("SendAnotherPlayerBoard", CurrentGame.RoomId, currentUserId, board);
+                if (DisconectingTrackingService.CurrentPlayer != null)
+                {
+                    string currentUserId = DisconectingTrackingService.CurrentPlayer.Id;
+                    if (userId != currentUserId)
+                        await hubConnection.SendAsync("SendAnotherPlayerBoard", CurrentGame.RoomId, currentUserId, board);
+                }
             });
             hubConnection.On<string, BoardElements[]>("SendAnotherPlayerBoard", (userId, playerBoard) =>
             {
@@ -242,70 +247,11 @@
                     }
                 });
             });
-            ///
-            hubConnection.On<string>("AskAnotherPlayerForNextGame", (userId) =>
-            {
-                InvokeAsync(() =>
-                {
-                    if (userId != DisconectingTrackingService.CurrentPlayer.Id)
-                    {
-                        RequestForNextGame = true;
-                        StateHasChanged();
-                    }
-                });
-            });
-            hubConnection.On<string>("DeclineAnotherGameRequest", (userId) =>
-            {
-                InvokeAsync(() =>
-                {
-                    if (userId != DisconectingTrackingService.CurrentPlayer.Id)
-                    {
-                        approved = false;
-                        declined = true;
-                        StateHasChanged();
-                    }
-                });
-            });
-            hubConnection.On<string>("AcceptAnotherGameRequest", async (userId) =>
-            {
-                if (userId != DisconectingTrackingService.CurrentPlayer.Id)
-                {
-                    approved = true;
-                    declined = false;
-                    // maybe update state 
-
-                    // close this game and make not active
-
-
-                    Domain.Models.Game newGame = new()
-                        {
-                            PlayerHostId = CurrentGame.PlayerHostId,
-                            PlayerGuestId = CurrentGame.PlayerGuestId,
-                            RoomId = CurrentGame.RoomId,
-                            GameResult = GameState.Starting,
-                            CurrentTurn = PlayerType.Host
-                        };
-                    GameRepository.AddEntity(newGame);
-                    // make that host becomes such player that sends request
-                    MakeCurrentPlayerNotPlaying();
-                    // make new game with same players
-
-                    await hubConnection.SendAsync("JoinNextGame", CurrentGame.RoomId, DisconectingTrackingService.CurrentPlayer.Id);
-
-                    NavigationManager.NavigateTo("/game", forceLoad: true);
-                }
-            });
-            hubConnection.On<string>("JoinNextGame", (userId) =>
-            {
-                if (userId != DisconectingTrackingService.CurrentPlayer.Id)
-                {
-                    MakeCurrentPlayerNotPlaying();
-                    NavigationManager.NavigateTo("/game");
-                }
-            });
             DisconectingTrackingService.SetHubConnection(hubConnection);
 
             ChatService.SetHubConnection(hubConnection);
+
+            GameSessionService.SetHubConnection(hubConnection);
 
             await hubConnection.StartAsync();
 
@@ -325,28 +271,31 @@
 
             ChatService.SetSender(CurrentGame, DisconectingTrackingService.CurrentPlayer);
 
+            GameSessionService.SetCurrentPlayerAndGame(DisconectingTrackingService.CurrentPlayer, CurrentGame);
+
             ChatService.UpdateComponent += () => InvokeAsync(StateHasChanged);
+
+            GameSessionService.UpdateComponent += () => InvokeAsync(StateHasChanged);
 
             await hubConnection.SendAsync("AskAnotherPlayerBoard", CurrentGame.RoomId, DisconectingTrackingService.CurrentPlayer.Id);
 
-            isTwoPlayersPlaying = await DisconectingTrackingService.CheckIfTwoPlayersArePlaying();
+            GameSessionService.IsTwoPlayersPlaying = await DisconectingTrackingService.CheckIfTwoPlayersArePlaying();
 
             StateHasChanged();
         }
     }
     private async Task Approve()
     {
-        await hubConnection.SendAsync("AcceptAnotherGameRequest", CurrentGame.RoomId, DisconectingTrackingService.CurrentPlayer.Id);
+        await GameSessionService.ApproveNextGamePlayerRequest();    
     }
 
     private async Task Decline()
     {
-        await hubConnection.SendAsync("DeclineAnotherGameRequest", CurrentGame.RoomId, DisconectingTrackingService.CurrentPlayer.Id);
+       await GameSessionService.DeclineNextPlayerRequest();
     }
     private async Task PlayNextGame()
     {
-        await hubConnection.SendAsync("AskAnotherPlayerForNextGame", CurrentGame.RoomId, DisconectingTrackingService.CurrentPlayer.Id);
-        // maybe make button disabled
+        await GameSessionService.PlayNextGame();
     }
     private void CheckIfPlayerIsPlaying()
     {
@@ -357,6 +306,7 @@
             //
         }
     }
+
     private void MakeCurrentPlayerNotPlaying()
     {
         string userId = user.Claims.First().Value.ToString();
@@ -397,7 +347,7 @@
 
     public async void Dispose()
     {
-        if (user != null)
+        if (user != null)// && !GameInitializeProcess.IsPlayerAlreadyPlaying)
         {
             MakeCurrentPlayerNotPlaying();
         }
@@ -411,8 +361,11 @@
             if (!currentPlayerGuest.IsPlaying && !currentPlayerHost.IsPlaying)
             {
                 CurrentGame = GameRepository.GetById(CurrentGame.Id);
-                CurrentGame.GameResult = GameState.Finished;
-                GameRepository.UpdateEntity(CurrentGame);
+                if (CurrentGame != null)//check if it is needed
+                {
+                    CurrentGame.GameResult = GameState.Finished;
+                    GameRepository.UpdateEntity(CurrentGame);
+                }
             }
         }
 

@@ -90,7 +90,7 @@ namespace TicTacToeGame.Services.GameProcessService
 
             if (CurrentGame.GameResult != GameState.Finished)
             {
-                CurrentGame.GameResult = GameState.Finished;
+                CurrentGame.GameResult = GameState.Declined;
                 CurrentGame.Winner = PlayerType.None;
                 
                 _gameRepository.UpdateEntity(CurrentGame);

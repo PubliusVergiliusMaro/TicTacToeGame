@@ -69,11 +69,13 @@ builder.Services.AddScoped<CheckForWinnerManager>();
 
 builder.Services.AddScoped<MakeMovesGameManager>();
 
-builder.Services.AddTransient<PlayerDisconectingTrackingService>();
+builder.Services.AddTransient<PlayerDisconectingTrackingService>();// maybe make scoped
 
 builder.Services.AddTransient<GameChatService>(); 
 
 builder.Services.AddTransient<GameReconnectingService>();
+
+builder.Services.AddScoped<GameSessionService>();
 
 builder.Services.AddServerSideBlazor(options =>
 {
