@@ -34,10 +34,11 @@ public class GameInitializeProcess : GameManagerBase
         if (IsAuthenticatedUserWithGame(user, out var userId)&&CurrentGame.GameResult==GameState.Starting)
         {
             Player currentPlayer = _playerRepository.GetById(userId);
-            if(currentPlayer.IsPlaying == true)
+            if (currentPlayer.IsPlaying == true)
             {
                 IsPlayerAlreadyPlaying = true;
             }
+
             _gameReconnectingService.CheckIfPlayerIsAlreadyPlaying(userId);
 
             return user;
