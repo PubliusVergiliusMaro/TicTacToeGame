@@ -118,6 +118,7 @@ public class MakeMovesGameManager : GameManagerBase
         try
         {
             CurrentGame.GameResult = GameState.Finished;
+            await SendGameStatus(_checkForWinnerManager.GameStatus, CurrentGame);
 
             if (_gamesStatisticsService == null || CurrentPlayerHost == null || CurrentPlayerGuest == null)
             {
@@ -141,14 +142,13 @@ public class MakeMovesGameManager : GameManagerBase
                 CurrentGame.Winner = PlayerType.None;
             }
             else
-                CurrentGame.Winner = CurrentGame.CurrentTurn;
+                CurrentGame.Winner = (CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
 
             _gameRepository.UpdateEntity(CurrentGame);
 
             _gameReconnectingService.MakePlayerNotPlaying(CurrentPlayerHost.Id);
             _gameReconnectingService.MakePlayerNotPlaying(CurrentPlayerGuest.Id);
 
-            await SendGameStatus(_checkForWinnerManager.GameStatus, CurrentGame);
         }
         catch (NullReferenceException ex)
         {
@@ -179,13 +179,13 @@ public class MakeMovesGameManager : GameManagerBase
 
     private async Task SendGameStatus(string GameStatus, Game CurrentGame)
     {
-        await _connection.SendAsync("SendGameStatus", CurrentGame.GameResult, GameStatus, CurrentGame.UniqueId);
+        await _connection.SendAsync("SendGameStatus", CurrentGame.GameResult, GameStatus, CurrentGame.RoomId);
     }
 
     private async Task SentGameState(BoardElements[] board, Game CurrentGame)
     {
         PlayerType nextPlayerTurn = (CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
-        await _connection.SendAsync("SendGameState", board, nextPlayerTurn, CurrentGame.UniqueId);
+        await _connection.SendAsync("SendGameState", board, nextPlayerTurn, CurrentGame.RoomId);
     }
 
     public void UpdateGameAfterMove(Game game)

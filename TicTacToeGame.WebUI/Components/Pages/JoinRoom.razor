@@ -57,11 +57,11 @@
             .WithUrl(_navigationManager.ToAbsoluteUri(GameHub.HubUrl))
             .Build();
 
-        hubConnection.On<int, Guid>("AcceptJoining", async (joinedRoomId, gameId) =>
+        hubConnection.On<int, int>("AcceptJoining", async (joinedRoomId, gameRoomId) =>
         {
             if (roomId == joinedRoomId)
             {
-                await hubConnection.SendAsync("JoinGame", gameId);
+                await hubConnection.SendAsync("JoinGame", gameRoomId);
 
                 _navigationManager.NavigateTo("/game");
             }
@@ -84,19 +84,19 @@
     {
         Player currentPlayer = _playerRepository.GetById(_userId);
 
-        if(int.TryParse(_roomId, out roomId))
+        if (int.TryParse(_roomId, out roomId))
         {
             await hubConnection.SendAsync("JoinRoom", roomId, currentPlayer);
         }
         else
         {
-           InvokeAsync(() =>
-           {
-               _declineMessage = "Invalid room id";
-               ResetMessageTimer();
+            InvokeAsync(() =>
+            {
+                _declineMessage = "Invalid room id";
+                ResetMessageTimer();
 
-               StateHasChanged();
-           });
+                StateHasChanged();
+            });
         }
     }
 

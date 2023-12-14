@@ -8,6 +8,7 @@ namespace TicTacToeGame.Services.GameProcessService
 {
     public class GameReconnectingService
     {
+        private static bool reload = false;
         private Game Game = new();
         private readonly NavigationManager _navigationManager;
         private readonly PlayerRepository _playerRepository;
@@ -33,7 +34,7 @@ namespace TicTacToeGame.Services.GameProcessService
         public void CheckIfPlayerIsAlreadyPlaying(string playerId)
         {
             Player CurrentPlayer = _playerRepository.GetById(playerId);
-            
+
             if (CurrentPlayer.IsPlaying == true)
             {
                 _navigationManager.NavigateTo("/");

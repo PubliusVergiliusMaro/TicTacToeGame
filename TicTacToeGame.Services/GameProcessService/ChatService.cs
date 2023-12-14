@@ -9,7 +9,7 @@ namespace TicTacToeGame.Services.GameProcessService
 
         private Game _currentGame;
         private Player _sender;
-        
+
         private HubConnection _hubConnection;
 
         public event Action UpdateComponent;
@@ -19,10 +19,10 @@ namespace TicTacToeGame.Services.GameProcessService
         {
             _hubConnection = hubConnection;
 
-            hubConnection.On<string,string>("ReceiveChatMessage", (playerNickname, message) => AddMessage(playerNickname, message));
+            hubConnection.On<string, string>("ReceiveChatMessage", (playerNickname, message) => AddMessage(playerNickname, message));
         }
 
-        public void SetSender(Game currentGame,  Player sender)
+        public void SetSender(Game currentGame, Player sender)
         {
             _currentGame = currentGame;
             _sender = sender;
@@ -35,7 +35,7 @@ namespace TicTacToeGame.Services.GameProcessService
         }
         public async Task SendMessage(string message)
         {
-            await _hubConnection.SendAsync("SendChatMessage",_currentGame.UniqueId, _sender.UserName ,message);
+            await _hubConnection.SendAsync("SendChatMessage", _currentGame.RoomId, _sender.UserName, message);
         }
 
         public void ToggleChat()

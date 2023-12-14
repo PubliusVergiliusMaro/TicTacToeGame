@@ -12,14 +12,17 @@ public class GameInitializeProcess : GameManagerBase
     private readonly GameRepository _gameRepository;
     private readonly NavigationManager _navigationManager;
     private readonly GameReconnectingService _gameReconnectingService;
-  
-
-    public GameInitializeProcess(AuthenticationStateProvider authenticationStateProvider, GameRepository gameRepository, NavigationManager navigationManager, GameReconnectingService gameReconnectingService)
+    private readonly PlayerRepository _playerRepository;
+    public bool IsPlayerAlreadyPlaying { get; set; } = false;
+    public GameInitializeProcess(AuthenticationStateProvider authenticationStateProvider,
+        GameRepository gameRepository, NavigationManager navigationManager,
+        GameReconnectingService gameReconnectingService, PlayerRepository playerRepository)
         : base(authenticationStateProvider)
     {
         _gameRepository = gameRepository;
         _navigationManager = navigationManager;
         _gameReconnectingService = gameReconnectingService;
+        _playerRepository = playerRepository;
     }
 
     public async Task<ClaimsPrincipal> HandleGameForAuthenticatedUser(AuthenticationState authState)
@@ -28,8 +31,14 @@ public class GameInitializeProcess : GameManagerBase
         ClaimsPrincipal? user = authState.User;
 
 
-        if (IsAuthenticatedUserWithGame(user, out var userId)&&CurrentGame.GameResult==GameState.Starting)
+        if (IsAuthenticatedUserWithGame(user, out var userId) && CurrentGame.GameResult == GameState.Starting)
         {
+            Player currentPlayer = _playerRepository.GetById(userId);
+            if (currentPlayer.IsPlaying == true)
+            {
+                IsPlayerAlreadyPlaying = true;
+            }
+
             _gameReconnectingService.CheckIfPlayerIsAlreadyPlaying(userId);
 
             return user;

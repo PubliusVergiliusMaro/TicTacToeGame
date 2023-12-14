@@ -3,6 +3,7 @@ using System.Data;
 using System.Data.SqlClient;
 using TicTacToeGame.Domain.Enums;
 using TicTacToeGame.Domain.Models;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace TicTacToeGame.Domain.Repositories
 {
@@ -69,7 +70,40 @@ namespace TicTacToeGame.Domain.Repositories
                 return null; // or throw a custom exception
             }
         }
-
+        public List<Game> GetGameHistoryInSession(GameState gameResult,string hostId,string guestId,int? roomId)
+        {
+            
+            try
+            {
+                return policy.Execute(() =>
+                {
+                    using (var connection = new SqlConnection(_connectionString))
+                    {
+                        return connection.Query<Game>("GetGamesByResultAndPlayers", new { GameResult = gameResult, HostId = hostId,GuestId = guestId,RoomId = roomId },
+                        commandType: CommandType.StoredProcedure).ToList();
+                    }
+                });
+            }
+            catch (SqlException ex)
+            {
+                // Handle SQL-specific exceptions
+                // Log or handle the exception as needed
+                Console.WriteLine($"SqlException: {ex.Message}");
+                return null; // or throw a custom exception
+            }
+            catch (ArgumentNullException ex)
+            {
+                // Handle invalid operation exceptions
+                Console.WriteLine($"ArgumentNullException : {ex.Message}");
+                return null; // or throw a custom exception
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Handle invalid operation exceptions
+                Console.WriteLine($"InvalidOperationException: {ex.Message}");
+                return null; // or throw a custom exception
+            }
+        }
         public override void AddEntity(Game entity)
         {
             base.AddEntity(entity);

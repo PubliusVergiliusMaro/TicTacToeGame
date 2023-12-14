@@ -13,55 +13,77 @@ namespace TicTacToeGame.WebUI.Hubs
             await Clients.All.SendAsync("JoinRoom", roomId, player);
         }
         //JoinRoom
-        public async Task AcceptJoining(int roomId, Guid gameId)
+        public async Task AcceptJoining(int roomConnectionId, int roomId)
         {
-            await Groups.AddToGroupAsync(Context.ConnectionId, gameId.ToString());
-            await Clients.All.SendAsync("AcceptJoining", roomId,gameId);
+            await Groups.AddToGroupAsync(Context.ConnectionId, roomId.ToString());
+            await Clients.All.SendAsync("AcceptJoining", roomConnectionId, roomId);
         }
         public async Task DeclineJoining(string message)
         {
             await Clients.All.SendAsync("DeclineJoining", message);
         }
         //Game
-        public async Task JoinGame(Guid gameId)
+        public async Task JoinGame(int roomId)
         {
-            await Groups.AddToGroupAsync(Context.ConnectionId, gameId.ToString());
+            await Groups.AddToGroupAsync(Context.ConnectionId, roomId.ToString());
         }
-        public async Task SendGameState(BoardElements[] board, PlayerType nextPlayerTurn,Guid gameId)
+        // moves
+        public async Task SendGameState(BoardElements[] board, PlayerType nextPlayerTurn, int roomId)
         {
-            await Clients.Group(gameId.ToString()).SendAsync("SendGameState", board, nextPlayerTurn, gameId);    
+            await Clients.Group(roomId.ToString()).SendAsync("SendGameState", board, nextPlayerTurn, roomId);
         }
-        public async Task SendGameStatus(GameState gameState,string gameStatus, Guid gameId)
+        public async Task SendGameStatus(GameState gameState, string gameStatus, int roomId)
         {
-            await Clients.Group(gameId.ToString()).SendAsync("SendGameStatus", gameState, gameStatus,gameId);
+            await Clients.Group(roomId.ToString()).SendAsync("SendGameStatus", gameState, gameStatus, roomId);
         }
-        public async Task CheckIfOpponentLeaves(Guid gameId, string connectionId)
+        // disconections
+        public async Task CheckIfOpponentLeaves(int roomId, string connectionId)
         {
-            await Clients.Group(gameId.ToString()).SendAsync("CheckIfOpponentLeaves", gameId, connectionId);
+            await Clients.Group(roomId.ToString()).SendAsync("CheckIfOpponentLeaves", roomId, connectionId);
         }
-        public async Task OpponentNotLeaves(Guid gameId, string connectionId)
+        public async Task OpponentNotLeaves(int roomId, string connectionId)
         {
-            await Clients.Group(gameId.ToString()).SendAsync("OpponentNotLeaves", gameId, connectionId);
+            await Clients.Group(roomId.ToString()).SendAsync("OpponentNotLeaves", roomId, connectionId);
         }
-        public async Task UserLeaves(Guid gameId, string connectionId)
+        public async Task UserLeaves(int roomId, string connectionId)
         {
-            await Clients.Group(gameId.ToString()).SendAsync("OpponentLeaves", gameId, connectionId);
+            await Clients.Group(roomId.ToString()).SendAsync("OpponentLeaves", roomId, connectionId);
         }
-        public async Task OpponentLeft(Guid gameId)
+        public async Task OpponentLeft(int roomId)
         {
-            await Clients.Group(gameId.ToString()).SendAsync("OpponentLeft");
+            await Clients.Group(roomId.ToString()).SendAsync("OpponentLeft");
         }
-        public async Task AskAnotherPlayerBoard(Guid gameId,string userId)
+        // get board
+        public async Task AskAnotherPlayerBoard(int roomId, string userId)
         {
-            await Clients.Group(gameId.ToString()).SendAsync("AskAnotherPlayerBoard", userId, gameId);
+            await Clients.Group(roomId.ToString()).SendAsync("AskAnotherPlayerBoard", userId, roomId);
         }
-        public async Task SendAnotherPlayerBoard(Guid gameId,string userId, BoardElements[] board)
+        public async Task SendAnotherPlayerBoard(int roomId, string userId, BoardElements[] board)
         {
-            await Clients.Group(gameId.ToString()).SendAsync("SendAnotherPlayerBoard",userId,board);
+            await Clients.Group(roomId.ToString()).SendAsync("SendAnotherPlayerBoard", userId, board);
         }
-        public async Task SendChatMessage(Guid gameId, string senderNickname,string message)
+        // chat
+        public async Task SendChatMessage(int roomId, string senderNickname, string message)
         {
-            await Clients.Group(gameId.ToString()).SendAsync("ReceiveChatMessage", senderNickname, message);
+            await Clients.Group(roomId.ToString()).SendAsync("ReceiveChatMessage", senderNickname, message);
+        }
+        // next game
+
+        public async Task AskAnotherPlayerForNextGame(int roomId, string userId)
+        {
+            await Clients.Group(roomId.ToString()).SendAsync("AskAnotherPlayerForNextGame", userId);
+        }
+        public async Task DeclineAnotherGameRequest(int roomId, string userId)
+        {
+            await Clients.Group(roomId.ToString()).SendAsync("DeclineAnotherGameRequest", userId);
+        }
+        public async Task AcceptAnotherGameRequest(int roomId, string userId)
+        {
+            await Clients.Group(roomId.ToString()).SendAsync("AcceptAnotherGameRequest", userId);
+        }
+        public async Task JoinNextGame(int roomId, string userId)
+        {
+            await Clients.Group(roomId.ToString()).SendAsync("JoinNextGame", userId);
         }
     }
 }

@@ -22,6 +22,7 @@
         else
         {
             <h4>Games played: @gamesHistory.Games.Count</h4>
+
             @foreach (var game in gamesHistory.Games)
             {
                 Player hostPlayer = GamesStatisticsService.GetPlayerById(game.PlayerHostId);

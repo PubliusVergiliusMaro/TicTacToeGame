@@ -74,6 +74,7 @@ builder.Services.AddTransient<PlayerDisconectingTrackingService>();
 builder.Services.AddTransient<GameChatService>(); 
 
 builder.Services.AddTransient<GameReconnectingService>();
+builder.Services.AddTransient<GameSessionService>();
 
 builder.Services.AddServerSideBlazor(options =>
 {

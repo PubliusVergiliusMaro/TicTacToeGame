@@ -95,6 +95,19 @@ namespace TicTacToeGame.Domain.Repositories
                 }
             });
         }
+        public async Task<bool> CheckIfTwoPlayersArePlaying(string hostId, string guestId)
+        {
+            return policy.Execute(() =>
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    List<Player> players = connection.Query<Player>("GetHostAndGuestPlayer", new { HostId = hostId, GuestId = guestId }, commandType: CommandType.StoredProcedure).ToList();
+
+                    bool areBothPlaying = players.All(r => r.IsPlaying == true);
+                    return areBothPlaying;
+                }
+            });
+        }
         public override void AddEntity(Player entity)
         {
             base.AddEntity(entity);

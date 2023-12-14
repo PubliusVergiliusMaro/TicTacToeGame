@@ -24,7 +24,7 @@ namespace TicTacToeGame.Services.RoomServices
         }
         public void AddRoom(Room room, Action onRoomDeleted)
         {
-            Timer timer = new Timer(HostRoomConstants.WAITING_TIME * 1000); 
+            Timer timer = new Timer(HostRoomConstants.WAITING_TIME * 1000);
             timer.Elapsed += (sender, e) => DeleteRoom(room);
             timer.AutoReset = false;
             timer.Start();
@@ -44,13 +44,13 @@ namespace TicTacToeGame.Services.RoomServices
             }
         }
 
-        public Guid CreateGame(int joinedRoomId, ClaimsPrincipal user, Player joinedPlayer)
+        public int CreateGame(int joinedRoomId, ClaimsPrincipal user, Player joinedPlayer)
         {
             Room room = OpenedRooms.Keys.First(r => r.ConnectionId == joinedRoomId);
             room.IsOpen = false;
             int roomId = _roomRepository.AddEntity(room);
 
-            Game game = new Game() 
+            Game game = new Game()
             {
                 PlayerHostId = user.Claims.First().Value.ToString(),
                 PlayerGuestId = joinedPlayer.Id,
@@ -61,7 +61,7 @@ namespace TicTacToeGame.Services.RoomServices
 
             _gameRepository.AddEntity(game);
 
-            return game.UniqueId;
-        }   
+            return roomId;
+        }
     }
 }
