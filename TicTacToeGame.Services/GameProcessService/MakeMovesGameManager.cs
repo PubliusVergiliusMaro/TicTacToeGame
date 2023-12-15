@@ -17,7 +17,8 @@ public class MakeMovesGameManager : GameManagerBase
     private readonly CheckForWinnerManager _checkForWinnerManager;
     private readonly GameRepository _gameRepository;
     private readonly GameReconnectingService _gameReconnectingService;
-
+    public string CurrentPlayerSign;
+    private Player CurrentPlayer;
     public MakeMovesGameManager(AuthenticationStateProvider authenticationStateProvider,
         GamesStatisticsService gamesStatisticsService,
         CheckForWinnerManager checkForWinnerManager,
@@ -30,10 +31,19 @@ public class MakeMovesGameManager : GameManagerBase
         _gameRepository = gameRepository;
         _gameReconnectingService=gameReconnectingService;
     }
-    public void InitializePlayers(Player PlayerHost, Player PlayerGuest, HubConnection hubConnection)
+    public void InitializePlayers(Player PlayerHost, Player PlayerGuest,Player currentPlayer, HubConnection hubConnection)
     {
         CurrentPlayerHost = PlayerHost;
         CurrentPlayerGuest = PlayerGuest;
+        CurrentPlayer = currentPlayer;
+        if (CurrentPlayer.Id == PlayerHost.Id)
+        {
+            CurrentPlayerSign = "X";
+        }
+        else
+        {
+            CurrentPlayerSign = "O";
+        }
         _connection = hubConnection;
 
     }

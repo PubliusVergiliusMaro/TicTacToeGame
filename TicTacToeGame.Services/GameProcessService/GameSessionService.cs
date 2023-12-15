@@ -79,7 +79,7 @@ namespace TicTacToeGame.Services.GameProcessService
                     PlayerGuestId = CurrentGame.PlayerGuestId,
                     RoomId = CurrentGame.RoomId,
                     GameResult = GameState.Starting,
-                    CurrentTurn = random.Next(2) == 0 ? PlayerType.Host : PlayerType.Guest
+                    CurrentTurn = random.Next(3) == 0 ? PlayerType.Host : PlayerType.Guest
             };
 
                 _gameRepository.AddEntity(newGame);
