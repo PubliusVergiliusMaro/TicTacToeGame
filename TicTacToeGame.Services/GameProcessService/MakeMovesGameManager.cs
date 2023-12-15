@@ -7,31 +7,40 @@ using TicTacToeGame.Domain.Enums;
 using TicTacToeGame.Domain.Models;
 using TicTacToeGame.Domain.Repositories;
 using TicTacToeGame.Services.GamesStatisticServices;
+using TicTacToeGame.Services.HubConnections;
 
 namespace TicTacToeGame.Services.GameProcessService;
 public class MakeMovesGameManager : GameManagerBase
 {
+    private readonly GameRepository _gameRepository;
 
     private readonly GamesStatisticsService _gamesStatisticsService;
-    private HubConnection _connection;
-    private readonly CheckForWinnerManager _checkForWinnerManager;
-    private readonly GameRepository _gameRepository;
+
     private readonly GameReconnectingService _gameReconnectingService;
+    //private HubConnection _connection;
+
+    private readonly CheckForWinnerManager _checkForWinnerManager;
+
+    private readonly GameHubConnection _gameHubConnection;
+
     public string CurrentPlayerSign;
     private Player CurrentPlayer;
+
     public MakeMovesGameManager(AuthenticationStateProvider authenticationStateProvider,
         GamesStatisticsService gamesStatisticsService,
         CheckForWinnerManager checkForWinnerManager,
         GameRepository gameRepository,
-        GameReconnectingService gameReconnectingService)
+        GameReconnectingService gameReconnectingService,
+        GameHubConnection gameHubConnection)
         : base(authenticationStateProvider)
     {
         _gamesStatisticsService = gamesStatisticsService;
         _checkForWinnerManager = checkForWinnerManager;
         _gameRepository = gameRepository;
-        _gameReconnectingService=gameReconnectingService;
+        _gameReconnectingService = gameReconnectingService;
+        _gameHubConnection = gameHubConnection;
     }
-    public void InitializePlayers(Player PlayerHost, Player PlayerGuest,Player currentPlayer, HubConnection hubConnection)
+    public void InitializePlayers(Player PlayerHost, Player PlayerGuest, Player currentPlayer)
     {
         CurrentPlayerHost = PlayerHost;
         CurrentPlayerGuest = PlayerGuest;
@@ -44,7 +53,7 @@ public class MakeMovesGameManager : GameManagerBase
         {
             CurrentPlayerSign = "O";
         }
-        _connection = hubConnection;
+        //_connection = hubConnection;
 
     }
     public async Task MakeMove(int index, BoardElements[] board, Game CurrentGame, AuthenticationState authState, ClaimsPrincipal? user)
@@ -108,7 +117,7 @@ public class MakeMovesGameManager : GameManagerBase
     public BoardElements DetermineWhoMakeMoveNow(Game CurrentGame) => (CurrentGame.CurrentTurn == PlayerType.Host) ? BoardElements.X : BoardElements.O;
 
     private async Task CheckForWinnerAfterMoves(BoardElements[] board, Game CurrentGame)
-    {   
+    {
         if (_checkForWinnerManager.CheckForWinner(board))
         {
             await FinishGameAndPutInHistory(CurrentGame);
@@ -118,10 +127,7 @@ public class MakeMovesGameManager : GameManagerBase
             await FinishGameAndPutInHistory(CurrentGame, true);
         }
     }
-    public bool CheckForTie(BoardElements[] board)
-    {
-        return !board.Contains(BoardElements.Empty);
-    }
+
 
     private async Task FinishGameAndPutInHistory(Game CurrentGame, bool isTie = false)
     {
@@ -189,13 +195,17 @@ public class MakeMovesGameManager : GameManagerBase
 
     private async Task SendGameStatus(string GameStatus, Game CurrentGame)
     {
-        await _connection.SendAsync("SendGameStatus", CurrentGame.GameResult, GameStatus, CurrentGame.RoomId);
+        await _gameHubConnection.SendGameStatus(CurrentGame.GameResult, GameStatus, (int)CurrentGame.RoomId);
+        //await _connection.SendAsync("SendGameStatus", CurrentGame.GameResult, GameStatus, CurrentGame.RoomId);
     }
 
     private async Task SentGameState(BoardElements[] board, Game CurrentGame)
     {
         PlayerType nextPlayerTurn = (CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
-        await _connection.SendAsync("SendGameState", board, nextPlayerTurn, CurrentGame.RoomId);
+        int roomId = (int)CurrentGame.RoomId;
+
+        await _gameHubConnection.SendGameState(board, nextPlayerTurn, roomId);
+        //await _connection.SendAsync("SendGameState", board, nextPlayerTurn, CurrentGame.RoomId);
     }
 
     public void UpdateGameAfterMove(Game game)

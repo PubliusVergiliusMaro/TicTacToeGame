@@ -6,13 +6,15 @@
 @using System.Security.Claims
 @using TicTacToeGame.Domain.Models
 @using TicTacToeGame.Domain.Repositories
+@using TicTacToeGame.Services.HubConnections
 @using TicTacToeGame.WebUI.Hubs
 
 @inject NavigationManager _navigationManager
 @inject PlayerRepository _playerRepository
 @inject AuthenticationStateProvider _authenticationStateProvider
+@inject JoinRoomHubConnection JoinRoomHubConnection
 
-@implements IDisposable
+@implements IAsyncDisposable
 @rendermode InteractiveServer
 
 <section>
@@ -53,44 +55,42 @@
         ClaimsPrincipal? user = authState.User;
         _userId = user.Claims.First().Value.ToString();
 
-        hubConnection = new HubConnectionBuilder()
-            .WithUrl(_navigationManager.ToAbsoluteUri(GameHub.HubUrl))
-            .Build();
+        JoinRoomHubConnection.AcceptJoiningEvent += AcceptJoining;
 
-        hubConnection.On<int, int>("AcceptJoining", async (joinedRoomId, gameRoomId) =>
-        {
-            if (roomId == joinedRoomId)
-            {
-                await hubConnection.SendAsync("JoinGame", gameRoomId);
+        JoinRoomHubConnection.DeclineJoiningEvent += DeclineJoining;
 
-                _navigationManager.NavigateTo("/game");
-            }
-        });
-
-        hubConnection.On<string>("DeclineJoining", (declineMessage) =>
-        {
-            InvokeAsync(() =>
-            {
-                _declineMessage = declineMessage;
-                ResetMessageTimer();
-
-                StateHasChanged();
-            });
-        });
-        await hubConnection.StartAsync();
+        await JoinRoomHubConnection.StartConnectionAsync();
     }
+    private async Task AcceptJoining(int joinedRoomId, int gameRoomId)
+    {
+        if (roomId == joinedRoomId)
+        {
+            await JoinRoomHubConnection.JoinGameAsync(gameRoomId);
 
+            _navigationManager.NavigateTo("/game");
+        }
+    }
+    private void DeclineJoining(string declineMessage)
+    {
+        _ = InvokeAsync(() =>
+        {
+            _declineMessage = declineMessage;
+            ResetMessageTimer();
+
+            StateHasChanged();
+        });
+    }
     private async Task JoinGameRoom()
     {
         Player currentPlayer = _playerRepository.GetById(_userId);
 
         if (int.TryParse(_roomId, out roomId))
         {
-            await hubConnection.SendAsync("JoinRoom", roomId, currentPlayer);
+            await JoinRoomHubConnection.JoinRoomAsync(roomId, currentPlayer);
         }
         else
         {
-            InvokeAsync(() =>
+            _ = InvokeAsync(() =>
             {
                 _declineMessage = "Invalid room id";
                 ResetMessageTimer();
@@ -124,9 +124,9 @@
         }
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        hubConnection?.DisposeAsync();
         _messageTimer?.Dispose();
+        await JoinRoomHubConnection.DisposeAsync();
     }
 }

@@ -1,27 +1,28 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
 using TicTacToeGame.Domain.Models;
+using TicTacToeGame.Services.HubConnections;
 
 namespace TicTacToeGame.Services.GameProcessService
 {
     public class GameChatService
     {
         public List<KeyValuePair<string, string>> ChatMessages = new List<KeyValuePair<string, string>>();
+        private readonly GameHubConnection _gameHubConnection;
 
         private Game _currentGame;
         private Player _sender;
 
-        private HubConnection _hubConnection;
+        public bool NewMessage { get; set; } = false;
+
 
         public event Action UpdateComponent;
 
         public bool _isChatVisible = false;
-        public void SetHubConnection(HubConnection hubConnection)
+
+        public GameChatService(GameHubConnection gameHubConnection)
         {
-            _hubConnection = hubConnection;
-
-            hubConnection.On<string, string>("ReceiveChatMessage", (playerNickname, message) => AddMessage(playerNickname, message));
+            _gameHubConnection = gameHubConnection;
         }
-
         public void SetSender(Game currentGame, Player sender)
         {
             _currentGame = currentGame;
@@ -31,16 +32,27 @@ namespace TicTacToeGame.Services.GameProcessService
         public void AddMessage(string playerNickname, string message)
         {
             ChatMessages.Add(new KeyValuePair<string, string>(playerNickname, message));
+
+            if (!_isChatVisible)
+                NewMessage = true;
+
             UpdateComponent?.Invoke();
         }
         public async Task SendMessage(string message)
         {
-            await _hubConnection.SendAsync("SendChatMessage", _currentGame.RoomId, _sender.UserName, message);
+            NewMessage = false;
+            await _gameHubConnection.SendChatMessage((int)_currentGame.RoomId, _sender.UserName, message);
+            UpdateComponent?.Invoke();
+
         }
 
         public void ToggleChat()
         {
+            if (!_isChatVisible)
+                NewMessage = false;
+
             _isChatVisible = !_isChatVisible;
+
             UpdateComponent?.Invoke();
         }
     }

@@ -7,6 +7,7 @@ using TicTacToeGame.Domain.Models;
 using TicTacToeGame.Domain.Repositories;
 using TicTacToeGame.Services.GameProcessService;
 using TicTacToeGame.Services.GamesStatisticServices;
+using TicTacToeGame.Services.HubConnections;
 using TicTacToeGame.Services.RoomServices;
 using TicTacToeGame.WebUI.Components;
 using TicTacToeGame.WebUI.Components.Account;
@@ -67,14 +68,19 @@ builder.Services.AddScoped<GameInitializeProcess>();
 
 builder.Services.AddScoped<CheckForWinnerManager>();
 
-builder.Services.AddScoped<MakeMovesGameManager>();
+builder.Services.AddTransient<MakeMovesGameManager>();
 
 builder.Services.AddTransient<PlayerDisconectingTrackingService>();
 
 builder.Services.AddTransient<GameChatService>(); 
 
 builder.Services.AddTransient<GameReconnectingService>();
+
 builder.Services.AddTransient<GameSessionService>();
+
+builder.Services.AddTransient<JoinRoomHubConnection>();
+
+builder.Services.AddScoped<GameHubConnection>();
 
 builder.Services.AddServerSideBlazor(options =>
 {
