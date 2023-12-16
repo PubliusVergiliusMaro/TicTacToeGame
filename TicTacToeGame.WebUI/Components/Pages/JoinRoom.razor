@@ -30,7 +30,8 @@
             <input type="text" class="col-5" @bind="@_roomId" />
         </div>
         <div class="row">
-            <button style="margin:30px 10px 10px 10px;height:50px; width:100px;" @onclick="JoinGameRoom">
+            <button style="margin:30px 10px 10px 10px;height:50px; width:100px;" 
+            @onclick="JoinGameRoom">
                 Join Room
             </button>
         </div>
@@ -70,15 +71,18 @@
             _navigationManager.NavigateTo("/game");
         }
     }
-    private void DeclineJoining(string declineMessage)
+    private void DeclineJoining(string declineMessage,string userId)
     {
-        _ = InvokeAsync(() =>
+        if(_userId == userId)
         {
-            _declineMessage = declineMessage;
-            ResetMessageTimer();
+            _ = InvokeAsync(() =>
+            {
+                _declineMessage = declineMessage;
+                ResetMessageTimer();
 
-            StateHasChanged();
-        });
+                StateHasChanged();
+            });
+        }
     }
     private async Task JoinGameRoom()
     {

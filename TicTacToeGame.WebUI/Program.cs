@@ -82,6 +82,8 @@ builder.Services.AddTransient<JoinRoomHubConnection>();
 
 builder.Services.AddScoped<GameHubConnection>();
 
+builder.Services.AddTransient<HostRoomHubConnection>();
+
 builder.Services.AddServerSideBlazor(options =>
 {
     options.DisconnectedCircuitMaxRetained = 100;

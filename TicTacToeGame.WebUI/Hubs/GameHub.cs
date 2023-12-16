@@ -18,9 +18,9 @@ namespace TicTacToeGame.WebUI.Hubs
             await Groups.AddToGroupAsync(Context.ConnectionId, roomId.ToString());
             await Clients.All.SendAsync("AcceptJoining", roomConnectionId, roomId);
         }
-        public async Task DeclineJoining(string message)
+        public async Task DeclineJoining(string message,string userId)
         {
-            await Clients.All.SendAsync("DeclineJoining", message);
+            await Clients.All.SendAsync("DeclineJoining", message, userId);
         }
         //Game
         public async Task JoinGame(int roomId)
