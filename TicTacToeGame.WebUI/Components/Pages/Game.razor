@@ -15,7 +15,7 @@
 @inject AuthenticationStateProvider _authenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
-@inject GameInitializeProcess GameInitializeProcess
+@inject GameInitializeService GameInitializeProcess
 @inject CheckForWinnerManager CheckForWinnerManager
 @inject MakeMovesGameManager MakeMovesGameManager
 @inject PlayerDisconectingTrackingService DisconectingTrackingService
@@ -25,206 +25,203 @@
 @inject GamesStatisticsService GamesStatisticsService
 @inject GameSessionService GameSessionService
 @inject GameHubConnection GameHubConnection
+@inject GameManager GameManager
 
 @implements IAsyncDisposable
 @rendermode InteractiveServer
 
-<h1 style="text-align: center;">Tic Tac Toe Game</h1>
-@if (DisconectingTrackingService.OpponentLeaved)
+@if (GameManager.IsInitialized)
 {
-    <h3 style="text-align: center;">Opponent @DisconectingTrackingService.LivedPlayerName leaves game</h3>
-}
 
-<div class="xED3T" style="display: flex; flex-direction: column; align-items: center; padding: 20px; background-color: #14bdac;">
-    <p style="margin-top: 20px; font-size: 18px; color: #fff; background-color: #14bdac; padding: 10px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
-        You`re @MakeMovesGameManager.CurrentPlayerSign;
-    </p>
-    <p style="margin-top: 20px; font-size: 18px; color: #fff; background-color: #14bdac; padding: 10px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
-        @GameStatus
-    </p>
-    <p style="margin-top: 20px; font-size: 18px; color: #fff; background-color: #14bdac; padding: 10px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
-        Current turn now: @MakeMovesGameManager.DetermineWhoMakeMoveNow(CurrentGame).ToString();
-    </p>
-    <table jsname="z2IlVe" class="KD6xlc" style="border-collapse: separate; border-spacing: 10px;">
-        <tbody>
-            @for (int row = TicTacToeRules.FIRST_ROW_OF_BOARD; row < TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS; row++)
-            {
-                <div style="display: flex;">
-                    @for (int col = TicTacToeRules.FIRST_COLUMN_OF_BOARD; col < TicTacToeRules.MAX_COUNT_OF_BOARD_COLUMNS; col++)
-                    {
-                        int index = row * 3 + col;
-                        <button style="width: 100px; height: 100px; font-size: 48px; text-align: center; vertical-align: middle;
-                                background-color: #14bdac; border: none; color: #fff;"
-                                @onclick="(async () => await MakeMove(index))" disabled="@IsButtonDisabled(index)">
-                            @GetSquareValue(index)
-                        </button>
-                        @if (col < TicTacToeRules.MAX_COUNT_OF_BOARD_COLUMNS - 1)
-                        {
-                            <!-- This div will create a vertical separator between buttons -->
-                            <div style="width: 5px; background-color: #70757a; height: 100px; "></div>
-                        }
-                    }
-                </div>
-                @if (row < TicTacToeRules.MAX_COUNT_OF_BOARD_COLUMNS - 1)
-                {
-                    <!-- This div will create a vertical separator between buttons -->
-                    <div style="height: 5px; background-color: #70757a; width: 100%; "></div>
-                }
-            }
-        </tbody>
-    </table>
-    @if (GameSessionService.RequestForNextGame)
+    <h1 style="text-align: center;">Tic Tac Toe Game</h1>
+    @if (DisconectingTrackingService.OpponentLeaved)
     {
-        @if (!GameSessionService.ApprovedNextGame && !GameSessionService.DeclinedNextGame)
+        <h3 style="text-align: center;">Opponent @DisconectingTrackingService.LivedPlayerName leaves game</h3>
+    }
+
+    <div class="xED3T" style="display: flex; flex-direction: column; align-items: center; padding: 20px; background-color: #14bdac;">
+        <p style="margin-top: 20px; font-size: 18px; color: #fff; background-color: #14bdac; padding: 10px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+            You`re @MakeMovesGameManager.CurrentPlayerSign;
+        </p>
+        <p style="margin-top: 20px; font-size: 18px; color: #fff; background-color: #14bdac; padding: 10px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+            @GameStatus
+        </p>
+        <p style="margin-top: 20px; font-size: 18px; color: #fff; background-color: #14bdac; padding: 10px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+            Current turn now: @MakeMovesGameManager.DetermineWhoMakeMoveNow().ToString();
+        </p>
+        <table jsname="z2IlVe" class="KD6xlc" style="border-collapse: separate; border-spacing: 10px;">
+            <tbody>
+                @for (int row = TicTacToeRules.FIRST_ROW_OF_BOARD; row < TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS; row++)
+                {
+                    <div style="display: flex;">
+                        @for (int col = TicTacToeRules.FIRST_COLUMN_OF_BOARD; col < TicTacToeRules.MAX_COUNT_OF_BOARD_COLUMNS; col++)
+                        {
+                            int index = row * 3 + col;
+                            <button style="width: 100px; height: 100px; font-size: 48px; text-align: center; vertical-align: middle;
+                                background-color: #14bdac; border: none; color: #fff;"
+                                    @onclick="(async () => await MakeMove(index))" disabled="@IsButtonDisabled(index)">
+                                @GetSquareValue(index)
+                            </button>
+                            @if (col < TicTacToeRules.MAX_COUNT_OF_BOARD_COLUMNS - 1)
+                            {
+                                <div style="width: 5px; background-color: #70757a; height: 100px; "></div>
+                            }
+                        }
+                    </div>
+                    @if (row < TicTacToeRules.MAX_COUNT_OF_BOARD_COLUMNS - 1)
+                    {
+                        <div style="height: 5px; background-color: #70757a; width: 100%; "></div>
+                    }
+                }
+            </tbody>
+        </table>
+        @if (GameSessionService.RequestForNextGame)
+        {
+            @if (!GameSessionService.ApprovedNextGame && !GameSessionService.DeclinedNextGame)
+            {
+                <div class="card" style="width: 18rem;">
+                    <div class="card-body">
+                        <h5 class="card-title">Game Invitation</h5>
+                        <p class="card-text">You have been invited to another game. Do you accept?</p>
+                        <button class="btn btn-success" @onclick="Approve">Approve</button>
+                        <button class="btn btn-danger" @onclick="Decline">Decline</button>
+                    </div>
+                </div>
+            }
+        }
+        @if (GameSessionService.ApprovedNextGame)
         {
             <div class="card" style="width: 18rem;">
                 <div class="card-body">
-                    <h5 class="card-title">Game Invitation</h5>
-                    <p class="card-text">You have been invited to another game. Do you accept?</p>
-                    <button class="btn btn-success" @onclick="Approve">Approve</button>
-                    <button class="btn btn-danger" @onclick="Decline">Decline</button>
+                    <h5 class="card-title">Game Invitation was accepted</h5>
+                    <p class="text-success"><i class="fas fa-check"></i> Game approved</p>
                 </div>
             </div>
         }
-    }
-    @if (GameSessionService.ApprovedNextGame)
-    {
-        <div class="card" style="width: 18rem;">
-            <div class="card-body">
-                <h5 class="card-title">Game Invitation was accepted</h5>
-                <p class="text-success"><i class="fas fa-check"></i> Game approved</p>
-            </div>
-        </div>
-    }
-    else if (GameSessionService.DeclinedNextGame)
-    {
-        <div class="card" style="width: 18rem;">
-            <div class="card-body">
-                <h5 class="card-title">Game Invitation was declined</h5>
-                <p class="text-danger"><i class="fas fa-times"></i> Game declined</p>
-            </div>
-        </div>
-    }
-</div>
-
-<div class="d-flex">
-    @if (CurrentGame.GameResult == GameState.Finished)
-    {
-        <button style="margin-top: 10px; padding: 10px 15px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;"
-                @onclick="GoToHomePage">
-            Go to Home Page
-        </button>
-        @* @if (GameSessionService.IsTwoPlayersPlaying && !GameSessionService.RequestForNextGame)
-    { *@
-        <button style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;"
-                @onclick="PlayNextGame">
-            Send ask to another game
-        </button>
-        @*  } *@
-    }
-    @if (ChatService.NewMessage == true)
-    {
-        <button style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: orangered; color: #fff; border: none; cursor: pointer;"
-                @onclick="ChatService.ToggleChat">
-            Toggle Chat
-        </button>
-    }
-    else
-    {
-        <button style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;"
-                @onclick="ChatService.ToggleChat">
-            Toggle Chat
-        </button>
-    }
-</div>
-
-
-@if (gamesHistory.Games.Count == 0)
-{
-    
-}
-else
-{
-    <div class="scoreboard-container" style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 10px 0;">
-        <div class="scoreboard" style="text-align: center; background-color: #f0f0f0; padding: 20px; border-radius: 10px;">
-            <h4 class="scoreboard-header" style="margin-bottom: 10px;">Games played: @gamesHistory.Games.Count</h4>
-
-            <div class="scoreboard-players" style="display: flex; justify-content: center; align-items: center;">
-                <div class="scoreboard-player" style="display: flex; flex-direction: column; margin: 0 10px;">
-                    <span class="scoreboard-username" style="font-size: 1.2em;">@currentPlayerHost.UserName</span>
-                    <span class="scoreboard-score" style="font-size: 1.5em; font-weight: bold;">@hostWins</span>
-                </div>
-
-                <div class="scoreboard-divider" style="font-size: 1.5em; margin: 0 5px;">:</div>
-
-                <div class="scoreboard-player" style="display: flex; flex-direction: column; margin: 0 10px;">
-                    <span class="scoreboard-username" style="font-size: 1.2em;">@currentPlayerGuest.UserName</span>
-                    <span class="scoreboard-score" style="font-size: 1.5em; font-weight: bold;">@guestWins</span>
+        else if (GameSessionService.DeclinedNextGame)
+        {
+            <div class="card" style="width: 18rem;">
+                <div class="card-body">
+                    <h5 class="card-title">Game Invitation was declined</h5>
+                    <p class="text-danger"><i class="fas fa-times"></i> Game declined</p>
                 </div>
             </div>
-
-            <h3 class="scoreboard-tie" style="color: orange; margin-top: 10px;">Tie @(gamesHistory.Games.Count - (hostWins + guestWins))</h3>
-        </div>
+        }
     </div>
 
-
-    @foreach (var game in gamesHistory.Games)
-    {
-        string cardColorClass = "";
-        Player winner = GamesStatisticsService.GetWinner(game.Winner, currentPlayerHost, currentPlayerGuest);
-        bool hostWon = (winner != null && winner.Id == currentPlayerHost.Id);
-        bool guestWon = (winner != null && winner.Id == currentPlayerGuest.Id);
-        bool isDraw = (winner == null);
-        if (user.Claims.First().Value.ToString() == currentPlayerHost.Id)
+    <div class="d-flex">
+        @if (GameManager.CurrentGame.GameResult == GameState.Finished)
         {
-            cardColorClass = hostWon ? "bg-success" : guestWon ? "bg-danger" : isDraw ? "bg-warning" : "";
-        }
-        else
-        {
-            cardColorClass = hostWon ? "bg-danger" : guestWon ? "bg-success" : isDraw ? "bg-warning" : "";
+            <button style="margin-top: 10px; padding: 10px 15px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;"
+                    @onclick="GoToHomePage">
+                Go to Home Page
+            </button>
 
+            <button style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;"
+                    @onclick="PlayNextGame">
+                Send ask to another game
+            </button>
         }
-        <div class="card m-1 @cardColorClass">
-            <div class="card-body">
-                <div class="card m-1">
-                    <div class="card-body">
-                        <h5 class="card-title">
-                            @(isDraw ? "Draw" : $"Winner: {winner.UserName}") 
-                            @{
-                                string.Format("{0} ({1}) : {2} ({3})", currentPlayerHost.UserName, hostWins, currentPlayerGuest.UserName, guestWins);
-                            }
-                        </h5>
-                        <p class="card-text">@game.CreatedAt.ToString("D")</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    }
-}
-@if (ChatService._isChatVisible)
-{
-    <div style="position: fixed; bottom: 0; right: 0; width: 300px; height: 400px; border: 1px solid #ccc; padding: 10px; margin: 10px; background-color: #f9f9f9;">
-        <div class="d-flex justify-content-between">
-            <h3>Chat</h3>
-            <button style="margin:0px 0px 5px 0px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;"
+        @if (ChatService.NewMessage == true)
+        {
+            <button style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: orangered; color: #fff; border: none; cursor: pointer;"
                     @onclick="ChatService.ToggleChat">
                 Toggle Chat
             </button>
-        </div>
-        <div style="height: 80%; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; word-wrap: break-word;">
-            @foreach (var chatmsg in ChatService.ChatMessages)
-            {
-                <p><strong>@chatmsg.Key:</strong> @chatmsg.Value</p>
-            }
-        </div>
-        <input @bind="message" @oninput="UpdateSendButton" type="text" style="width: 70%; padding: 5px;" placeholder="Type your message here..." />
-        <button @onclick="SendMessage" disabled="@string.IsNullOrEmpty(message)" style="width: 28%; padding: 5px 10px; background-color: @(string.IsNullOrEmpty(message) ? "#ccc" : "#14bdac"); color: #fff; border: none; cursor: pointer;">Send</button>
+        }
+        else
+        {
+            <button style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;"
+                    @onclick="ChatService.ToggleChat">
+                Toggle Chat
+            </button>
+        }
     </div>
+
+    @if (gamesHistory.Games.Count != 0)
+    {
+        <div class="scoreboard-container" style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 10px 0;">
+            <div class="scoreboard" style="text-align: center; background-color: #f0f0f0; padding: 20px; border-radius: 10px;">
+                <h4 class="scoreboard-header" style="margin-bottom: 10px;">Games played: @gamesHistory.Games.Count</h4>
+
+                <div class="scoreboard-players" style="display: flex; justify-content: center; align-items: center;">
+                    <div class="scoreboard-player" style="display: flex; flex-direction: column; margin: 0 10px;">
+                        <span class="scoreboard-username" style="font-size: 1.2em;">@GameManager.CurrentPlayerHost.UserName</span>
+                        <span class="scoreboard-score" style="font-size: 1.5em; font-weight: bold;">@hostWins</span>
+                    </div>
+
+                    <div class="scoreboard-divider" style="font-size: 1.5em; margin: 0 5px;">:</div>
+
+                    <div class="scoreboard-player" style="display: flex; flex-direction: column; margin: 0 10px;">
+                        <span class="scoreboard-username" style="font-size: 1.2em;">@GameManager.CurrentPlayerGuest.UserName</span>
+                        <span class="scoreboard-score" style="font-size: 1.5em; font-weight: bold;">@guestWins</span>
+                    </div>
+                </div>
+
+                <h3 class="scoreboard-tie" style="color: orange; margin-top: 10px;">Tie @(gamesHistory.Games.Count - (hostWins + guestWins))</h3>
+            </div>
+        </div>
+
+
+        @foreach (var game in gamesHistory.Games)
+        {
+            string cardColorClass = "";
+            Player winner = GamesStatisticsService.GetWinner(game.Winner, GameManager.CurrentPlayerHost, GameManager.CurrentPlayerGuest);
+            bool hostWon = (winner != null && winner.Id == GameManager.CurrentPlayerHost.Id);
+            bool guestWon = (winner != null && winner.Id == GameManager.CurrentPlayerGuest.Id);
+            bool isDraw = (winner == null);
+            if (GameManager.ClaimsPrincipal.Claims.First().Value.ToString() == GameManager.CurrentPlayerHost.Id)
+            {
+                cardColorClass = hostWon ? "bg-success" : guestWon ? "bg-danger" : isDraw ? "bg-warning" : "";
+            }
+            else
+            {
+                cardColorClass = hostWon ? "bg-danger" : guestWon ? "bg-success" : isDraw ? "bg-warning" : "";
+
+            }
+            <div class="card m-1 @cardColorClass">
+                <div class="card-body">
+                    <div class="card m-1">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                @(isDraw ? "Draw" : $"Winner: {winner.UserName}")
+                                @{
+                                    string.Format("{0} ({1}) : {2} ({3})", GameManager.CurrentPlayerHost.UserName, hostWins, GameManager.CurrentPlayerGuest.UserName, guestWins);
+                                }
+                            </h5>
+                            <p class="card-text">@game.CreatedAt.ToString("D")</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+
+    @if (ChatService._isChatVisible)
+    {
+        <div style="position: fixed; bottom: 0; right: 0; width: 300px; height: 400px; border: 1px solid #ccc; padding: 10px; margin: 10px; background-color: #f9f9f9;">
+            <div class="d-flex justify-content-between">
+                <h3>Chat</h3>
+                <button style="margin:0px 0px 5px 0px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;"
+                        @onclick="ChatService.ToggleChat">
+                    Toggle Chat
+                </button>
+            </div>
+            <div style="height: 80%; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; word-wrap: break-word;">
+                @foreach (var chatmsg in ChatService.ChatMessages)
+                {
+                    <p><strong>@chatmsg.Key:</strong> @chatmsg.Value</p>
+                }
+            </div>
+            <input @bind="message" @oninput="UpdateSendButton" type="text" style="width: 70%; padding: 5px;" placeholder="Type your message here..." />
+            <button @onclick="SendMessage" disabled="@string.IsNullOrEmpty(message)" style="width: 28%; padding: 5px 10px; background-color: @(string.IsNullOrEmpty(message) ? "#ccc" : "#14bdac"); color: #fff; border: none; cursor: pointer;">Send</button>
+        </div>
+    }
 }
+
 @code {
 
     // Board
-    private BoardElements[] board = new BoardElements[TicTacToeRules.BOARD_SIZE];
     private GamesHistory gamesHistory = new GamesHistory();
     // For checking current move number
     // Display who win
@@ -232,239 +229,169 @@ else
     private string GameStatus = "";
     private string gameId = "";
 
-    // Current game
-    private TicTacToeGame.Domain.Models.Game CurrentGame = new();
-    private Player currentPlayerHost;
-    private Player currentPlayerGuest;
-
-    // SignalR
-
-    // Authentication data
-    private AuthenticationState authState;
-    private ClaimsPrincipal? user;
     // Chat
     string message = "";
     private bool isInitialized = false;
+
     int hostWins = 0;
     int guestWins = 0;
+
+    private bool isGameInitializedSuccesfully = false;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!isInitialized)
         {
             isInitialized = true;
             GameStatus = "Game in progress";
-            user = await GameInitializeProcess.HandleGameForAuthenticatedUser(authState);
-            CurrentGame = GameInitializeProcess.CurrentGame;
-            if (CurrentGame is null)
+
+            isGameInitializedSuccesfully = await GameInitializeProcess.InitializeGameForAuthenticatedUser();
+
+            if (!isGameInitializedSuccesfully)
             {
+                NavigationManager.NavigateTo("/");
                 return;
             }
-
-            UpdateCurrentPlayers();
-            try
+            else
             {
-                // hubConnection = new HubConnectionBuilder()
-                //         .WithUrl(NavigationManager.ToAbsoluteUri(GameHub.HubUrl))
-                //         .Build();
-
-                GameHubConnection.SendGameStateEvent += SendGameState;
-
-                GameHubConnection.SendGameStatusEvent += SendGameStatus;
-
-                GameHubConnection.OpponentLeftEvent += OpponentLeft;
-
-                GameHubConnection.AskAnotherPlayerBoardEvent += AskAnotherPlayerBoard;
-
-                GameHubConnection.SendAnotherPlayerBoardEvent += SendAnotherPlayerBoard;
-
-                GameHubConnection.OpponentLeavesEvent += DisconectingTrackingService.OpponentLeaves;
-
-                GameHubConnection.CheckIfOpponentLeavesEvent += DisconectingTrackingService.CheckIfOpponentLeaves;
-
-                GameHubConnection.OpponentNotLeavesEvent += DisconectingTrackingService.OpponentNotLeaves;
-
-                GameHubConnection.ReceiveChatMessageEvent += ChatService.AddMessage;
-
-                GameHubConnection.AskAnotherPlayerForNextGameEvent += GameSessionService.AskAnotherPlayerForNextGame;
-
-                GameHubConnection.DeclineAnotherGameRequestEvent += GameSessionService.DeclineAnotherGameRequest;
-
-                GameHubConnection.AcceptAnotherGameRequestEvent += GameSessionService.AcceptAnotherGameRequest;
-
-                GameHubConnection.JoinNextGameEvent += GameSessionService.JoinNextGame;
-
-                await GameHubConnection.StartConnectionAsync();
-                // hubConnection.On<BoardElements[], PlayerType, int>("SendGameState", (receivedBoard, nextPlayerTurn, gameId) =>
-                // {
-
-                // });
-                // hubConnection.On<GameState, string, int>("SendGameStatus", (receiveGameResult, receiveGameStatus, gameId) =>
-                // {
-                //     InvokeAsync(() =>
-                //     {
-                //         CurrentGame.GameResult = receiveGameResult;
-                //         GameStatus = receiveGameStatus;
-                //         StateHasChanged();
-                //     });
-                // });
-                ///
-                // hubConnection.On("OpponentLeft", () =>
-                // {
-                //     InvokeAsync(() =>
-                //     {
-                //         DisconectingTrackingService.OpponentLeaved = true;
-                //         GameStatus = "Game Over";
-                //         StateHasChanged();
-                //     });
-                // });
-                // hubConnection.On<string, int>("AskAnotherPlayerBoard", async (userId, gameId) =>
-                // {
-                //     if (DisconectingTrackingService.CurrentPlayer != null)
-                //     {
-                //         string currentUserId = DisconectingTrackingService.CurrentPlayer.Id;
-                //         if (userId != currentUserId)
-                //             await hubConnection.SendAsync("SendAnotherPlayerBoard", CurrentGame.RoomId, currentUserId, board);
-                //     }
-                // });
-                // hubConnection.On<string, BoardElements[]>("SendAnotherPlayerBoard", (userId, playerBoard) =>
-                // {
-                //     InvokeAsync(() =>
-                //     {
-                //         if (userId != DisconectingTrackingService.CurrentPlayer.Id)
-                //         {
-                //             board = playerBoard;
-                //             StateHasChanged();
-                //         }
-                //     });
-                // });
-                // DisconectingTrackingService.SetHubConnection(hubConnection);
-
-                //ChatService.SetHubConnection(hubConnection);
-
-                //GameSessionService.SetHubConnection(hubConnection);
-
-                //await hubConnection.StartAsync();
-            }
-            catch (Exception ex)
-            {
-                if (user != null && !GameInitializeProcess.IsPlayerAlreadyPlaying)
+                UpdateCurrentPlayers();
+                try
                 {
-                    MakeCurrentPlayerNotPlaying();
+                    GameHubConnection.SendGameStateEvent += SendGameState;
+
+                    GameHubConnection.SendGameStatusEvent += SendGameStatus;
+
+                    GameHubConnection.OpponentLeftEvent += OpponentLeft;
+
+                    GameHubConnection.AskAnotherPlayerBoardEvent += AskAnotherPlayerBoard;
+
+                    GameHubConnection.SendAnotherPlayerBoardEvent += SendAnotherPlayerBoard;
+
+                    GameHubConnection.OpponentLeavesEvent += DisconectingTrackingService.OpponentLeaves;
+
+                    GameHubConnection.CheckIfOpponentLeavesEvent += DisconectingTrackingService.CheckIfOpponentLeaves;
+
+                    GameHubConnection.OpponentNotLeavesEvent += DisconectingTrackingService.OpponentNotLeaves;
+
+                    GameHubConnection.ReceiveChatMessageEvent += ChatService.AddMessage;
+
+                    GameHubConnection.AskAnotherPlayerForNextGameEvent += GameSessionService.AskAnotherPlayerForNextGame;
+
+                    GameHubConnection.DeclineAnotherGameRequestEvent += GameSessionService.DeclineAnotherGameRequest;
+
+                    GameHubConnection.AcceptAnotherGameRequestEvent += GameSessionService.AcceptAnotherGameRequest;
+
+                    GameHubConnection.JoinNextGameEvent += GameSessionService.JoinNextGame;
+
+                    await GameHubConnection.StartConnectionAsync();
                 }
-                return;
-            }
+                catch (Exception ex)
+                {
+                    if (!GameInitializeProcess.IsPlayerAlreadyPlaying)
+                    {
+                        MakeCurrentPlayerNotPlaying();
+                    }
+                    return;
+                }
 
-            try
+                try
+                {
+                    await GameHubConnection.JoinGame((int)GameManager.CurrentGame.RoomId);
+                }
+
+                catch (Exception)
+                {
+
+                    return;
+                }
+
+                UpdatePlayersGameData(GameHubConnection.GetConnectionId());
+
+                DisconectingTrackingService.InitializeTimers();
+
+                DisconectingTrackingService.UpdateComponent += () => InvokeAsync(StateHasChanged);
+
+                MakeMovesGameManager.InitializePlayers();
+
+                ChatService.UpdateComponent += () => InvokeAsync(StateHasChanged);
+
+                GameSessionService.UpdateComponent += () => InvokeAsync(StateHasChanged);
+
+                await GameHubConnection.AskAnotherPlayerBoard((int)GameManager.CurrentGame.RoomId, GameManager.CurrentPlayer.Id);
+
+                // Refactor
+                GameSessionService.IsTwoPlayersPlaying = await GameManager.IsTwoPlayersPlaying();
+                //
+
+                gamesHistory.Games = GetGamesByResultAndPlayers();
+
+                StateHasChanged();
+            }
+        }
+    }
+    private void SendAnotherPlayerBoard(string userId, BoardElements[] playerBoard)
+    {
+        InvokeAsync(() =>
+        {
+            if (userId != GameManager.CurrentPlayer.Id)
             {
-                await GameHubConnection.JoinGame((int)CurrentGame.RoomId);
+                GameManager.Board = playerBoard;
+                StateHasChanged();
             }
-
-            catch (Exception)
-            {
-
-               return; 
-            }
-
-            UpdatePlayersGameData(GameHubConnection.GetConnectionId());//hubConnection.ConnectionId);
-            
-            DisconectingTrackingService.InitizalisePlayers(currentPlayerHost, currentPlayerGuest, user);
-
-            DisconectingTrackingService.InitializeGame(CurrentGame);
-
-            DisconectingTrackingService.InitializeTimers();
-
-            DisconectingTrackingService.UpdateComponent += () => InvokeAsync(StateHasChanged);
-
-            MakeMovesGameManager.InitializePlayers(currentPlayerHost, currentPlayerGuest, DisconectingTrackingService.CurrentPlayer);//, hubConnection);
-
-            ChatService.SetSender(CurrentGame, DisconectingTrackingService.CurrentPlayer);
-
-            GameSessionService.SetCurrentPlayerAndGame(DisconectingTrackingService.CurrentPlayer, CurrentGame);
-
-            ChatService.UpdateComponent += () => InvokeAsync(StateHasChanged);
-
-            GameSessionService.UpdateComponent += () => InvokeAsync(StateHasChanged);
-
-            await GameHubConnection.AskAnotherPlayerBoard((int)CurrentGame.RoomId, DisconectingTrackingService.CurrentPlayer.Id);
-            //await hubConnection.SendAsync("AskAnotherPlayerBoard", CurrentGame.RoomId, DisconectingTrackingService.CurrentPlayer.Id);
-
-            GameSessionService.IsTwoPlayersPlaying = await DisconectingTrackingService.CheckIfTwoPlayersArePlaying();
-            gamesHistory.Games = GetGamesByResultAndPlayers();
-
+        });
+    }
+    private void AskAnotherPlayerBoard(string userId, int gameId)
+    {
+        // Convert the async method to a synchronous method
+        AskAnotherPlayerBoardAsync(userId, gameId).GetAwaiter().GetResult();
+    }
+    private async Task AskAnotherPlayerBoardAsync(string userId, int gameId)
+    {
+        if (GameManager.CurrentPlayer != null)
+        {
+            string currentUserId = GameManager.CurrentPlayer.Id;
+            if (userId != currentUserId)
+                await GameHubConnection.SendAnotherPlayerBoard((int)GameManager.CurrentGame.RoomId, currentUserId, GameManager.Board);
+        }
+    }
+    private void OpponentLeft()
+    {
+        InvokeAsync(() =>
+        {
+            DisconectingTrackingService.OpponentLeaved = true;
+            GameStatus = "Game Over";
             StateHasChanged();
-        }
+        });
     }
-        private void SendAnotherPlayerBoard(string userId, BoardElements[] playerBoard)
-        {
-            InvokeAsync(() =>
-            {
-                if (userId != DisconectingTrackingService.CurrentPlayer.Id)
-                {
-                    board = playerBoard;
-                    StateHasChanged();
-                }
-            });
-        }
-        private void AskAnotherPlayerBoard(string userId, int gameId)
-        {
-            // Convert the async method to a synchronous method
-            AskAnotherPlayerBoardAsync(userId, gameId).GetAwaiter().GetResult();
-        }
-        private async Task AskAnotherPlayerBoardAsync(string userId, int gameId)
-        {
-            if (DisconectingTrackingService.CurrentPlayer != null)
-            {
-                string currentUserId = DisconectingTrackingService.CurrentPlayer.Id;
-                if (userId != currentUserId)
-                    await GameHubConnection.SendAnotherPlayerBoard((int)CurrentGame.RoomId, currentUserId, board);
-                //await hubConnection.SendAsync("SendAnotherPlayerBoard", CurrentGame.RoomId, currentUserId, board);
-            }
-        }
-        private void OpponentLeft()
-        {
-            InvokeAsync(() =>
-            {
-                DisconectingTrackingService.OpponentLeaved = true;
-                GameStatus = "Game Over";
-                StateHasChanged();
-            });
-        }
-        private void SendGameStatus(GameState receiveGameResult, string receiveGameStatus, int gameId)
-        {
-            InvokeAsync(() =>
-            {
-                CurrentGame.GameResult = receiveGameResult;
-                GameStatus = receiveGameStatus;
-                StateHasChanged();
-            });
-        }
-        private void SendGameState(BoardElements[] receivedBoard, PlayerType nextPlayerTurn, int gameId)
-        {
-            InvokeAsync(() =>
-            {
-                board = receivedBoard;
-                CurrentGame.CurrentTurn = nextPlayerTurn;
-                MakeMovesGameManager.UpdateGameAfterMove(CurrentGame);
-                StateHasChanged();
-            });
-        }
-    private async Task Approve()
+    private void SendGameStatus(GameState receiveGameResult, string receiveGameStatus, int gameId)
     {
-        await GameSessionService.ApproveNextGamePlayerRequest();
+        InvokeAsync(() =>
+        {
+            GameManager.CurrentGame.GameResult = receiveGameResult;
+            GameStatus = receiveGameStatus;
+            StateHasChanged();
+        });
     }
+    private void SendGameState(BoardElements[] receivedBoard, PlayerType nextPlayerTurn, int gameId)
+    {
+        InvokeAsync(() =>
+        {
+            GameManager.Board = receivedBoard;
+            GameManager.CurrentGame.CurrentTurn = nextPlayerTurn;
+            MakeMovesGameManager.UpdateGameAfterMove();
+            StateHasChanged();
+        });
+    }
+    private async Task Approve() => await GameSessionService.ApproveNextGamePlayerRequest();
 
-    private async Task Decline()
-    {
-        await GameSessionService.DeclineNextPlayerRequest();
-    }
-    private async Task PlayNextGame()
-    {
-        await GameSessionService.PlayNextGame();
-    }
+    private async Task Decline() => await GameSessionService.DeclineNextPlayerRequest();
+
+    private async Task PlayNextGame() => await GameSessionService.PlayNextGame();
 
     public List<TicTacToeGame.Domain.Models.Game> GetGamesByResultAndPlayers()
     {
-        var gamesList =  GameRepository.GetGameHistoryInSession(GameState.Finished, currentPlayerHost.Id, currentPlayerGuest.Id,CurrentGame.RoomId);
+        var gamesList = GameRepository.GetGameHistoryInSession(GameState.Finished, GameManager.CurrentPlayerHost.Id,
+            GameManager.CurrentPlayerGuest.Id, GameManager.CurrentGame.RoomId);
         hostWins = gamesList.Count(game => game.Winner == PlayerType.Host);
         guestWins = gamesList.Count(game => game.Winner == PlayerType.Guest);
         return gamesList;
@@ -473,7 +400,8 @@ else
 
     private void UpdatePlayersGameData(string connectionId)
     {
-        _playerRepository.UpdatePlayerGameContextId(connectionId, currentPlayerHost, currentPlayerGuest, user);
+        _playerRepository.UpdatePlayerGameContextId(connectionId, GameManager.CurrentPlayerHost, GameManager.CurrentPlayerGuest,
+            GameManager.ClaimsPrincipal);
 
         UpdateCurrentPlayers();
     }
@@ -481,18 +409,18 @@ else
     private async Task MakeMove(int index)
     {
         DisconectingTrackingService.ReloadMoveTimer();
-        await MakeMovesGameManager.MakeMove(index, board, CurrentGame, authState, user);
+        await MakeMovesGameManager.MakeMove(index);
     }
 
 
     private string GetSquareValue(int index)
     {
-        return (board[index] == BoardElements.Empty) ? "" : board[index].ToString();
+        return (GameManager.Board[index] == BoardElements.Empty) ? "" : GameManager.Board[index].ToString();
     }
 
     private bool IsButtonDisabled(int index)
     {
-        return CurrentGame.GameResult == GameState.Finished;
+        return GameManager.CurrentGame.GameResult == GameState.Finished;
     }
 
     private void GoToHomePage()
@@ -509,50 +437,52 @@ else
 
     public async ValueTask DisposeAsync()
     {
-        if (user != null && !GameInitializeProcess.IsPlayerAlreadyPlaying)
+        if (isGameInitializedSuccesfully)
         {
-            MakeCurrentPlayerNotPlaying();
-        }
-        if (CurrentGame != null)
-        {
-            UpdateCurrentPlayers();
-        }
-        CheckAndUpdateGameResult();
+            if (GameManager.ClaimsPrincipal != null)
+            {
+                MakeCurrentPlayerNotPlaying();
+            }
+            if (GameManager.CurrentGame != null)
+            {
+                UpdateCurrentPlayers();
+            }
+            CheckAndUpdateGameResult();
 
-        DisposeTimersAndHubConnection();
-
+            DisposeTimersAndHubConnection();
+        }
     }
     private void MakeCurrentPlayerNotPlaying()
     {
-        string userId = user.Claims.First().Value.ToString();
+        string userId = GameManager.ClaimsPrincipal.Claims.First().Value.ToString();
         GameReconnectingService.MakePlayerNotPlaying(userId);
     }
     private void UpdateCurrentPlayers()
     {
-        currentPlayerHost = _playerRepository.GetById(CurrentGame.PlayerHostId);
-        currentPlayerGuest = _playerRepository.GetById(CurrentGame.PlayerGuestId);
+        GameManager.CurrentPlayerHost = _playerRepository.GetById(GameManager.CurrentGame.PlayerHostId);
+        GameManager.CurrentPlayerGuest = _playerRepository.GetById(GameManager.CurrentGame.PlayerGuestId);
     }
 
     private void CheckAndUpdateGameResult()
     {
-        if (currentPlayerGuest is not null && currentPlayerHost is not null)
+        if (GameManager.CurrentPlayerGuest is not null && GameManager.CurrentPlayerHost is not null)
         {
-            if (!currentPlayerGuest.IsPlaying && !currentPlayerHost.IsPlaying)
+            if (!GameManager.CurrentPlayerGuest.IsPlaying && !GameManager.CurrentPlayerHost.IsPlaying)
             {
-                CurrentGame = GameRepository.GetById(CurrentGame.Id);
-                CurrentGame.GameResult = GameState.Finished;
-                if (!CheckForWinnerManager.CheckForWinner(board))
+                GameManager.CurrentGame = GameRepository.GetById(GameManager.CurrentGame.Id);
+                GameManager.CurrentGame.GameResult = GameState.Finished;
+                if (!CheckForWinnerManager.CheckForWinner())
                 {
-                    if (CheckForWinnerManager.CheckForTie(board))
+                    if (CheckForWinnerManager.CheckForTie())
                     {
-                        CurrentGame.Winner = PlayerType.None;
+                        GameManager.CurrentGame.Winner = PlayerType.None;
                     }
                 }
                 else
                 {
-                    CurrentGame.Winner = (CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host; 
-                }  
-                GameRepository.UpdateEntity(CurrentGame);
+                    GameManager.CurrentGame.Winner = (GameManager.CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
+                }
+                GameRepository.UpdateEntity(GameManager.CurrentGame);
             }
         }
     }
@@ -562,8 +492,5 @@ else
         DisconectingTrackingService._moveTimer?.Dispose();
         DisconectingTrackingService._responseTimer?.Dispose();
         await GameHubConnection.DisposeAsync();
-
-       
     }
-
 }

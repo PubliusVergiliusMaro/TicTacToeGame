@@ -1,32 +1,24 @@
-﻿using Microsoft.AspNetCore.SignalR.Client;
-using TicTacToeGame.Domain.Models;
-using TicTacToeGame.Services.HubConnections;
+﻿using TicTacToeGame.Services.HubConnections;
 
 namespace TicTacToeGame.Services.GameProcessService
 {
     public class GameChatService
     {
         public List<KeyValuePair<string, string>> ChatMessages = new List<KeyValuePair<string, string>>();
-        private readonly GameHubConnection _gameHubConnection;
 
-        private Game _currentGame;
-        private Player _sender;
+        private readonly GameHubConnection _gameHubConnection;
+        private readonly GameManager _gameManager;
 
         public bool NewMessage { get; set; } = false;
-
 
         public event Action UpdateComponent;
 
         public bool _isChatVisible = false;
 
-        public GameChatService(GameHubConnection gameHubConnection)
+        public GameChatService(GameManager gameManager, GameHubConnection gameHubConnection)
         {
+            _gameManager = gameManager;
             _gameHubConnection = gameHubConnection;
-        }
-        public void SetSender(Game currentGame, Player sender)
-        {
-            _currentGame = currentGame;
-            _sender = sender;
         }
 
         public void AddMessage(string playerNickname, string message)
@@ -38,12 +30,12 @@ namespace TicTacToeGame.Services.GameProcessService
 
             UpdateComponent?.Invoke();
         }
+
         public async Task SendMessage(string message)
         {
             NewMessage = false;
-            await _gameHubConnection.SendChatMessage((int)_currentGame.RoomId, _sender.UserName, message);
+            await _gameHubConnection.SendChatMessage((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.UserName, message);
             UpdateComponent?.Invoke();
-
         }
 
         public void ToggleChat()

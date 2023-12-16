@@ -8,40 +8,40 @@ namespace TicTacToeGame.Services.GameProcessService
 {
     public class GameReconnectingService
     {
-        private static bool reload = false;
-        private Game Game = new();
-        private readonly NavigationManager _navigationManager;
         private readonly PlayerRepository _playerRepository;
         private readonly GameRepository _gameRepository;
-        public GameReconnectingService(NavigationManager navigationManager,
-            PlayerRepository playerRepository,
+        public GameReconnectingService(PlayerRepository playerRepository,
             GameRepository gameRepository)
         {
-            _navigationManager = navigationManager;
             _playerRepository=playerRepository;
             _gameRepository=gameRepository;
         }
-        public void RecconectPlayer(string userId)
+        public bool CheckIfRecconectPlayer(string userId)
         {
             Player player = _playerRepository.GetById(userId);
-            Game = _gameRepository.GetByUsersId(userId);
+            Game game = _gameRepository.GetByUsersId(userId);
 
-            if (Game != null && player.IsPlaying == false)
+            if (game != null && player.IsPlaying == false)
             {
-                _navigationManager.NavigateTo("/game");
+                //_navigationManager.NavigateTo("/game");
+                return true;
             }
+            
+            return false;
         }
-        public void CheckIfPlayerIsAlreadyPlaying(string playerId)
+        public bool CheckIfPlayerIsAlreadyPlaying(string playerId)
         {
             Player CurrentPlayer = _playerRepository.GetById(playerId);
 
             if (CurrentPlayer.IsPlaying == true)
             {
-                _navigationManager.NavigateTo("/");
+                //_navigationManager.NavigateTo("/");
+                return true;
             }
             else
             {
                 MakePlayerPlaying(playerId);
+                return false;
             }
         }
         public void MakePlayerNotPlaying(string playerId)
