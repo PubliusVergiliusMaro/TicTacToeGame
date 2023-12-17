@@ -1,19 +1,13 @@
-﻿using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Data;
-using System.Security.Claims;
 using TicTacToeGame.Domain.Enums;
 using TicTacToeGame.Domain.Models;
-using TicTacToeGame.Domain.Repositories;
 using TicTacToeGame.Services.GamesStatisticServices;
 using TicTacToeGame.Services.HubConnections;
 
 namespace TicTacToeGame.Services.GameProcessService;
 public class MakeMovesGameManager
 {
-    private readonly GameRepository _gameRepository;
-
     private readonly GamesStatisticsService _gamesStatisticsService;
 
     private readonly GameReconnectingService _gameReconnectingService;
@@ -26,17 +20,16 @@ public class MakeMovesGameManager
 
     public string CurrentPlayerSign;
 
-    public MakeMovesGameManager(AuthenticationStateProvider authenticationStateProvider,
-        GamesStatisticsService gamesStatisticsService,
+    public event Action StateHasChanged;
+
+    public MakeMovesGameManager(GamesStatisticsService gamesStatisticsService,
         CheckForWinnerManager checkForWinnerManager,
-        GameRepository gameRepository,
         GameReconnectingService gameReconnectingService,
         GameHubConnection gameHubConnection,
         GameManager gameManager)
     {
         _gamesStatisticsService = gamesStatisticsService;
         _checkForWinnerManager = checkForWinnerManager;
-        _gameRepository = gameRepository;
         _gameReconnectingService = gameReconnectingService;
         _gameHubConnection = gameHubConnection;
         _gameManager = gameManager;
@@ -97,11 +90,15 @@ public class MakeMovesGameManager
         }
     }
 
-
     private async Task<bool> IsCurrentPlayersTurn()
     {
-        return (_gameManager.CurrentGame.CurrentTurn == PlayerType.Host && _gameManager.ClaimsPrincipal.Claims.First().Subject.Name == _gameManager.CurrentPlayerHost.UserName) ||
-               (_gameManager.CurrentGame.CurrentTurn == PlayerType.Guest && _gameManager.ClaimsPrincipal.Claims.First().Subject.Name == _gameManager.CurrentPlayerGuest.UserName);
+        bool isCurrentHostTurn = _gameManager.CurrentGame.CurrentTurn == PlayerType.Host;
+        bool isCurrentGuestTurn = _gameManager.CurrentGame.CurrentTurn == PlayerType.Guest;
+
+        bool isCurrentPlayerHost = _gameManager.CurrentPlayer.Id == _gameManager.CurrentPlayerHost.Id;
+        bool isCurrentPlayerGuest = _gameManager.CurrentPlayer.Id == _gameManager.CurrentPlayerGuest.Id;
+
+        return (isCurrentHostTurn && isCurrentPlayerHost) || (isCurrentGuestTurn && isCurrentPlayerGuest);
     }
 
     private void PlaceMoveOnCell(int index)
@@ -153,7 +150,7 @@ public class MakeMovesGameManager
             else
                 _gameManager.CurrentGame.Winner = (_gameManager.CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
 
-            _gameRepository.UpdateEntity(_gameManager.CurrentGame);
+            _gameManager.GameRepository.UpdateEntity(_gameManager.CurrentGame);
             await SendGameStatus(_checkForWinnerManager.GameStatus);
 
             _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerHost.Id);
@@ -195,13 +192,44 @@ public class MakeMovesGameManager
     private async Task SentGameState()
     {
         PlayerType nextPlayerTurn = (_gameManager.CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
-        int roomId = (int)_gameManager.CurrentGame.RoomId;
-
-        await _gameHubConnection.SendGameState(_gameManager.Board, nextPlayerTurn, roomId);
+       
+        await _gameHubConnection.SendGameState(_gameManager.Board, nextPlayerTurn, (int)_gameManager.CurrentGame.RoomId);
     }
 
     public void UpdateGameAfterMove()
     {
-        _gameRepository.UpdateEntity(_gameManager.CurrentGame);
+        _gameManager.GameRepository.UpdateEntity(_gameManager.CurrentGame);
+    }
+
+    public void SendAnotherPlayerBoard(string userId, BoardElements[] playerBoard)
+    {
+        if (userId == _gameManager.CurrentPlayerHost.Id)
+        {
+            _gameManager.Board = playerBoard;
+            StateHasChanged?.Invoke();
+        }
+    }
+    // Check if I can refactor it
+    public void AskAnotherPlayerBoard(string userId, int gameId)
+    {
+        // Convert the async method to a synchronous method
+        AskAnotherPlayerBoardAsync(userId, gameId).GetAwaiter().GetResult();
+    }
+    private async Task AskAnotherPlayerBoardAsync(string userId, int gameId)
+    {
+        if (_gameManager.CurrentPlayer != null)
+        {
+            string currentUserId = _gameManager.CurrentPlayer.Id;
+            if (userId != currentUserId)
+                await _gameHubConnection.SendAnotherPlayerBoard((int)_gameManager.CurrentGame.RoomId, currentUserId, _gameManager.Board);
+        }
+    }
+
+    public void SendGameState(BoardElements[] receivedBoard, PlayerType nextPlayerTurn, int gameId)
+    {
+        _gameManager.Board = receivedBoard;
+        _gameManager.CurrentGame.CurrentTurn = nextPlayerTurn;
+        UpdateGameAfterMove();
+        StateHasChanged?.Invoke();
     }
 }

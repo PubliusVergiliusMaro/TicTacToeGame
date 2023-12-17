@@ -5,12 +5,16 @@ namespace TicTacToeGame.Services.GameProcessService;
 public class CheckForWinnerManager
 {
     private readonly GameManager _gameManager;
+
+    public event Action StateHasChanged;
+
+    public string GameStatus { get; set; }
+
     public CheckForWinnerManager(GameManager gameManager)
     {
         _gameManager = gameManager;
     }
 
-    public string GameStatus = "";
     public bool CheckForWinner()
     {
         if (CheckRowsForWinner() || CheckColumnsForWinner() || CheckDiagonalsForWinner())
@@ -25,6 +29,7 @@ public class CheckForWinnerManager
         if (_gameManager.Board.All(cell => cell != BoardElements.Empty))
         {
             GameStatus = "It's a tie!";
+            StateHasChanged?.Invoke();
             return true;
         }
         return false;
@@ -79,4 +84,12 @@ public class CheckForWinnerManager
     {
         return a != BoardElements.Empty && a == b && b == c;
     }
+
+    public void SendGameStatus(GameState receiveGameResult, string receiveGameStatus, int gameId)
+    {
+        _gameManager.CurrentGame.GameResult = receiveGameResult;
+        GameStatus = receiveGameStatus;
+        StateHasChanged?.Invoke();
+    }
+
 }

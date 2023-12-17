@@ -1,10 +1,5 @@
-﻿using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.EntityFrameworkCore.Diagnostics;
-using System.Net.NetworkInformation;
-using System.Security.Claims;
-using TicTacToeGame.Domain.Constants;
+﻿using TicTacToeGame.Domain.Constants;
 using TicTacToeGame.Domain.Enums;
-using TicTacToeGame.Domain.Models;
 using TicTacToeGame.Domain.Repositories;
 using TicTacToeGame.Services.HubConnections;
 using Timer = System.Timers.Timer;
@@ -15,9 +10,11 @@ namespace TicTacToeGame.Services.GameProcessService
     {
         private readonly GameHubConnection _gameHubConnection;
 
+        private readonly CheckForWinnerManager _checkForWinnerManager;
+
         private readonly GameManager _gameManager;
 
-        public event Action UpdateComponent;
+        public event Action StateHasChanged;
         // SignalR Events
         public bool OpponentLeaved { get; set; } = false;
         public string LivedPlayerName { get; set; } = "";
@@ -26,11 +23,12 @@ namespace TicTacToeGame.Services.GameProcessService
         public Timer _moveTimer;
         public Timer _responseTimer;
 
-      
-        public PlayerDisconectingTrackingService(GameManager gameManager, GameHubConnection gameHubConnection)
+
+        public PlayerDisconectingTrackingService(GameManager gameManager, GameHubConnection gameHubConnection, CheckForWinnerManager checkForWinnerManager)
         {
             _gameManager = gameManager;
             _gameHubConnection = gameHubConnection;
+            _checkForWinnerManager=checkForWinnerManager;
         }
 
         public void InitializeTimers()
@@ -68,7 +66,7 @@ namespace TicTacToeGame.Services.GameProcessService
                 await _gameHubConnection.OpponentLeft((int)_gameManager.CurrentGame.RoomId);
             }
         }
-       
+
         public void ReloadMoveTimer()
         {
             _responseTimer?.Stop();
@@ -84,7 +82,7 @@ namespace TicTacToeGame.Services.GameProcessService
 
                 OpponentIsNotAlive();
 
-                UpdateComponent?.Invoke();
+                StateHasChanged?.Invoke();
             }
         }
         public void CheckIfOpponentLeaves(int roomId, string connectionId)
@@ -105,6 +103,37 @@ namespace TicTacToeGame.Services.GameProcessService
             {
                 ReloadMoveTimer();
             }
+        }
+
+        public void UpdateGameResultAfterTwoPlayersDisconnection()
+        {
+            if (_gameManager.CurrentPlayerGuest is not null && _gameManager.CurrentPlayerHost is not null)
+            {
+                if (!_gameManager.CurrentPlayerGuest.IsPlaying && !_gameManager.CurrentPlayerHost.IsPlaying)
+                {
+                    _gameManager.CurrentGame = _gameManager.GameRepository.GetById(_gameManager.CurrentGame.Id);
+                    _gameManager.CurrentGame.GameResult = GameState.Finished;
+                    if (!_checkForWinnerManager.CheckForWinner())
+                    {
+                        if (_checkForWinnerManager.CheckForTie())
+                        {
+                            _gameManager.CurrentGame.Winner = PlayerType.None;
+                        }
+                    }
+                    else
+                    {
+                        _gameManager.CurrentGame.Winner = (_gameManager.CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
+                    }
+                    _gameManager.GameRepository.UpdateEntity(_gameManager.CurrentGame);
+                }
+            }
+        }
+
+        public void OpponentLeft()
+        {
+            OpponentLeaved = true;
+            _checkForWinnerManager.GameStatus = "Game Over";
+            StateHasChanged?.Invoke();
         }
     }
 }

@@ -58,33 +58,12 @@ namespace TicTacToeGame.Domain.Repositories
             }
         }
 
-        public Player GetCurrentPlayer(Player host, Player guest, ClaimsPrincipal claimsPrincipal)
+        public void UpdateCurrentPlayerGameContextId(string ContextId, Player currentPlayer)
         {
-            string? userId = claimsPrincipal.Claims.FirstOrDefault()?.Value;
-
-            if (userId == null)
-            {
-                throw new InvalidOperationException("User is not authenticated");
-            }
-
-            if (host.Id == userId)
-            {
-                return host;
-            }
-            else if (guest.Id == userId)
-            {
-                return guest;
-            }
-            else throw new Exception("User is not recognized");
-        }
-
-        public void UpdatePlayerGameContextId(string ContextId, Player host, Player guest, ClaimsPrincipal claimsPrincipal)
-        {
-            Player currentPlayer = GetCurrentPlayer(host, guest, claimsPrincipal);
-
             currentPlayer.GameConnectionId = ContextId;
             UpdateEntity(currentPlayer);
         }
+
         public void UpdatePlayerStatus(string playerId, bool isPlaying)
         {
             policy.Execute(() =>

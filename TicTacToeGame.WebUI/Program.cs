@@ -64,7 +64,7 @@ builder.Services.AddSingleton<RoomManagerService>();
 
 builder.Services.AddTransient<TemporaryRoomService>();
 
-builder.Services.AddScoped<GameManager>();// maybe trannsient
+builder.Services.AddScoped<GameManager>();
 
 builder.Services.AddTransient<GameInitializeService>();
 

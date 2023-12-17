@@ -15,7 +15,7 @@ namespace TicTacToeGame.Services.GameProcessService
 
         private readonly GameManager _gameManager;
 
-        public event Action UpdateComponent;
+        public event Action StateHasChanged;
 
         public bool RequestForNextGame { get; set; } = false;
         public bool IsTwoPlayersPlaying { get; set; } = false;
@@ -36,7 +36,7 @@ namespace TicTacToeGame.Services.GameProcessService
             if (userId != _gameManager.CurrentPlayer.Id)
             {
                 RequestForNextGame = true;
-                UpdateComponent?.Invoke();
+                StateHasChanged?.Invoke();
             }
         }
         public void DeclineAnotherGameRequest(string userId)
@@ -44,7 +44,7 @@ namespace TicTacToeGame.Services.GameProcessService
             ApprovedNextGame = false;
             DeclinedNextGame = true;
             RequestForNextGame = true;
-            UpdateComponent?.Invoke();
+            StateHasChanged?.Invoke();
         }
         public void AcceptAnotherGameRequest(string userId)
         {
@@ -95,7 +95,7 @@ namespace TicTacToeGame.Services.GameProcessService
             await _gameHubConnection.DeclineAnotherGameRequest((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
 
             DeclinedNextGame = true;
-            UpdateComponent?.Invoke();
+            StateHasChanged?.Invoke();
         }
         public async Task PlayNextGame()
         {

@@ -6,14 +6,17 @@ namespace TicTacToeGame.Services.GameProcessService
     {
         public List<KeyValuePair<string, string>> ChatMessages = new List<KeyValuePair<string, string>>();
 
+        public string Message { get; set; }
+
         private readonly GameHubConnection _gameHubConnection;
+
         private readonly GameManager _gameManager;
 
-        public bool NewMessage { get; set; } = false;
+        public bool IsReceivedNewMessage { get; set; } = false;
 
-        public event Action UpdateComponent;
+        public bool IsChatVisible = false;
 
-        public bool _isChatVisible = false;
+        public event Action StateHasChanged;
 
         public GameChatService(GameManager gameManager, GameHubConnection gameHubConnection)
         {
@@ -25,27 +28,27 @@ namespace TicTacToeGame.Services.GameProcessService
         {
             ChatMessages.Add(new KeyValuePair<string, string>(playerNickname, message));
 
-            if (!_isChatVisible)
-                NewMessage = true;
+            if (!IsChatVisible)
+                IsReceivedNewMessage = true;
 
-            UpdateComponent?.Invoke();
+            StateHasChanged?.Invoke();
         }
 
         public async Task SendMessage(string message)
         {
-            NewMessage = false;
+            IsReceivedNewMessage = false;
             await _gameHubConnection.SendChatMessage((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.UserName, message);
-            UpdateComponent?.Invoke();
+            StateHasChanged?.Invoke();
         }
 
         public void ToggleChat()
         {
-            if (!_isChatVisible)
-                NewMessage = false;
+            if (!IsChatVisible)
+                IsReceivedNewMessage = false;
 
-            _isChatVisible = !_isChatVisible;
+            IsChatVisible = !IsChatVisible;
 
-            UpdateComponent?.Invoke();
+            StateHasChanged?.Invoke();
         }
     }
 }

@@ -7,18 +7,17 @@ using TicTacToeGame.Domain.Repositories;
 
 namespace TicTacToeGame.Services.GameProcessService;
 
-// then check if from di will get this game manager base
+// then check if from di will get this game manager
 public class GameManager
 {
     public Player CurrentPlayerHost;
     public Player CurrentPlayerGuest;
     public Player CurrentPlayer;
 
-    public Game CurrentGame = new();
+    public Game CurrentGame;
 
-    public AuthenticationState AuthenticationState;
-    public AuthenticationStateProvider _authenticationStateProvider;
-    public ClaimsPrincipal? ClaimsPrincipal = new();
+    private AuthenticationState AuthenticationState;
+    private ClaimsPrincipal? ClaimsPrincipal;
 
     public GameRepository GameRepository;
     public PlayerRepository PlayerRepository;
@@ -77,6 +76,39 @@ public class GameManager
            throw new ArgumentNullException("CurrentPlayerHost or CurrentPlayerGuest or CurrentPlayer is null");
         }
     }
+
+    public void UpdateCurrentPlayerGameConnectionId(string gameConnectionId)
+    {
+        if(CurrentPlayer == null)
+        {
+           throw new ArgumentNullException("CurrentPlayer is null");
+        }
+
+        CurrentPlayer.GameConnectionId = gameConnectionId;
+
+        PlayerRepository.UpdateEntity(CurrentPlayer);
+
+        UpdateGuestOrHostGameConnectionId(gameConnectionId);
+    }
+
+    private void UpdateGuestOrHostGameConnectionId(string gameConnectionId)
+    {
+        if(CurrentPlayerHost == null || CurrentPlayerGuest == null)
+        {
+           throw new ArgumentNullException("CurrentPlayerHost or CurrentPlayerGuest is null");
+        }
+
+        if(CurrentPlayer.Id == CurrentPlayerHost.Id)
+        {
+            CurrentPlayerHost.GameConnectionId = gameConnectionId;
+        }
+        else
+        {
+            CurrentPlayerGuest.GameConnectionId = gameConnectionId;
+        }
+    }
+
+    public bool IsAuthenticatedUser() => ClaimsPrincipal?.Identity?.IsAuthenticated == true;
     public string GetOpponentName(string connectionId)
     {
         if (CurrentPlayerHost.GameConnectionId == connectionId)

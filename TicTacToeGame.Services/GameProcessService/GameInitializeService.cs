@@ -35,7 +35,7 @@ public class GameInitializeService
     {
         await _gameManager.InitializeAuthState(_authenticationStateProvider);
 
-        bool isUserAuthorized = IsAuthenticatedUser();
+        bool isUserAuthorized = _gameManager.IsAuthenticatedUser();
 
         if (isUserAuthorized)
         {
@@ -61,5 +61,4 @@ public class GameInitializeService
             return false;
         }
     }
-    private bool IsAuthenticatedUser() => _gameManager.ClaimsPrincipal?.Identity?.IsAuthenticated == true;
 }

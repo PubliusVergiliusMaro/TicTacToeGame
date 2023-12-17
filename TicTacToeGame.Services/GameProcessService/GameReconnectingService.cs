@@ -23,7 +23,6 @@ namespace TicTacToeGame.Services.GameProcessService
 
             if (game != null && player.IsPlaying == false)
             {
-                //_navigationManager.NavigateTo("/game");
                 return true;
             }
             
@@ -35,7 +34,6 @@ namespace TicTacToeGame.Services.GameProcessService
 
             if (CurrentPlayer.IsPlaying == true)
             {
-                //_navigationManager.NavigateTo("/");
                 return true;
             }
             else
