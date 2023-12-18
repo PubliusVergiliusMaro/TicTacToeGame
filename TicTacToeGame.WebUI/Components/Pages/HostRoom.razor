@@ -13,9 +13,6 @@
 @using TicTacToeGame.WebUI.Hubs
 
 @inject NavigationManager _navigationManager
-@inject RoomRepository _roomRepository
-@inject GameRepository _gameRepository
-@inject PlayerRepository _playerRepository
 @inject AuthenticationStateProvider _authenticationStateProvider
 @inject RoomManagerService _roomService
 @inject TemporaryRoomService _temporaryRoomService
@@ -102,43 +99,6 @@
         await HostRoomHubConnection.StartConnectionAsync();
     }
 
-    private void JoinRoom(int joinedRoomId,Player joinedPlayer)
-    {
-        JoinRoomAsync(joinedRoomId, joinedPlayer).GetAwaiter().GetResult();
-    }
-    private async Task JoinRoomAsync(int joinedRoomId, Player joinPlayer)
-    {
-        if (_roomService.OpenedRooms.Keys.Any(r => r.ConnectionId == joinedRoomId && r.IsOpen))
-        {
-            if (_temporaryRoomService.ConnectionId == joinedRoomId.ToString())
-            {
-                int createdRoomId = _roomService.CreateGame(joinedRoomId, user, joinPlayer);
-                if (createdRoomId == -1)
-                {
-                    _navigationManager.NavigateTo("/");
-                }
-                else
-                {
-                    await HostRoomHubConnection.JoinGame(createdRoomId);
-                    
-                    await HostRoomHubConnection.AcceptJoining(_temporaryRoomService.Room.ConnectionId, createdRoomId);
-                    
-                    _navigationManager.NavigateTo("/game");
-                }
-
-                _ = InvokeAsync(() =>
-                {
-                    isLoading = true;
-                    StateHasChanged();
-                });
-            }
-        }
-        else
-        {
-            await HostRoomHubConnection.DeclineJoining("Such connection Id is not right",joinPlayer.Id);
-        }
-    }
-
     protected override void OnAfterRender(bool firstRender)
     {
         if (firstRender)
@@ -147,6 +107,47 @@
             {
                 InitializeRoom();
             }
+        }
+    }
+
+    private void JoinRoom(int joinedRoomId, Player joinedPlayer)
+    {
+        JoinRoomAsync(joinedRoomId, joinedPlayer).GetAwaiter().GetResult();
+    }
+
+    private async Task JoinRoomAsync(int joinedRoomId, Player joinPlayer)
+    {
+        bool isSuchRoomExist = _roomService.IsSuchRoomExist(joinedRoomId);
+
+        if (!isSuchRoomExist)
+        {
+            await HostRoomHubConnection.DeclineJoining("Such connection Id is not right", joinPlayer.Id);
+            return;
+        }
+
+        bool isItCurrentRoom = _temporaryRoomService.CheckIfItIsCurrentRoom(joinedRoomId);
+
+        if (isItCurrentRoom)
+        {
+            int createdRoomId = _roomService.CreateGame(joinedRoomId, user, joinPlayer);
+
+            if (createdRoomId == -1)
+            {
+                _navigationManager.NavigateTo("/");
+                return;
+            }
+
+            await HostRoomHubConnection.JoinGame(createdRoomId);
+
+            await HostRoomHubConnection.AcceptJoining(_temporaryRoomService.Room.ConnectionId, createdRoomId);
+
+            _navigationManager.NavigateTo("/game");
+
+            _ = InvokeAsync(() =>
+            {
+                isLoading = true;
+                StateHasChanged();
+            });
         }
     }
     public async ValueTask DisposeAsync()

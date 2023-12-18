@@ -126,14 +126,14 @@
         {
             <button style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: orangered; color: #fff; border: none; cursor: pointer;"
                     @onclick="ChatService.ToggleChat">
-                Toggle Chat
+                Chat
             </button>
         }
         else
         {
             <button style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;"
                     @onclick="ChatService.ToggleChat">
-                Toggle Chat
+                Chat
             </button>
         }
     </div>
@@ -224,14 +224,8 @@
 
 @code {
 
-    // Board
     private GamesHistory gamesHistory = new GamesHistory();
    
-    // private string GameStatus = "";
-    // private string gameId = "";
-
-    // Chat
-    // string message = "";
     private bool isInitialized = false;
 
     int hostWins = 0;
@@ -291,6 +285,7 @@
                     if (!GameInitializeProcess.IsPlayerAlreadyPlaying)
                     {
                         GameReconnectingService.MakePlayerNotPlaying(GameManager.GetCurrentUserId());
+                        GameManager.CurrentPlayer.IsPlaying = false;
                     }
                     return;
                 }
@@ -335,15 +330,12 @@
         }
     }
 
-    // Next Game
     private async Task Approve() => await GameSessionService.ApproveNextGamePlayerRequest();
 
     private async Task Decline() => await GameSessionService.DeclineNextPlayerRequest();
 
     private async Task PlayNextGame() => await GameSessionService.PlayNextGame();
 
-    // History
-    // To Service
     public List<TicTacToeGame.Domain.Models.Game> GetGamesByResultAndPlayers()
     {
         var gamesList = GameRepository.GetGameHistoryInSession(GameState.Finished, GameManager.CurrentPlayerHost.Id,
@@ -353,33 +345,19 @@
         return gamesList;
 
     }
-    // Update Players connectionId
 
-    // Add it to the GameManager
-    // To Service
-    // private void UpdatePlayersGameData(string connectionId)
-    // {
-    //     _playerRepository.UpdateCurrentPlayerGameContextId(connectionId, GameManager.CurrentPlayer);
-
-    //     UpdateCurrentPlayers();
-    // }
-    // Make Move
     private async Task MakeMove(int index)
     {
         DisconectingTrackingService.ReloadMoveTimer();
         await MakeMovesManager.MakeMove(index);
     }
 
-    // To Service
     private string GetSquareValue(int index) => (GameManager.Board[index] == BoardElements.Empty) ? "" : GameManager.Board[index].ToString();
     
-    // To Service
     private bool IsButtonDisabled(int index) => GameManager.CurrentGame.GameResult == GameState.Finished;
 
-    // Refactor
     private void GoToHomePage() => NavigationManager.NavigateTo("/");
 
-    // Refactor
     private async Task SendMessage()
     {
         await ChatService.SendMessage(ChatService.Message);
@@ -387,17 +365,12 @@
     }
     void UpdateSendButton(ChangeEventArgs e) => ChatService.Message = e.Value.ToString();
 
-    // To Service
-    // private void UpdateCurrentPlayers()
-    // {
-    //     GameManager.CurrentPlayerHost = _playerRepository.GetById(GameManager.CurrentGame.PlayerHostId);
-    //     GameManager.CurrentPlayerGuest = _playerRepository.GetById(GameManager.CurrentGame.PlayerGuestId);
-    // }
     public async ValueTask DisposeAsync()
     {
         if (isGameInitializedSuccesfully)
         {
             GameReconnectingService.MakePlayerNotPlaying(GameManager.GetCurrentUserId());
+            GameManager.CurrentPlayer.IsPlaying = false;
  
             DisconectingTrackingService.UpdateGameResultAfterTwoPlayersDisconnection();
 

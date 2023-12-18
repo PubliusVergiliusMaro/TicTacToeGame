@@ -154,8 +154,9 @@ public class MakeMovesGameManager
             await SendGameStatus(_checkForWinnerManager.GameStatus);
 
             _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerHost.Id);
+            _gameManager.CurrentPlayerHost.IsPlaying = false;
             _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerGuest.Id);
-
+            _gameManager.CurrentPlayerGuest.IsPlaying = false;
         }
         catch (NullReferenceException ex)
         {

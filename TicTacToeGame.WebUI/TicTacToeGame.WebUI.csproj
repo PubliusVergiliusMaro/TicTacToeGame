@@ -30,4 +30,8 @@
     <ProjectReference Include="..\TicTacToeGame.Services\TicTacToeGame.Services.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Components\Pages\NewFolder\" />
+  </ItemGroup>
+
 </Project>

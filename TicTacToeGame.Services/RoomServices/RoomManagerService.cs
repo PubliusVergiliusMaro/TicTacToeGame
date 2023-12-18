@@ -25,9 +25,12 @@ namespace TicTacToeGame.Services.RoomServices
         public void AddRoom(Room room, Action onRoomDeleted)
         {
             Timer timer = new Timer(HostRoomConstants.WAITING_TIME * 1000);
+
             timer.Elapsed += (sender, e) => DeleteRoom(room);
             timer.AutoReset = false;
+            
             timer.Start();
+            
             _openedRooms.Add(room, (timer, onRoomDeleted));
         }
 
@@ -48,12 +51,16 @@ namespace TicTacToeGame.Services.RoomServices
         {
             Room room = OpenedRooms.Keys.First(r => r.ConnectionId == joinedRoomId);
             room.IsOpen = false;
+
             int roomId = _roomRepository.AddEntity(room);
+            
             string userId = user.Claims.First().Value.ToString();
-            if (userId== joinedPlayer.Id)
+            
+            if (userId == joinedPlayer.Id)
             {
                 return -1;
             }
+            
             Game game = new Game()
             {
                 PlayerHostId = userId,
@@ -66,6 +73,11 @@ namespace TicTacToeGame.Services.RoomServices
             _gameRepository.AddEntity(game);
 
             return roomId;
+        }
+
+        public bool IsSuchRoomExist(int roomId)
+        {
+            return OpenedRooms.Keys.Any(r => r.ConnectionId == roomId && r.IsOpen);
         }
     }
 }

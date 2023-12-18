@@ -44,5 +44,10 @@ namespace TicTacToeGame.Services.RoomServices
             };
             ConnectionId = Room.ConnectionId.ToString();
         }
+
+        public bool CheckIfItIsCurrentRoom(int connectionId)
+        {
+            return Room.ConnectionId == connectionId;
+        }
     }
 }
