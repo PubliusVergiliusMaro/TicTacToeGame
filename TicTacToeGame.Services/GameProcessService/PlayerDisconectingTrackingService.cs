@@ -13,8 +13,10 @@ namespace TicTacToeGame.Services.GameProcessService
 {
     public class PlayerDisconectingTrackingService
     {
+
+        private HubConnection _hubConnection;
         //
-        private readonly GameHubConnection _gameHubConnection;
+        //private readonly GameHubConnection _gameHubConnection;
         //
 
         //private HubConnection _hubConnection;
@@ -42,7 +44,7 @@ namespace TicTacToeGame.Services.GameProcessService
         {
             _playerRepository = playerRepository;
             _gameRepository = gameRepository;
-            _gameHubConnection = gameHubConnection;
+            //_gameHubConnection = gameHubConnection;
         }
 
         public void InitializeGame(Game game)
@@ -56,19 +58,19 @@ namespace TicTacToeGame.Services.GameProcessService
             CurrentPlayerGuest = playerGuest;
             CurrentPlayer = _playerRepository.GetCurrentPlayer(CurrentPlayerHost, CurrentPlayerGuest, user);
         }
-        //public void SetHubConnection(HubConnection hubConnection)
-        //{
-        //    //_hubConnection = hubConnection;
+        public void SetHubConnection(HubConnection hubConnection)
+        {
+            _hubConnection = hubConnection;
 
-        //    //hubConnection.On<int, string>("OpponentLeaves", (gameId, connectionId) =>
-        //    //    OpponentLeaves(gameId, connectionId));
+            hubConnection.On<int, string>("OpponentLeaves", (gameId, connectionId) =>
+                OpponentLeaves(gameId, connectionId));
 
-        //    //hubConnection.On<int, string>("CheckIfOpponentLeaves", (roomId, connectionId) =>
-        //    //    CheckIfOpponentLeaves(roomId, connectionId));
+            hubConnection.On<int, string>("CheckIfOpponentLeaves", (roomId, connectionId) =>
+                CheckIfOpponentLeaves(roomId, connectionId));
 
-        //    //hubConnection.On<int, string>("OpponentNotLeaves", (roomId, connectionId) =>
-        //    //    OpponentNotLeaves(roomId, connectionId));
-        //}
+            hubConnection.On<int, string>("OpponentNotLeaves", (roomId, connectionId) =>
+                OpponentNotLeaves(roomId, connectionId));
+        }
         public void InitializeTimers()
         {
             _moveTimer = new Timer(DisconnectingTrackingConstants.MOVE_TIME * 1000);
@@ -84,8 +86,8 @@ namespace TicTacToeGame.Services.GameProcessService
 
         private async Task CheckIfPlayerAlive()
         {
-            await _gameHubConnection.CheckIfOpponentLeaves((int)CurrentGame.RoomId, CurrentPlayer.GameConnectionId);
-            //await _hubConnection.SendAsync("CheckIfOpponentLeaves", CurrentGame.RoomId, CurrentPlayer.GameConnectionId);
+            //await _gameHubConnection.CheckIfOpponentLeaves((int)CurrentGame.RoomId, CurrentPlayer.GameConnectionId);
+            await _hubConnection.SendAsync("CheckIfOpponentLeaves", CurrentGame.RoomId, CurrentPlayer.GameConnectionId);
             _responseTimer.Start();
         }
 
@@ -102,8 +104,8 @@ namespace TicTacToeGame.Services.GameProcessService
 
                 _gameRepository.UpdateEntity(CurrentGame);
 
-                await _gameHubConnection.OpponentLeft((int)CurrentGame.RoomId);
-                //await _hubConnection.SendAsync("OpponentLeft", CurrentGame.RoomId);
+                //await _gameHubConnection.OpponentLeft((int)CurrentGame.RoomId);
+                await _hubConnection.SendAsync("OpponentLeft", CurrentGame.RoomId);
             }
         }
         public string GetOpponentName(string connectionId)
@@ -143,8 +145,8 @@ namespace TicTacToeGame.Services.GameProcessService
         {
             if (CurrentPlayer.GameConnectionId != connectionId)
             {
-                await _gameHubConnection.OpponentNotLeaves((int)CurrentGame.RoomId, CurrentPlayer.GameConnectionId);
-                //await _hubConnection.SendAsync("OpponentNotLeaves", CurrentGame.RoomId, CurrentPlayer.GameConnectionId);
+                //await _gameHubConnection.OpponentNotLeaves((int)CurrentGame.RoomId, CurrentPlayer.GameConnectionId);
+                await _hubConnection.SendAsync("OpponentNotLeaves", CurrentGame.RoomId, CurrentPlayer.GameConnectionId);
             }
         }
 

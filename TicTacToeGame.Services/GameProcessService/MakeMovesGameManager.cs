@@ -17,11 +17,11 @@ public class MakeMovesGameManager : GameManagerBase
     private readonly GamesStatisticsService _gamesStatisticsService;
 
     private readonly GameReconnectingService _gameReconnectingService;
-    //private HubConnection _connection;
+    private HubConnection _connection;
 
     private readonly CheckForWinnerManager _checkForWinnerManager;
 
-    private readonly GameHubConnection _gameHubConnection;
+    //private readonly GameHubConnection _gameHubConnection;
 
     public string CurrentPlayerSign;
     private Player CurrentPlayer;
@@ -38,9 +38,9 @@ public class MakeMovesGameManager : GameManagerBase
         _checkForWinnerManager = checkForWinnerManager;
         _gameRepository = gameRepository;
         _gameReconnectingService = gameReconnectingService;
-        _gameHubConnection = gameHubConnection;
+        //_gameHubConnection = gameHubConnection;
     }
-    public void InitializePlayers(Player PlayerHost, Player PlayerGuest, Player currentPlayer)
+    public void InitializePlayers(Player PlayerHost, Player PlayerGuest, Player currentPlayer, HubConnection hubConnection)
     {
         CurrentPlayerHost = PlayerHost;
         CurrentPlayerGuest = PlayerGuest;
@@ -53,7 +53,7 @@ public class MakeMovesGameManager : GameManagerBase
         {
             CurrentPlayerSign = "O";
         }
-        //_connection = hubConnection;
+        _connection = hubConnection;
 
     }
     public async Task MakeMove(int index, BoardElements[] board, Game CurrentGame, AuthenticationState authState, ClaimsPrincipal? user)
@@ -195,8 +195,8 @@ public class MakeMovesGameManager : GameManagerBase
 
     private async Task SendGameStatus(string GameStatus, Game CurrentGame)
     {
-        await _gameHubConnection.SendGameStatus(CurrentGame.GameResult, GameStatus, (int)CurrentGame.RoomId);
-        //await _connection.SendAsync("SendGameStatus", CurrentGame.GameResult, GameStatus, CurrentGame.RoomId);
+        //await _gameHubConnection.SendGameStatus(CurrentGame.GameResult, GameStatus, (int)CurrentGame.RoomId);
+        await _connection.SendAsync("SendGameStatus", CurrentGame.GameResult, GameStatus, CurrentGame.RoomId);
     }
 
     private async Task SentGameState(BoardElements[] board, Game CurrentGame)
@@ -204,8 +204,8 @@ public class MakeMovesGameManager : GameManagerBase
         PlayerType nextPlayerTurn = (CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
         int roomId = (int)CurrentGame.RoomId;
 
-        await _gameHubConnection.SendGameState(board, nextPlayerTurn, roomId);
-        //await _connection.SendAsync("SendGameState", board, nextPlayerTurn, CurrentGame.RoomId);
+        //await _gameHubConnection.SendGameState(board, nextPlayerTurn, roomId);
+        await _connection.SendAsync("SendGameState", board, nextPlayerTurn, CurrentGame.RoomId);
     }
 
     public void UpdateGameAfterMove(Game game)

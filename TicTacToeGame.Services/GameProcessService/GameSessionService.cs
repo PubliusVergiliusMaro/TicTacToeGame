@@ -9,8 +9,8 @@ namespace TicTacToeGame.Services.GameProcessService
 {
     public class GameSessionService
     {
-        //private HubConnection _hubConnection;
-        private readonly GameHubConnection _gameHubConnection;
+        private HubConnection _hubConnection;
+        //private readonly GameHubConnection _gameHubConnection;
 
         private readonly GameRepository _gameRepository;
         private readonly PlayerRepository _playerRepository;
@@ -34,22 +34,22 @@ namespace TicTacToeGame.Services.GameProcessService
             _gameRepository = gameRepository;
             _playerRepository = playerRepository;
             _navigationManager = navigationManager;
-            _gameHubConnection = gameHubConnection;
+            //_gameHubConnection = gameHubConnection;
         }
 
-        //public void SetHubConnection(HubConnection hubConnection)
-        //{
-        //    _hubConnection = hubConnection;
+        public void SetHubConnection(HubConnection hubConnection)
+        {
+            _hubConnection = hubConnection;
 
-        //    //_hubConnection.On<string>("AskAnotherPlayerForNextGame", (userId) => AskAnotherPlayerForNextGame(userId));
+            _hubConnection.On<string>("AskAnotherPlayerForNextGame", (userId) => AskAnotherPlayerForNextGame(userId));
 
-        //    //_hubConnection.On<string>("DeclineAnotherGameRequest", (userId) => DeclineAnotherGameRequest(userId));
+            _hubConnection.On<string>("DeclineAnotherGameRequest", (userId) => DeclineAnotherGameRequest(userId));
 
-        //    //_hubConnection.On<string>("AcceptAnotherGameRequest", (userId) => AcceptAnotherGameRequest(userId));
+            _hubConnection.On<string>("AcceptAnotherGameRequest", (userId) => AcceptAnotherGameRequest(userId));
 
-        //    _hubConnection.On<string>("JoinNextGame", (userId) => JoinNextGame(userId));
+            _hubConnection.On<string>("JoinNextGame", (userId) => JoinNextGame(userId));
 
-        //}
+        }
 
         public void SetCurrentPlayerAndGame(Player player, Game game)
         {
@@ -96,8 +96,8 @@ namespace TicTacToeGame.Services.GameProcessService
                 _playerRepository.UpdatePlayerStatus(CurrentPlayer.Id, true);
                 // make new game with same players
 
-                await _gameHubConnection.JoinNextGame((int)CurrentGame.RoomId, CurrentPlayer.Id);
-                //await _hubConnection.SendAsync("JoinNextGame", CurrentGame.RoomId, CurrentPlayer.Id);
+                //await _gameHubConnection.JoinNextGame((int)CurrentGame.RoomId, CurrentPlayer.Id);
+                await _hubConnection.SendAsync("JoinNextGame", CurrentGame.RoomId, CurrentPlayer.Id);
 
                 _navigationManager.NavigateTo("/game", forceLoad: true);
             }
@@ -114,21 +114,21 @@ namespace TicTacToeGame.Services.GameProcessService
 
         public async Task ApproveNextGamePlayerRequest()
         {
-            await _gameHubConnection.AcceptAnotherGameRequest((int)CurrentGame.RoomId, CurrentPlayer.Id);
-            //await _hubConnection.SendAsync("AcceptAnotherGameRequest", CurrentGame.RoomId, CurrentPlayer.Id);
+            //await _gameHubConnection.AcceptAnotherGameRequest((int)CurrentGame.RoomId, CurrentPlayer.Id);
+            await _hubConnection.SendAsync("AcceptAnotherGameRequest", CurrentGame.RoomId, CurrentPlayer.Id);
         }
         public async Task DeclineNextPlayerRequest()
         {
-            await _gameHubConnection.DeclineAnotherGameRequest((int)CurrentGame.RoomId, CurrentPlayer.Id);
-            //await _hubConnection.SendAsync("DeclineAnotherGameRequest", CurrentGame.RoomId, CurrentPlayer.Id);
+            //await _gameHubConnection.DeclineAnotherGameRequest((int)CurrentGame.RoomId, CurrentPlayer.Id);
+            await _hubConnection.SendAsync("DeclineAnotherGameRequest", CurrentGame.RoomId, CurrentPlayer.Id);
 
             DeclinedNextGame = true;
             UpdateComponent?.Invoke();
         }
         public async Task PlayNextGame()
         {
-            await _gameHubConnection.AskAnotherPlayerForNextGame((int)CurrentGame.RoomId, CurrentPlayer.Id);
-            //await _hubConnection.SendAsync("AskAnotherPlayerForNextGame", CurrentGame.RoomId, CurrentPlayer.Id);
+            //await _gameHubConnection.AskAnotherPlayerForNextGame((int)CurrentGame.RoomId, CurrentPlayer.Id);
+            await _hubConnection.SendAsync("AskAnotherPlayerForNextGame", CurrentGame.RoomId, CurrentPlayer.Id);
         }
     }
 }
