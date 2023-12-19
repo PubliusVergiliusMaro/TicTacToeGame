@@ -1,78 +1,60 @@
-﻿using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.SignalR.Client;
-using TicTacToeGame.Domain.Models;
-using TicTacToeGame.Services.HubConnections;
+﻿using TicTacToeGame.Services.HubConnections;
+
 
 namespace TicTacToeGame.Services.GameProcessService
 {
     public class GameChatService
     {
-        public static List<KeyValuePair<string, string>> ChatMessages = new List<KeyValuePair<string, string>>();
-        //private readonly GameHubConnection _gameHubConnection;
+        public List<KeyValuePair<string, string>> ChatMessages = new List<KeyValuePair<string, string>>();
 
-        private Game _currentGame;
-        private Player _sender;
-        private HubConnection _hubConnection;
-        public bool NewMessage { get; set; } = false;
-        private Timer debounceTimer;
+        public string Message { get; set; }
 
+        private GameHubConnection _gameHubConnection;
 
-        public event Action UpdateComponent;
+        private readonly GameManager _gameManager;
 
-        public bool _isChatVisible = false;
+        public bool IsReceivedNewMessage { get; set; } = false;
 
-        //public GameChatService(GameHubConnection gameHubConnection)
-        //{
-        //    _gameHubConnection = gameHubConnection;
-        //}
+        public bool IsChatVisible = false;
 
-        public void SetHubConnection(HubConnection hubConnection)
+        public event Action StateHasChanged;
+
+        public void SetHubConnection(GameHubConnection gameHubConnection)
         {
             _hubConnection = hubConnection;
 
             hubConnection.On<string, string>("ReceiveChatMessage", (playerNickname, message) => AddMessage(playerNickname, message));
         }
-
-        public void SetSender(Game currentGame, Player sender)
+      
+        public GameChatService(GameManager gameManager, GameHubConnection gameHubConnection)
         {
-            _currentGame = currentGame;
-            _sender = sender;
+            _gameManager = gameManager;
+            _gameHubConnection = gameHubConnection;
         }
 
         public void AddMessage(string playerNickname, string message)
         {
+            if (!IsChatVisible)
+                IsReceivedNewMessage = true;
 
-            var newMessage = $"{playerNickname}: {message}";
-            // Check if the message is not already in the HashSet
-            if (!_isChatVisible)
-            {
-                NewMessage = true;
-            }
-            UpdateComponent?.Invoke();
-            
+            StateHasChanged?.Invoke();
         }
+
         public async Task SendMessage(string message)
         {
-            var newMessage = new KeyValuePair<string, string>(_sender.UserName, message);
-
-            // Add the new message to the list
-            ChatMessages.Add(newMessage);
-
-            // Send the chat message through SignalR
-            await _hubConnection.SendAsync("SendChatMessage", _currentGame.RoomId, _sender.UserName, message);
-
-            // Update the component
-            UpdateComponent?.Invoke();
+            IsReceivedNewMessage = false;
+            await _gameHubConnection.SendChatMessage((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.UserName, message);
+            StateHasChanged?.Invoke();
         }
 
         public void ToggleChat()
         {
-            if (!_isChatVisible)
-                NewMessage = false;
+            if (!IsChatVisible)
+                IsReceivedNewMessage = false;
 
-            _isChatVisible = !_isChatVisible;
+            IsChatVisible = !IsChatVisible;
 
-            UpdateComponent?.Invoke();
+            StateHasChanged?.Invoke();
         }
        
 

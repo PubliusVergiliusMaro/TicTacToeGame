@@ -64,7 +64,9 @@ builder.Services.AddSingleton<RoomManagerService>();
 
 builder.Services.AddTransient<TemporaryRoomService>();
 
-builder.Services.AddScoped<GameInitializeProcess>();
+builder.Services.AddScoped<GameManager>();
+
+builder.Services.AddTransient<GameInitializeService>();
 
 builder.Services.AddScoped<CheckForWinnerManager>();
 
@@ -81,6 +83,8 @@ builder.Services.AddTransient<GameSessionService>();
 builder.Services.AddTransient<JoinRoomHubConnection>();
 
 builder.Services.AddScoped<GameHubConnection>();
+
+builder.Services.AddTransient<HostRoomHubConnection>();
 
 builder.Services.AddServerSideBlazor(options =>
 {

@@ -8,21 +8,19 @@
 @using TicTacToeGame.Domain.Enums
 @using TicTacToeGame.Domain.Models
 @using TicTacToeGame.Domain.Repositories
-@using TicTacToeGame.Services.GameProcessService
+@using TicTacToeGame.Services.HubConnections
 @using TicTacToeGame.Services.RoomServices
 @using TicTacToeGame.WebUI.Hubs
 
 @inject NavigationManager _navigationManager
-@inject RoomRepository _roomRepository
-@inject GameRepository _gameRepository
-@inject PlayerRepository _playerRepository
 @inject AuthenticationStateProvider _authenticationStateProvider
 @inject RoomManagerService _roomService
 @inject TemporaryRoomService _temporaryRoomService
-@inject GameChatService GameChatService;
+@inject HostRoomHubConnection HostRoomHubConnection
+
 
 @rendermode InteractiveServer
-@implements IDisposable
+@implements IAsyncDisposable
 
 <section>
     <div>
@@ -62,9 +60,11 @@
 </section>
 
 @code {
-    private HubConnection hubConnection;
-
     private bool isLoading = false;
+
+    private AuthenticationState authState;
+
+    private ClaimsPrincipal? user;
 
     public void InitializeRoom()
     {
@@ -85,8 +85,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
-        ClaimsPrincipal? user = authState.User;
+        authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
+        user = authState.User;
 
         if (user == null)
         {
@@ -95,45 +95,12 @@
 
         _temporaryRoomService.UpdateComponent += async () => await InvokeAsync(StateHasChanged);
 
-        hubConnection = new HubConnectionBuilder()
-            .WithUrl(_navigationManager.ToAbsoluteUri(GameHub.HubUrl))
-            .Build();
+        HostRoomHubConnection.JoinRoomEvent += JoinRoom;
 
-        hubConnection.On<int, Player>("JoinRoom", async (joinedRoomId, joinPlayer) =>
-        {
-            if (_roomService.OpenedRooms.Keys.Any(r => r.ConnectionId == joinedRoomId && r.IsOpen))
-            {
-                if (_temporaryRoomService.ConnectionId == joinedRoomId.ToString())
-                {
-                    int createdRoomId = _roomService.CreateGame(joinedRoomId, user, joinPlayer);
-                    if (createdRoomId == -1)
-                    {
-                        _navigationManager.NavigateTo("/");
-                    }
-                    else
-                    {
-                        await hubConnection.SendAsync("JoinGame", createdRoomId);
-                        await hubConnection.SendAsync("AcceptJoining", _temporaryRoomService.Room.ConnectionId, createdRoomId);
-                        GameChatService.ChatMessages = new List<KeyValuePair<string, string>>();
-                        _navigationManager.NavigateTo("/game");
-                    }
-
-                    _ = InvokeAsync(() =>
-                    {
-                        isLoading = true;
-                        StateHasChanged();
-                    });
-                }
-            }
-            else
-            {
-                await hubConnection.SendAsync("DeclineJoining", "Such connection Id is not right");
-            }
-        });
-        await hubConnection.StartAsync();
+        await HostRoomHubConnection.StartConnectionAsync();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnAfterRender(bool firstRender)
     {
         if (firstRender)
         {
@@ -144,8 +111,48 @@
         }
     }
 
-    public void Dispose()
+    private void JoinRoom(int joinedRoomId, Player joinedPlayer)
     {
-        hubConnection.DisposeAsync();
+        JoinRoomAsync(joinedRoomId, joinedPlayer).GetAwaiter().GetResult();
+    }
+
+    private async Task JoinRoomAsync(int joinedRoomId, Player joinPlayer)
+    {
+        bool isSuchRoomExist = _roomService.IsSuchRoomExist(joinedRoomId);
+
+        if (!isSuchRoomExist)
+        {
+            await HostRoomHubConnection.DeclineJoining("Such connection Id is not right", joinPlayer.Id);
+            return;
+        }
+
+        bool isItCurrentRoom = _temporaryRoomService.CheckIfItIsCurrentRoom(joinedRoomId);
+
+        if (isItCurrentRoom)
+        {
+            int createdRoomId = _roomService.CreateGame(joinedRoomId, user, joinPlayer);
+
+            if (createdRoomId == -1)
+            {
+                _navigationManager.NavigateTo("/");
+                return;
+            }
+
+            await HostRoomHubConnection.JoinGame(createdRoomId);
+
+            await HostRoomHubConnection.AcceptJoining(_temporaryRoomService.Room.ConnectionId, createdRoomId);
+
+            _navigationManager.NavigateTo("/game");
+
+            _ = InvokeAsync(() =>
+            {
+                isLoading = true;
+                StateHasChanged();
+            });
+        }
+    }
+    public async ValueTask DisposeAsync()
+    {
+        await HostRoomHubConnection.DisposeAsync();
     }
 }

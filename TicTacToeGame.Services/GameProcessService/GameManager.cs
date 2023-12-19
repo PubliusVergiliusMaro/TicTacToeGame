@@ -7,7 +7,6 @@ using TicTacToeGame.Domain.Repositories;
 
 namespace TicTacToeGame.Services.GameProcessService;
 
-// then check if from di will get this game manager
 public class GameManager
 {
     public Player CurrentPlayerHost;
@@ -25,65 +24,47 @@ public class GameManager
     public BoardElements[] Board = new BoardElements[TicTacToeRules.BOARD_SIZE];
 
     public bool IsInitialized = false;
-
+   
     public async Task InitializeAuthState(AuthenticationStateProvider authenticationStateProvider)
     {
         AuthenticationState = await authenticationStateProvider.GetAuthenticationStateAsync();
         ClaimsPrincipal = AuthenticationState.User;
-        IsInitialized = true;
     }
     public void InitializeRepositories(GameRepository gameRepository, PlayerRepository playerRepository)
     {
-        if (gameRepository == null || playerRepository == null)
-        {
-            throw new ArgumentNullException("GameRepository or PlayerRepository is null");
-        }
-
         GameRepository = gameRepository;
         PlayerRepository = playerRepository;
     }
     public string GetCurrentUserId()
     {
-        if (ClaimsPrincipal == null)
-        {
-            throw new ArgumentNullException("ClaimsPrincipal is null");
-        }
-
         return ClaimsPrincipal?.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
     }
-    public void InitializeGame()
+    public bool InitializeGame()
     {
-        CurrentGame = GameRepository.GetByUsersId(GetCurrentUserId());
-
+        string currentUserId = GetCurrentUserId();
+        CurrentGame = GameRepository.GetByUsersId(currentUserId);
         if (CurrentGame == null)
         {
-            throw new ArgumentNullException("CurrentGame is null");
+            return false;
         }
+        return true;
     }
-    public void InitializePlayers()
+    public bool InitializePlayers()
     {
         if (CurrentGame == null)
         {
-            throw new ArgumentNullException("CurrentGame is null");
+            return false;
         }
 
         CurrentPlayerHost = PlayerRepository.GetById(CurrentGame.PlayerHostId);
         CurrentPlayerGuest = PlayerRepository.GetById(CurrentGame.PlayerGuestId);
         CurrentPlayer = PlayerRepository.GetById(GetCurrentUserId());
 
-        if (CurrentPlayerHost == null || CurrentPlayerGuest == null || CurrentPlayer == null)
-        {
-            throw new ArgumentNullException("CurrentPlayerHost or CurrentPlayerGuest or CurrentPlayer is null");
-        }
+        return true;
     }
 
     public void UpdateCurrentPlayerGameConnectionId(string gameConnectionId)
     {
-        if (CurrentPlayer == null)
-        {
-            throw new ArgumentNullException("CurrentPlayer is null");
-        }
-
         CurrentPlayer.GameConnectionId = gameConnectionId;
 
         PlayerRepository.UpdateEntity(CurrentPlayer);
@@ -93,12 +74,7 @@ public class GameManager
 
     private void UpdateGuestOrHostGameConnectionId(string gameConnectionId)
     {
-        if (CurrentPlayerHost == null || CurrentPlayerGuest == null)
-        {
-            throw new ArgumentNullException("CurrentPlayerHost or CurrentPlayerGuest is null");
-        }
-
-        if (CurrentPlayer.Id == CurrentPlayerHost.Id)
+        if(CurrentPlayer.Id == CurrentPlayerHost.Id)
         {
             CurrentPlayerHost.GameConnectionId = gameConnectionId;
         }
@@ -120,8 +96,22 @@ public class GameManager
             return CurrentPlayerGuest.UserName;
         }
     }
-    public async Task<bool> IsTwoPlayersPlaying()
+
+    public bool IsTwoPlayersPlaying()
     {
-        return await PlayerRepository.CheckIfTwoPlayersArePlaying(CurrentPlayerHost.Id, CurrentPlayerGuest.Id);
+        return PlayerRepository.CheckIfTwoPlayersArePlaying(CurrentPlayerHost.Id, CurrentPlayerGuest.Id);
+    }
+    public void ClearData()
+    {
+        AuthenticationState = null;
+        ClaimsPrincipal = null;
+        CurrentPlayerHost = null;
+        CurrentPlayerGuest = null;
+        CurrentPlayer = null;
+        CurrentGame = null;
+        GameRepository = null;
+        PlayerRepository = null;
+        IsInitialized = false;
+        Board = new BoardElements[TicTacToeRules.BOARD_SIZE];
     }
 }

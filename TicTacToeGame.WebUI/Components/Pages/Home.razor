@@ -5,6 +5,7 @@
 @using TicTacToeGame.Domain.Repositories
 @using TicTacToeGame.Domain.Models
 @using TicTacToeGame.Services.GameProcessService
+@using TicTacToeGame.WebUI.Components.Layout
 
 
 @inject AuthenticationStateProvider _authenticationStateProvider
@@ -31,10 +32,6 @@
 </div>
 
 @code {
-    // Authentication data
-    private AuthenticationState authState;
-    private ClaimsPrincipal? user;
-
     private TicTacToeGame.Domain.Models.Game ExistingGame;
 
     protected override async Task OnInitializedAsync()
@@ -42,14 +39,18 @@
         AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
         ClaimsPrincipal? user = authState.User;
 
-        string userId = user.Claims.First().Value.ToString();
-      
-        GameReconnectingService.RecconectPlayer(userId);
-         // ExistingGame = GameRepository.GetByUsersId(userId);
+        string userId = GetCurrentUserIdentifier(user);
 
-         // if(ExistingGame != null)
-         // {
-         //     NavigationManager.NavigateTo("/game");
-         // }
+        bool needsToReconect = GameReconnectingService.CheckIfRecconectPlayer(userId);
+        
+        if(needsToReconect)
+        {
+            NavigationManager.NavigateTo("/game");
+        }
+    }
+    
+    protected string GetCurrentUserIdentifier(ClaimsPrincipal? claimsPrincipal)
+    {
+        return claimsPrincipal?.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
     }
 }

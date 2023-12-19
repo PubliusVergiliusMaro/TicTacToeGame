@@ -1,76 +1,80 @@
-﻿using Polly.Caching;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TicTacToeGame.Domain.Constants;
+﻿using TicTacToeGame.Domain.Constants;
 using TicTacToeGame.Domain.Enums;
 
 namespace TicTacToeGame.Services.GameProcessService;
 public class CheckForWinnerManager
 {
-    public string GameStatus = "";
-    public bool CheckForWinner(BoardElements[] board)
+    private readonly GameManager _gameManager;
+
+    public event Action StateHasChanged;
+
+    public string GameStatus { get; set; }
+
+    public CheckForWinnerManager(GameManager gameManager)
     {
-        if (CheckRowsForWinner(board) || CheckColumnsForWinner(board) || CheckDiagonalsForWinner(board))
+        _gameManager = gameManager;
+    }
+
+    public bool CheckForWinner()
+    {
+        if (CheckRowsForWinner() || CheckColumnsForWinner() || CheckDiagonalsForWinner())
         {
             return true;
         }
 
         return false;
     }
-    public bool CheckForTie(BoardElements[] board)
+    public bool CheckForTie()
     {
-        // Check for a tie
-        if (board.All(cell => cell != BoardElements.Empty))
+        if (_gameManager.Board.All(cell => cell != BoardElements.Empty))
         {
             GameStatus = "It's a tie!";
+            StateHasChanged?.Invoke();
             return true;
         }
         return false;
     }
-    private bool CheckRowsForWinner(BoardElements[] board)
+    private bool CheckRowsForWinner()
     {
         for (int row = TicTacToeRules.FIRST_ROW_OF_BOARD; row < TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS; row++)
         {
-            if (AreAllEqual(board[row * TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS],
-                board[row * TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS + 1], board[row * TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS + 2]))
+            if (AreAllEqual(_gameManager.Board[row * TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS],
+                _gameManager.Board[row * TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS + 1], _gameManager.Board[row * TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS + 2]))
             {
-                GameStatus = $"{board[row * TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS]} wins!";
+                GameStatus = $"{_gameManager.Board[row * TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS]} wins!";
                 return true;
             }
         }
 
         return false;
     }
-    private bool CheckColumnsForWinner(BoardElements[] board)
+    private bool CheckColumnsForWinner()
     {
         for (int col = TicTacToeRules.FIRST_COLUMN_OF_BOARD; col < TicTacToeRules.MAX_COUNT_OF_BOARD_COLUMNS; col++)
         {
-            if (AreAllEqual(board[col], board[col + TicTacToeRules.MAX_COUNT_OF_BOARD_COLUMNS],
-                board[col + 2 * TicTacToeRules.MAX_COUNT_OF_BOARD_COLUMNS]))
+            if (AreAllEqual(_gameManager.Board[col], _gameManager.Board[col + TicTacToeRules.MAX_COUNT_OF_BOARD_COLUMNS],
+                _gameManager.Board[col + 2 * TicTacToeRules.MAX_COUNT_OF_BOARD_COLUMNS]))
             {
-                GameStatus = $"{board[col]} wins!";
+                GameStatus = $"{_gameManager.Board[col]} wins!";
                 return true;
             }
         }
 
         return false;
     }
-    private bool CheckDiagonalsForWinner(BoardElements[] board)
+    private bool CheckDiagonalsForWinner()
     {
-        if (AreAllEqual(board[TicTacToeRules.FIRST_ELEMENT_OF_DIAGONAL],
-            board[TicTacToeRules.SECOND_ELEMENT_OF_DIAGONAL], board[TicTacToeRules.THIRD_ELEMENT_OF_DIAGONAL]))
+        if (AreAllEqual(_gameManager.Board[TicTacToeRules.FIRST_ELEMENT_OF_DIAGONAL],
+            _gameManager.Board[TicTacToeRules.SECOND_ELEMENT_OF_DIAGONAL], _gameManager.Board[TicTacToeRules.THIRD_ELEMENT_OF_DIAGONAL]))
         {
-            GameStatus = $"{board[TicTacToeRules.FIRST_ELEMENT_OF_DIAGONAL]} wins!";
+            GameStatus = $"{_gameManager.Board[TicTacToeRules.FIRST_ELEMENT_OF_DIAGONAL]} wins!";
             return true;
         }
 
-        if (AreAllEqual(board[TicTacToeRules.FIRST_ELEMENT_OF_REVERSE_DIAGONAL],
-            board[TicTacToeRules.SECOND_ELEMENT_OF_REVERSE_DIAGONAL], board[TicTacToeRules.THIRD_ELEMENT_OF_REVERSE_DIAGONAL]))
+        if (AreAllEqual(_gameManager.Board[TicTacToeRules.FIRST_ELEMENT_OF_REVERSE_DIAGONAL],
+            _gameManager.Board[TicTacToeRules.SECOND_ELEMENT_OF_REVERSE_DIAGONAL], _gameManager.Board[TicTacToeRules.THIRD_ELEMENT_OF_REVERSE_DIAGONAL]))
         {
-            GameStatus = $"{board[TicTacToeRules.FIRST_ELEMENT_OF_REVERSE_DIAGONAL]} wins!";
+            GameStatus = $"{_gameManager.Board[TicTacToeRules.FIRST_ELEMENT_OF_REVERSE_DIAGONAL]} wins!";
             return true;
         }
 
@@ -80,4 +84,12 @@ public class CheckForWinnerManager
     {
         return a != BoardElements.Empty && a == b && b == c;
     }
+
+    public void SendGameStatus(GameState receiveGameResult, string receiveGameStatus, int gameId)
+    {
+        _gameManager.CurrentGame.GameResult = receiveGameResult;
+        GameStatus = receiveGameStatus;
+        StateHasChanged?.Invoke();
+    }
+
 }

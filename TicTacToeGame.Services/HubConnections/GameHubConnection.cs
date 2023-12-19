@@ -9,19 +9,11 @@ using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace TicTacToeGame.Services.HubConnections
 {
-    // TODO:
-
-    // Remove int from SendGameState , SendGameStatus
-
-    // maybe add strategy pattern for sending messages
-
     public class GameHubConnection : IAsyncDisposable
     {
-        private readonly HubConnection _hubConnection;
+        public readonly HubConnection _hubConnection;
 
         private readonly NavigationManager _navigationManager;
-
-        private readonly ILogger<GameHubConnection> _logger;
 
         public event Action<BoardElements[], PlayerType, int> SendGameStateEvent;
         public event Action<GameState, string, int> SendGameStatusEvent;
@@ -42,9 +34,8 @@ namespace TicTacToeGame.Services.HubConnections
         public event Action<string> JoinNextGameEvent;
 
 
-        public GameHubConnection(ILogger<GameHubConnection> logger, NavigationManager navigationManager)
+        public GameHubConnection(NavigationManager navigationManager)
         {
-            _logger = logger;
             _navigationManager = navigationManager;
 
             _hubConnection = new HubConnectionBuilder()
@@ -155,8 +146,16 @@ namespace TicTacToeGame.Services.HubConnections
         }
         public async Task SendGameState(BoardElements[] board, PlayerType nextPlayerTurn, int roomId)
         {
-            await _hubConnection.SendAsync("SendGameState", board, nextPlayerTurn, roomId);
+            try
+            {
+                await _hubConnection.SendAsync("SendGameState", board, nextPlayerTurn, roomId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
         }
+
         public async Task StartConnectionAsync()
         {
             try
@@ -165,7 +164,7 @@ namespace TicTacToeGame.Services.HubConnections
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error starting HubConnection");
+                throw new Exception(ex.Message);
             }
         }
 
@@ -182,7 +181,7 @@ namespace TicTacToeGame.Services.HubConnections
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error disposing HubConnection");
+                throw new Exception(ex.Message);
             }
             finally
             {

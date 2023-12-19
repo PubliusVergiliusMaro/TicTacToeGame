@@ -1,51 +1,46 @@
-﻿using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Data;
-using System.Security.Claims;
 using TicTacToeGame.Domain.Enums;
 using TicTacToeGame.Domain.Models;
-using TicTacToeGame.Domain.Repositories;
 using TicTacToeGame.Services.GamesStatisticServices;
 using TicTacToeGame.Services.HubConnections;
 
 namespace TicTacToeGame.Services.GameProcessService;
-public class MakeMovesGameManager : GameManagerBase
+public class MakeMovesGameManager
 {
-    private readonly GameRepository _gameRepository;
-
     private readonly GamesStatisticsService _gamesStatisticsService;
 
     private readonly GameReconnectingService _gameReconnectingService;
-    private HubConnection _connection;
 
     private readonly CheckForWinnerManager _checkForWinnerManager;
 
-    //private readonly GameHubConnection _gameHubConnection;
+    private GameHubConnection _gameHubConnection;
+
+    private readonly GameManager _gameManager;
 
     public string CurrentPlayerSign;
-    private Player CurrentPlayer;
 
-    public MakeMovesGameManager(AuthenticationStateProvider authenticationStateProvider,
-        GamesStatisticsService gamesStatisticsService,
+    public event Action StateHasChanged;
+
+    public MakeMovesGameManager(GamesStatisticsService gamesStatisticsService,
         CheckForWinnerManager checkForWinnerManager,
-        GameRepository gameRepository,
         GameReconnectingService gameReconnectingService,
-        GameHubConnection gameHubConnection)
-        : base(authenticationStateProvider)
+        GameHubConnection gameHubConnection,
+        GameManager gameManager)
     {
         _gamesStatisticsService = gamesStatisticsService;
         _checkForWinnerManager = checkForWinnerManager;
-        _gameRepository = gameRepository;
         _gameReconnectingService = gameReconnectingService;
-        //_gameHubConnection = gameHubConnection;
+        _gameHubConnection = gameHubConnection;
+        _gameManager = gameManager;
     }
-    public void InitializePlayers(Player PlayerHost, Player PlayerGuest, Player currentPlayer, HubConnection hubConnection)
+    public void SetHubConnection(GameHubConnection gameHubConnection)
     {
-        CurrentPlayerHost = PlayerHost;
-        CurrentPlayerGuest = PlayerGuest;
-        CurrentPlayer = currentPlayer;
-        if (CurrentPlayer.Id == PlayerHost.Id)
+        _gameHubConnection = gameHubConnection;
+    }
+    public void InitializePlayers()
+    {
+        if (_gameManager.CurrentPlayer.Id == _gameManager.CurrentPlayerHost.Id)
         {
             CurrentPlayerSign = "X";
         }
@@ -53,29 +48,28 @@ public class MakeMovesGameManager : GameManagerBase
         {
             CurrentPlayerSign = "O";
         }
-        _connection = hubConnection;
-
     }
-    public async Task MakeMove(int index, BoardElements[] board, Game CurrentGame, AuthenticationState authState, ClaimsPrincipal? user)
+
+    public async Task MakeMove(int index)
     {
         try
         {
-            if (index < 0 || index >= board.Length)
+            if (index < 0 || index >= _gameManager.Board.Length)
             {
                 throw new IndexOutOfRangeException("Invalid index");
             }
 
-            if (board[index] == BoardElements.Empty && CurrentGame.GameResult == GameState.Starting)
+            if (_gameManager.Board[index] == BoardElements.Empty && _gameManager.CurrentGame.GameResult == GameState.Starting)
             {
                 // Check if it's the correct player's turn
-                if (await IsCurrentPlayersTurn(CurrentGame, authState, user))
+                if (await IsCurrentPlayersTurn())
                 {
                     // Put X or O on cell
-                    PlaceMoveOnCell(index, board, CurrentGame);
+                    PlaceMoveOnCell(index);
                     // Switch player turns
-                    await SentGameState(board, CurrentGame);
+                    await SentGameState();
                     // Only after 3 movements can a player win
-                    await CheckForWinnerAfterMoves(board, CurrentGame);
+                    await CheckForWinnerAfterMoves();
                 }
             }
         }
@@ -99,50 +93,50 @@ public class MakeMovesGameManager : GameManagerBase
         }
     }
 
-
-    private async Task<bool> IsCurrentPlayersTurn(Game CurrentGame, AuthenticationState authState, ClaimsPrincipal? user)
+    private async Task<bool> IsCurrentPlayersTurn()
     {
-        authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
-        user = authState.User;
+        bool isCurrentHostTurn = _gameManager.CurrentGame.CurrentTurn == PlayerType.Host;
+        bool isCurrentGuestTurn = _gameManager.CurrentGame.CurrentTurn == PlayerType.Guest;
 
-        return (CurrentGame.CurrentTurn == PlayerType.Host && user.Claims.First().Subject.Name == CurrentPlayerHost.UserName) ||
-               (CurrentGame.CurrentTurn == PlayerType.Guest && user.Claims.First().Subject.Name == CurrentPlayerGuest.UserName);
+        bool isCurrentPlayerHost = _gameManager.CurrentPlayer.Id == _gameManager.CurrentPlayerHost.Id;
+        bool isCurrentPlayerGuest = _gameManager.CurrentPlayer.Id == _gameManager.CurrentPlayerGuest.Id;
+
+        return (isCurrentHostTurn && isCurrentPlayerHost) || (isCurrentGuestTurn && isCurrentPlayerGuest);
     }
 
-    private void PlaceMoveOnCell(int index, BoardElements[] board, Game CurrentGame)
+    private void PlaceMoveOnCell(int index)
     {
-        board[index] = DetermineWhoMakeMoveNow(CurrentGame);
+        _gameManager.Board[index] = DetermineWhoMakeMoveNow();
     }
 
-    public BoardElements DetermineWhoMakeMoveNow(Game CurrentGame) => (CurrentGame.CurrentTurn == PlayerType.Host) ? BoardElements.X : BoardElements.O;
+    public BoardElements DetermineWhoMakeMoveNow() => (_gameManager.CurrentGame.CurrentTurn == PlayerType.Host) ? BoardElements.X : BoardElements.O;
 
-    private async Task CheckForWinnerAfterMoves(BoardElements[] board, Game CurrentGame)
+    private async Task CheckForWinnerAfterMoves()
     {
-        if (_checkForWinnerManager.CheckForWinner(board))
+        if (_checkForWinnerManager.CheckForWinner())
         {
-            await FinishGameAndPutInHistory(CurrentGame);
+            await FinishGameAndPutInHistory();
         }
-        else if (_checkForWinnerManager.CheckForTie(board))
+        else if (_checkForWinnerManager.CheckForTie())
         {
-            await FinishGameAndPutInHistory(CurrentGame, true);
+            await FinishGameAndPutInHistory(true);
         }
     }
 
-
-    private async Task FinishGameAndPutInHistory(Game CurrentGame, bool isTie = false)
+    private async Task FinishGameAndPutInHistory(bool isTie = false)
     {
         try
         {
-            CurrentGame.GameResult = GameState.Finished;
+            _gameManager.CurrentGame.GameResult = GameState.Finished;
 
-            if (_gamesStatisticsService == null || CurrentPlayerHost == null || CurrentPlayerGuest == null)
+            if (_gamesStatisticsService == null || _gameManager.CurrentPlayerHost == null || _gameManager.CurrentPlayerGuest == null)
             {
                 // Handle the case where required objects are null
                 throw new InvalidOperationException("One or more required objects are null.");
             }
 
-            GamesHistory hostGamesHistory = await _gamesStatisticsService.GetGamesHistoryByPlayerId(CurrentPlayerHost.Id);
-            GamesHistory guestGamesHistory = await _gamesStatisticsService.GetGamesHistoryByPlayerId(CurrentPlayerGuest.Id);
+            GamesHistory hostGamesHistory = await _gamesStatisticsService.GetGamesHistoryByPlayerId(_gameManager.CurrentPlayerHost.Id);
+            GamesHistory guestGamesHistory = await _gamesStatisticsService.GetGamesHistoryByPlayerId(_gameManager.CurrentPlayerGuest.Id);
 
             if (hostGamesHistory == null || guestGamesHistory == null)
             {
@@ -150,20 +144,22 @@ public class MakeMovesGameManager : GameManagerBase
                 throw new InvalidOperationException("Games history not found for one or more players.");
             }
 
-            CurrentGame.GamesHistoryHostId = hostGamesHistory.Id;
-            CurrentGame.GamesHistoryGuestId = guestGamesHistory.Id;
+            _gameManager.CurrentGame.GamesHistoryHostId = hostGamesHistory.Id;
+            _gameManager.CurrentGame.GamesHistoryGuestId = guestGamesHistory.Id;
             if (isTie)
             {
-                CurrentGame.Winner = PlayerType.None;
+                _gameManager.CurrentGame.Winner = PlayerType.None;
             }
             else
-                CurrentGame.Winner = (CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
+                _gameManager.CurrentGame.Winner = (_gameManager.CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
 
-            _gameRepository.UpdateEntity(CurrentGame);
-            await SendGameStatus(_checkForWinnerManager.GameStatus, CurrentGame);
+            _gameManager.GameRepository.UpdateEntity(_gameManager.CurrentGame);
+            await SendGameStatus(_checkForWinnerManager.GameStatus);
 
-            _gameReconnectingService.MakePlayerNotPlaying(CurrentPlayerHost.Id);
-            _gameReconnectingService.MakePlayerNotPlaying(CurrentPlayerGuest.Id);
+            _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerHost.Id);
+            _gameManager.CurrentPlayerHost.IsPlaying = false;
+            _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerGuest.Id);
+            _gameManager.CurrentPlayerGuest.IsPlaying = false;
 
         }
         catch (NullReferenceException ex)
@@ -193,23 +189,50 @@ public class MakeMovesGameManager : GameManagerBase
         }
     }
 
-    private async Task SendGameStatus(string GameStatus, Game CurrentGame)
+    private async Task SendGameStatus(string GameStatus)
     {
-        //await _gameHubConnection.SendGameStatus(CurrentGame.GameResult, GameStatus, (int)CurrentGame.RoomId);
-        await _connection.SendAsync("SendGameStatus", CurrentGame.GameResult, GameStatus, CurrentGame.RoomId);
+        await _gameHubConnection.SendGameStatus(_gameManager.CurrentGame.GameResult, GameStatus, (int)_gameManager.CurrentGame.RoomId);
     }
 
-    private async Task SentGameState(BoardElements[] board, Game CurrentGame)
+    private async Task SentGameState()
     {
-        PlayerType nextPlayerTurn = (CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
-        int roomId = (int)CurrentGame.RoomId;
-
-        //await _gameHubConnection.SendGameState(board, nextPlayerTurn, roomId);
-        await _connection.SendAsync("SendGameState", board, nextPlayerTurn, CurrentGame.RoomId);
+        PlayerType nextPlayerTurn = (_gameManager.CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
+       
+        await _gameHubConnection.SendGameState(_gameManager.Board, nextPlayerTurn, (int)_gameManager.CurrentGame.RoomId);
     }
 
-    public void UpdateGameAfterMove(Game game)
+    public void UpdateGameAfterMove()
     {
-        _gameRepository.UpdateEntity(game);
+        _gameManager.GameRepository.UpdateEntity(_gameManager.CurrentGame);
+    }
+
+    public void SendAnotherPlayerBoard(string userId, BoardElements[] playerBoard)
+    {
+        if (userId != _gameManager.CurrentPlayer.Id)
+        {
+            _gameManager.Board = playerBoard;
+            StateHasChanged?.Invoke();
+        }
+    }
+    public void AskAnotherPlayerBoard(string userId, int gameId)
+    {
+        AskAnotherPlayerBoardAsync(userId, gameId).GetAwaiter().GetResult();
+    }
+    private async Task AskAnotherPlayerBoardAsync(string userId, int gameId)
+    {
+        if (_gameManager.CurrentPlayer != null)
+        {
+            string currentUserId = _gameManager.CurrentPlayer.Id;
+            if (userId != currentUserId)
+                await _gameHubConnection.SendAnotherPlayerBoard((int)_gameManager.CurrentGame.RoomId, currentUserId, _gameManager.Board);
+        }
+    }
+
+    public void SendGameState(BoardElements[] receivedBoard, PlayerType nextPlayerTurn, int gameId)
+    {
+        _gameManager.Board = receivedBoard;
+        _gameManager.CurrentGame.CurrentTurn = nextPlayerTurn;
+        UpdateGameAfterMove();
+        StateHasChanged?.Invoke();
     }
 }

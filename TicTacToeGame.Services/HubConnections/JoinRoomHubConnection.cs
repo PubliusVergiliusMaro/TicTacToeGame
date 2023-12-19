@@ -14,7 +14,7 @@ namespace TicTacToeGame.Services.HubConnections
         private readonly ILogger<JoinRoomHubConnection> _logger;
 
         public event Func<int, int, Task> AcceptJoiningEvent;
-        public event Action<string> DeclineJoiningEvent;
+        public event Action<string, string> DeclineJoiningEvent;
 
         public JoinRoomHubConnection(ILogger<JoinRoomHubConnection> logger, NavigationManager navigationManager)
         {
@@ -34,8 +34,8 @@ namespace TicTacToeGame.Services.HubConnections
             _hubConnection.On<int, int>("AcceptJoining", async (joinedRoomId, gameRoomId) =>
                 AcceptJoiningEvent?.Invoke(joinedRoomId, gameRoomId));
 
-            _hubConnection.On<string>("DeclineJoining", (declineMessage) =>
-                DeclineJoiningEvent?.Invoke(declineMessage));
+            _hubConnection.On<string,string>("DeclineJoining", (declineMessage, playerId) =>
+                DeclineJoiningEvent?.Invoke(declineMessage, playerId));
         }
 
         public async Task StartConnectionAsync()

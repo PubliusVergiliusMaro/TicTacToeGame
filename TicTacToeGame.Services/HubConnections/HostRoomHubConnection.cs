@@ -13,10 +13,10 @@ namespace TicTacToeGame.Services.HubConnections
         private readonly HubConnection _hubConnection;
 
         private readonly NavigationManager _navigationManager;
-
+    
         private readonly ILogger<HostRoomHubConnection> _logger;
 
-        public event Action<int, Player> JoinRoomEvent;
+        public event Action<int,Player> JoinRoomEvent;
 
         public HostRoomHubConnection(ILogger<HostRoomHubConnection> logger, NavigationManager navigationManager)
         {
@@ -36,7 +36,7 @@ namespace TicTacToeGame.Services.HubConnections
                 =>
             {
                 Task.Run(() => JoinRoomEvent?.Invoke(joinedRoomId, joinPlayer));
-            });
+            });   
         }
 
         public async Task JoinGame(int createdRoomId)
