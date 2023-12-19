@@ -1,5 +1,6 @@
 ﻿using TicTacToeGame.Services.HubConnections;
 
+
 namespace TicTacToeGame.Services.GameProcessService
 {
     public class GameChatService
@@ -20,8 +21,11 @@ namespace TicTacToeGame.Services.GameProcessService
 
         public void SetHubConnection(GameHubConnection gameHubConnection)
         {
-            _gameHubConnection = gameHubConnection;
+            _hubConnection = hubConnection;
+
+            hubConnection.On<string, string>("ReceiveChatMessage", (playerNickname, message) => AddMessage(playerNickname, message));
         }
+      
         public GameChatService(GameManager gameManager, GameHubConnection gameHubConnection)
         {
             _gameManager = gameManager;
@@ -30,8 +34,6 @@ namespace TicTacToeGame.Services.GameProcessService
 
         public void AddMessage(string playerNickname, string message)
         {
-            ChatMessages.Add(new KeyValuePair<string, string>(playerNickname, message));
-
             if (!IsChatVisible)
                 IsReceivedNewMessage = true;
 
@@ -54,5 +56,7 @@ namespace TicTacToeGame.Services.GameProcessService
 
             StateHasChanged?.Invoke();
         }
+       
+
     }
 }

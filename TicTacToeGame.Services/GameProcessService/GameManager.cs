@@ -96,6 +96,7 @@ public class GameManager
             return CurrentPlayerGuest.UserName;
         }
     }
+
     public bool IsTwoPlayersPlaying()
     {
         return PlayerRepository.CheckIfTwoPlayersArePlaying(CurrentPlayerHost.Id, CurrentPlayerGuest.Id);

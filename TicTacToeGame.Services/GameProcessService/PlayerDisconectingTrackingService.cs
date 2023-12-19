@@ -39,6 +39,7 @@ namespace TicTacToeGame.Services.GameProcessService
         {
             _gameHubConnection = gameHubConnection;
         }
+        
         public void InitializeTimers()
         {
             _moveTimer = new Timer(DisconnectingTrackingConstants.MOVE_TIME * 1000);

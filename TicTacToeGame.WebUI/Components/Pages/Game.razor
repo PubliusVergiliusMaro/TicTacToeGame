@@ -410,6 +410,7 @@
     private async Task MakeMove(int index)
     {
         DisconectingTrackingService.ReloadMoveTimer();
+  
         await MakeMovesManager.MakeMove(index);
     }
 
