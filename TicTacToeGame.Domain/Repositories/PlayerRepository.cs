@@ -74,7 +74,7 @@ namespace TicTacToeGame.Domain.Repositories
                 }
             });
         }
-        public async Task<bool> CheckIfTwoPlayersArePlaying(string hostId, string guestId)
+        public bool CheckIfTwoPlayersArePlaying(string hostId, string guestId)
         {
             return policy.Execute(() =>
             {

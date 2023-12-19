@@ -30,58 +30,62 @@ public class GameManager
     {
         AuthenticationState = await authenticationStateProvider.GetAuthenticationStateAsync();
         ClaimsPrincipal = AuthenticationState.User;
-        IsInitialized = true;
     }
     public void InitializeRepositories(GameRepository gameRepository, PlayerRepository playerRepository)
     {
-        if(gameRepository == null || playerRepository == null)
-        {
-           throw new ArgumentNullException("GameRepository or PlayerRepository is null");
-        }
+        //if(gameRepository == null || playerRepository == null)
+        //{
+        //   throw new ArgumentNullException("GameRepository or PlayerRepository is null");
+        //}
         
         GameRepository = gameRepository;
         PlayerRepository = playerRepository;
     }
     public string GetCurrentUserId()
     {
-        if(ClaimsPrincipal == null)
-        {
-            throw new ArgumentNullException("ClaimsPrincipal is null");
-        }
+        //if(ClaimsPrincipal == null)
+        //{
+        //    throw new ArgumentNullException("ClaimsPrincipal is null");
+        //}
 
         return ClaimsPrincipal?.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
     }
-    public void InitializeGame()
+    public bool InitializeGame()
     {
-        CurrentGame = GameRepository.GetByUsersId(GetCurrentUserId());
-        
-        if(CurrentGame == null)
+        string currentUserId = GetCurrentUserId();
+        CurrentGame = GameRepository.GetByUsersId(currentUserId);
+        int a = 10;
+        if (CurrentGame == null)
         {
-            throw new ArgumentNullException("CurrentGame is null");
+            return false;
+            //throw new ArgumentNullException("CurrentGame is null");
         }
+        return true;
     }
-    public void InitializePlayers()
+    public bool InitializePlayers()
     {
-        if(CurrentGame == null)
+        if (CurrentGame == null)
         {
-           throw new ArgumentNullException("CurrentGame is null");
+            return false;
+            //throw new ArgumentNullException("CurrentGame is null");
         }
 
         CurrentPlayerHost = PlayerRepository.GetById(CurrentGame.PlayerHostId);
         CurrentPlayerGuest = PlayerRepository.GetById(CurrentGame.PlayerGuestId);
         CurrentPlayer = PlayerRepository.GetById(GetCurrentUserId());
 
-        if(CurrentPlayerHost == null || CurrentPlayerGuest == null || CurrentPlayer == null)
-        {
-           throw new ArgumentNullException("CurrentPlayerHost or CurrentPlayerGuest or CurrentPlayer is null");
-        }
+        return true;
+        //if(CurrentPlayerHost == null || CurrentPlayerGuest == null || CurrentPlayer == null)
+        //{
+        //   throw new ArgumentNullException("CurrentPlayerHost or CurrentPlayerGuest or CurrentPlayer is null");
+        //}
     }
 
     public void UpdateCurrentPlayerGameConnectionId(string gameConnectionId)
     {
-        if(CurrentPlayer == null)
+        if (CurrentPlayer == null)
         {
-           throw new ArgumentNullException("CurrentPlayer is null");
+            //throw new ArgumentNullException("CurrentPlayer is null");
         }
 
         CurrentPlayer.GameConnectionId = gameConnectionId;
@@ -93,10 +97,10 @@ public class GameManager
 
     private void UpdateGuestOrHostGameConnectionId(string gameConnectionId)
     {
-        if(CurrentPlayerHost == null || CurrentPlayerGuest == null)
-        {
-           throw new ArgumentNullException("CurrentPlayerHost or CurrentPlayerGuest is null");
-        }
+        //if(CurrentPlayerHost == null || CurrentPlayerGuest == null)
+        //{
+        //   throw new ArgumentNullException("CurrentPlayerHost or CurrentPlayerGuest is null");
+        //}
 
         if(CurrentPlayer.Id == CurrentPlayerHost.Id)
         {
@@ -120,8 +124,21 @@ public class GameManager
             return CurrentPlayerGuest.UserName;
         }
     }
-    public async Task<bool> IsTwoPlayersPlaying()
+    public bool IsTwoPlayersPlaying()
     {
-        return await PlayerRepository.CheckIfTwoPlayersArePlaying(CurrentPlayerHost.Id, CurrentPlayerGuest.Id);
+        return PlayerRepository.CheckIfTwoPlayersArePlaying(CurrentPlayerHost.Id, CurrentPlayerGuest.Id);
+    }
+    public void ClearData()
+    {
+        AuthenticationState = null;
+        ClaimsPrincipal = null;
+        CurrentPlayerHost = null;
+        CurrentPlayerGuest = null;
+        CurrentPlayer = null;
+        CurrentGame = null;
+        GameRepository = null;
+        PlayerRepository = null;
+        IsInitialized = false;
+        Board = new BoardElements[TicTacToeRules.BOARD_SIZE];
     }
 }

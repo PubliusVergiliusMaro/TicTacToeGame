@@ -14,7 +14,7 @@ public class MakeMovesGameManager
 
     private readonly CheckForWinnerManager _checkForWinnerManager;
 
-    private readonly GameHubConnection _gameHubConnection;
+    private GameHubConnection _gameHubConnection;
 
     private readonly GameManager _gameManager;
 
@@ -34,7 +34,10 @@ public class MakeMovesGameManager
         _gameHubConnection = gameHubConnection;
         _gameManager = gameManager;
     }
-
+    public void SetHubConnection(GameHubConnection gameHubConnection)
+    {
+        _gameHubConnection = gameHubConnection;
+    }
     public void InitializePlayers()
     {
         if (_gameManager.CurrentPlayer.Id == _gameManager.CurrentPlayerHost.Id)
@@ -157,6 +160,7 @@ public class MakeMovesGameManager
             _gameManager.CurrentPlayerHost.IsPlaying = false;
             _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerGuest.Id);
             _gameManager.CurrentPlayerGuest.IsPlaying = false;
+
         }
         catch (NullReferenceException ex)
         {
@@ -204,7 +208,7 @@ public class MakeMovesGameManager
 
     public void SendAnotherPlayerBoard(string userId, BoardElements[] playerBoard)
     {
-        if (userId == _gameManager.CurrentPlayerHost.Id)
+        if (userId != _gameManager.CurrentPlayer.Id)
         {
             _gameManager.Board = playerBoard;
             StateHasChanged?.Invoke();

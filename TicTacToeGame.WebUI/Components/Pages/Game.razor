@@ -214,10 +214,11 @@
                 }
             </div>
             <input @bind="ChatService.Message" @oninput="UpdateSendButton" type="text" style="width: 70%; padding: 5px;" placeholder="Type your message here..." />
-            <button 
-                @onclick="SendMessage" 
-                disabled="@string.IsNullOrEmpty(ChatService.Message)" style="width: 28%; padding: 5px 10px; 
-                background-color: @(string.IsNullOrEmpty(ChatService.Message) ? "#ccc" : "#14bdac"); color: #fff; border: none; cursor: pointer;">Send</button>
+            <button @onclick="SendMessage"
+                    disabled="@string.IsNullOrEmpty(ChatService.Message)" style="width: 28%; padding: 5px 10px;
+                background-color: @(string.IsNullOrEmpty(ChatService.Message) ? "#ccc" : "#14bdac"); color: #fff; border: none; cursor: pointer;">
+                Send
+            </button>
         </div>
     }
 }
@@ -225,7 +226,7 @@
 @code {
 
     private GamesHistory gamesHistory = new GamesHistory();
-   
+
     private bool isInitialized = false;
 
     int hostWins = 0;
@@ -238,7 +239,7 @@
         if (!isInitialized)
         {
             isInitialized = true;
-            
+
             CheckForWinnerManager.GameStatus = "Game in progress";
 
             isGameInitializedSuccesfully = await GameInitializeProcess.InitializeGameForAuthenticatedUser();
@@ -250,8 +251,11 @@
             }
             else
             {
+                //InvokeAsync(StateHasChanged);
+                GameHubConnection = new GameHubConnection(NavigationManager);
                 try
                 {
+
                     GameHubConnection.SendGameStateEvent += MakeMovesManager.SendGameState;
 
                     GameHubConnection.SendGameStatusEvent += CheckForWinnerManager.SendGameStatus;
@@ -278,7 +282,11 @@
 
                     GameHubConnection.JoinNextGameEvent += GameSessionService.JoinNextGame;
 
-                    await GameHubConnection.StartConnectionAsync();
+                    // GameHubConnection._hubConnection.On<string, bool>("SendConnectedStatus", async (userId, hasAnotherReceived)
+                    // => await SendConnectedStatus(userId, hasAnotherReceived));
+
+                    await EnsureConnectionEstablished();
+                    //await GameHubConnection.StartConnectionAsync();
                 }
                 catch (Exception ex)
                 {
@@ -300,6 +308,14 @@
 
                     return;
                 }
+                DisconectingTrackingService.SetHubConnection(GameHubConnection);
+
+                ChatService.SetHubConnection(GameHubConnection);
+
+                MakeMovesManager.SetHubConnection(GameHubConnection);
+
+                GameSessionService.SetHubConnection(GameHubConnection);
+
 
                 GameManager.UpdateCurrentPlayerGameConnectionId(GameHubConnection.GetConnectionId());
 
@@ -320,14 +336,59 @@
                 await GameHubConnection.AskAnotherPlayerBoard((int)GameManager.CurrentGame.RoomId, GameManager.CurrentPlayer.Id);
 
                 // Refactor
-                GameSessionService.IsTwoPlayersPlaying = await GameManager.IsTwoPlayersPlaying();
+                GameSessionService.IsTwoPlayersPlaying = GameManager.IsTwoPlayersPlaying();
                 //
 
                 gamesHistory.Games = GetGamesByResultAndPlayers();
 
-                StateHasChanged();
+                InvokeAsync(StateHasChanged);
+                // put in the when another player connects
+                //await GameHubConnection._hubConnection.SendAsync("SendConnectedStatus", GameManager.CurrentGame.RoomId, GameManager.CurrentPlayer.Id, hasConnectedStatusReceived);
             }
         }
+    }
+    private async Task EnsureConnectionEstablished()
+    {
+        if (GameHubConnection._hubConnection.State != HubConnectionState.Connected)
+        {
+            await GameHubConnection.StartConnectionAsync();
+            await GameHubConnection.JoinGame((int)GameManager.CurrentGame.RoomId);
+        }
+    }
+    /*
+    *
+    * _hubConnection.On<string, string>("PlayerEnteredComponent", async (playerId, componentId) =>
+    {
+    // If this player hasn't sent a message to the other player yet, send one now
+       if (!messageSent)
+       {
+       await _hubConnection.SendAsync("PlayerEnteredComponent", thisPlayerId, componentId);
+       messageSent = true;
+     }
+    });
+    *
+    */
+
+    // bool hasConnectedStatusSended = false;
+
+    // bool hasConnectedStatusReceived = false;
+
+    // private async Task SendConnectedStatus(string userId, bool hasAnotherReceived)
+    // {
+    //     if (userId != GameManager.CurrentPlayer.Id)
+    //     {
+    //         hasConnectedStatusReceived = true;
+    //         if (!hasAnotherReceived)
+    //         {
+    //             await GameHubConnection._hubConnection.SendAsync("SendConnectedStatus", GameManager.CurrentGame.RoomId, GameManager.CurrentPlayer.Id, hasConnectedStatusReceived);
+    //         }
+            
+    //         await AnotherUserConnected();
+    //     }
+    // }
+    private async Task AnotherUserConnected()
+    {
+        
     }
 
     private async Task Approve() => await GameSessionService.ApproveNextGamePlayerRequest();
@@ -353,7 +414,7 @@
     }
 
     private string GetSquareValue(int index) => (GameManager.Board[index] == BoardElements.Empty) ? "" : GameManager.Board[index].ToString();
-    
+
     private bool IsButtonDisabled(int index) => GameManager.CurrentGame.GameResult == GameState.Finished;
 
     private void GoToHomePage() => NavigationManager.NavigateTo("/");
@@ -370,12 +431,13 @@
         if (isGameInitializedSuccesfully)
         {
             GameReconnectingService.MakePlayerNotPlaying(GameManager.GetCurrentUserId());
-            GameManager.CurrentPlayer.IsPlaying = false;
- 
+
             DisconectingTrackingService.UpdateGameResultAfterTwoPlayersDisconnection();
 
-            DisconectingTrackingService._moveTimer?.Dispose();
-            DisconectingTrackingService._responseTimer?.Dispose();
+            GameManager.ClearData();
+
+            await DisconectingTrackingService.DisposeAsync();
+
             await GameHubConnection.DisposeAsync();
         }
     }

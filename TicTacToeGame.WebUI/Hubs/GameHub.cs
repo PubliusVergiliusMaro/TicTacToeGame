@@ -36,6 +36,11 @@ namespace TicTacToeGame.WebUI.Hubs
         {
             await Clients.Group(roomId.ToString()).SendAsync("SendGameStatus", gameState, gameStatus, roomId);
         }
+        // connects
+        public async Task SendConnectedStatus(int roomId, string userId,bool hasConnectedStatusReceived)
+        {
+            await Clients.Group(roomId.ToString()).SendAsync("SendConnectedStatus", userId, hasConnectedStatusReceived);
+        }
         // disconections
         public async Task CheckIfOpponentLeaves(int roomId, string connectionId)
         {

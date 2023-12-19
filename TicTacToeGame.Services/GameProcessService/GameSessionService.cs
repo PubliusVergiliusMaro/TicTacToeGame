@@ -9,7 +9,7 @@ namespace TicTacToeGame.Services.GameProcessService
 {
     public class GameSessionService
     {
-        private readonly GameHubConnection _gameHubConnection;
+        private GameHubConnection _gameHubConnection;
 
         private readonly NavigationManager _navigationManager;
 
@@ -30,7 +30,10 @@ namespace TicTacToeGame.Services.GameProcessService
             _gameHubConnection = gameHubConnection;
             _gameManager=gameManager;
         }
-
+        public void SetHubConnection(GameHubConnection gameHubConnection)
+        {
+            _gameHubConnection = gameHubConnection;
+        }
         public void AskAnotherPlayerForNextGame(string userId)
         {
             if (userId != _gameManager.CurrentPlayer.Id)
@@ -73,6 +76,7 @@ namespace TicTacToeGame.Services.GameProcessService
 
                 await _gameHubConnection.JoinNextGame((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
 
+                //_gameManager.ClearData();
                 _navigationManager.NavigateTo("/game", forceLoad: true);
             }
         }
@@ -82,6 +86,7 @@ namespace TicTacToeGame.Services.GameProcessService
             {
                 _gameManager.PlayerRepository.UpdatePlayerStatus(_gameManager.CurrentPlayer.Id, true);
 
+                //_gameManager.ClearData();
                 _navigationManager.NavigateTo("/game", forceLoad: true);
             }
         }

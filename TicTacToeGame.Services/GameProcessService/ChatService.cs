@@ -8,7 +8,7 @@ namespace TicTacToeGame.Services.GameProcessService
 
         public string Message { get; set; }
 
-        private readonly GameHubConnection _gameHubConnection;
+        private GameHubConnection _gameHubConnection;
 
         private readonly GameManager _gameManager;
 
@@ -18,6 +18,10 @@ namespace TicTacToeGame.Services.GameProcessService
 
         public event Action StateHasChanged;
 
+        public void SetHubConnection(GameHubConnection gameHubConnection)
+        {
+            _gameHubConnection = gameHubConnection;
+        }
         public GameChatService(GameManager gameManager, GameHubConnection gameHubConnection)
         {
             _gameManager = gameManager;

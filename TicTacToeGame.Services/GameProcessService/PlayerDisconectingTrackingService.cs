@@ -1,14 +1,15 @@
 ﻿using TicTacToeGame.Domain.Constants;
 using TicTacToeGame.Domain.Enums;
+using TicTacToeGame.Domain.Models;
 using TicTacToeGame.Domain.Repositories;
 using TicTacToeGame.Services.HubConnections;
 using Timer = System.Timers.Timer;
 
 namespace TicTacToeGame.Services.GameProcessService
 {
-    public class PlayerDisconectingTrackingService
+    public class PlayerDisconectingTrackingService : IAsyncDisposable
     {
-        private readonly GameHubConnection _gameHubConnection;
+        private GameHubConnection _gameHubConnection;
 
         private readonly CheckForWinnerManager _checkForWinnerManager;
 
@@ -30,7 +31,10 @@ namespace TicTacToeGame.Services.GameProcessService
             _gameHubConnection = gameHubConnection;
             _checkForWinnerManager=checkForWinnerManager;
         }
-
+        public void SetHubConnection(GameHubConnection gameHubConnection)
+        {
+            _gameHubConnection = gameHubConnection;
+        }
         public void InitializeTimers()
         {
             _moveTimer = new Timer(DisconnectingTrackingConstants.MOVE_TIME * 1000);
@@ -46,6 +50,12 @@ namespace TicTacToeGame.Services.GameProcessService
 
         private async Task CheckIfPlayerAlive()
         {
+            ///
+            if(_gameManager.CurrentGame == null)
+            {
+                _responseTimer?.Stop();
+                _moveTimer?.Stop();
+            }
             await _gameHubConnection.CheckIfOpponentLeaves((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.GameConnectionId);
             _responseTimer.Start();
         }
@@ -64,6 +74,7 @@ namespace TicTacToeGame.Services.GameProcessService
                 _gameManager.GameRepository.UpdateEntity(_gameManager.CurrentGame);
 
                 await _gameHubConnection.OpponentLeft((int)_gameManager.CurrentGame.RoomId);
+                //_gameManager.ClearData();
             }
         }
 
@@ -104,27 +115,28 @@ namespace TicTacToeGame.Services.GameProcessService
                 ReloadMoveTimer();
             }
         }
-
         public void UpdateGameResultAfterTwoPlayersDisconnection()
         {
             if (_gameManager.CurrentPlayerGuest is not null && _gameManager.CurrentPlayerHost is not null)
             {
-                if (!_gameManager.CurrentPlayerGuest.IsPlaying && !_gameManager.CurrentPlayerHost.IsPlaying)
+                Player host = _gameManager.PlayerRepository.GetById(_gameManager.CurrentPlayerHost.Id);
+                Player guest = _gameManager.PlayerRepository.GetById(_gameManager.CurrentPlayerGuest.Id);
+                if (!host.IsPlaying && !guest.IsPlaying)
                 {
-                    _gameManager.CurrentGame = _gameManager.GameRepository.GetById(_gameManager.CurrentGame.Id);
-                    _gameManager.CurrentGame.GameResult = GameState.Finished;
+                    Game CurrentGame = _gameManager.GameRepository.GetById(_gameManager.CurrentGame.Id);
+                    CurrentGame.GameResult = GameState.Finished;
                     if (!_checkForWinnerManager.CheckForWinner())
                     {
                         if (_checkForWinnerManager.CheckForTie())
                         {
-                            _gameManager.CurrentGame.Winner = PlayerType.None;
+                            CurrentGame.Winner = PlayerType.None;
                         }
                     }
                     else
                     {
-                        _gameManager.CurrentGame.Winner = (_gameManager.CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
+                        CurrentGame.Winner = (CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
                     }
-                    _gameManager.GameRepository.UpdateEntity(_gameManager.CurrentGame);
+                    _gameManager.GameRepository.UpdateEntity(CurrentGame);
                 }
             }
         }
@@ -134,6 +146,17 @@ namespace TicTacToeGame.Services.GameProcessService
             OpponentLeaved = true;
             _checkForWinnerManager.GameStatus = "Game Over";
             StateHasChanged?.Invoke();
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            _moveTimer?.Stop();
+            _responseTimer?.Stop();
+
+            _moveTimer?.Dispose();
+            _responseTimer?.Dispose();
+
+            await _gameHubConnection.DisposeAsync();
         }
     }
 }
