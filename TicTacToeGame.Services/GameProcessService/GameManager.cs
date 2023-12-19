@@ -7,7 +7,6 @@ using TicTacToeGame.Domain.Repositories;
 
 namespace TicTacToeGame.Services.GameProcessService;
 
-// then check if from di will get this game manager
 public class GameManager
 {
     public Player CurrentPlayerHost;
@@ -33,32 +32,20 @@ public class GameManager
     }
     public void InitializeRepositories(GameRepository gameRepository, PlayerRepository playerRepository)
     {
-        //if(gameRepository == null || playerRepository == null)
-        //{
-        //   throw new ArgumentNullException("GameRepository or PlayerRepository is null");
-        //}
-        
         GameRepository = gameRepository;
         PlayerRepository = playerRepository;
     }
     public string GetCurrentUserId()
     {
-        //if(ClaimsPrincipal == null)
-        //{
-        //    throw new ArgumentNullException("ClaimsPrincipal is null");
-        //}
-
         return ClaimsPrincipal?.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
     }
     public bool InitializeGame()
     {
         string currentUserId = GetCurrentUserId();
         CurrentGame = GameRepository.GetByUsersId(currentUserId);
-        int a = 10;
         if (CurrentGame == null)
         {
             return false;
-            //throw new ArgumentNullException("CurrentGame is null");
         }
         return true;
     }
@@ -67,7 +54,6 @@ public class GameManager
         if (CurrentGame == null)
         {
             return false;
-            //throw new ArgumentNullException("CurrentGame is null");
         }
 
         CurrentPlayerHost = PlayerRepository.GetById(CurrentGame.PlayerHostId);
@@ -75,19 +61,10 @@ public class GameManager
         CurrentPlayer = PlayerRepository.GetById(GetCurrentUserId());
 
         return true;
-        //if(CurrentPlayerHost == null || CurrentPlayerGuest == null || CurrentPlayer == null)
-        //{
-        //   throw new ArgumentNullException("CurrentPlayerHost or CurrentPlayerGuest or CurrentPlayer is null");
-        //}
     }
 
     public void UpdateCurrentPlayerGameConnectionId(string gameConnectionId)
     {
-        if (CurrentPlayer == null)
-        {
-            //throw new ArgumentNullException("CurrentPlayer is null");
-        }
-
         CurrentPlayer.GameConnectionId = gameConnectionId;
 
         PlayerRepository.UpdateEntity(CurrentPlayer);
@@ -97,11 +74,6 @@ public class GameManager
 
     private void UpdateGuestOrHostGameConnectionId(string gameConnectionId)
     {
-        //if(CurrentPlayerHost == null || CurrentPlayerGuest == null)
-        //{
-        //   throw new ArgumentNullException("CurrentPlayerHost or CurrentPlayerGuest is null");
-        //}
-
         if(CurrentPlayer.Id == CurrentPlayerHost.Id)
         {
             CurrentPlayerHost.GameConnectionId = gameConnectionId;

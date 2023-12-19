@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNetCore.Components;
-using System.Runtime.CompilerServices;
-using TicTacToeGame.Domain.Enums;
-using TicTacToeGame.Domain.Models;
+﻿using TicTacToeGame.Domain.Models;
 using TicTacToeGame.Domain.Repositories;
 
 namespace TicTacToeGame.Services.GameProcessService
@@ -25,7 +22,7 @@ namespace TicTacToeGame.Services.GameProcessService
             {
                 return true;
             }
-            
+
             return false;
         }
         public bool CheckIfPlayerIsAlreadyPlaying(string playerId)

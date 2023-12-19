@@ -15,21 +15,25 @@ namespace TicTacToeGame.Services.GameProcessService
 
         private readonly GameManager _gameManager;
 
+        private readonly GameReconnectingService _gameReconnectingService;
+
         public event Action StateHasChanged;
-        // SignalR Events
+
         public bool OpponentLeaved { get; set; } = false;
         public string LivedPlayerName { get; set; } = "";
 
-        // Timers
         public Timer _moveTimer;
         public Timer _responseTimer;
 
 
-        public PlayerDisconectingTrackingService(GameManager gameManager, GameHubConnection gameHubConnection, CheckForWinnerManager checkForWinnerManager)
+        public PlayerDisconectingTrackingService(GameManager gameManager, GameHubConnection gameHubConnection,
+            CheckForWinnerManager checkForWinnerManager, 
+            GameReconnectingService gameReconnectingService)
         {
             _gameManager = gameManager;
             _gameHubConnection = gameHubConnection;
-            _checkForWinnerManager=checkForWinnerManager;
+            _checkForWinnerManager = checkForWinnerManager;
+            _gameReconnectingService = gameReconnectingService;
         }
         public void SetHubConnection(GameHubConnection gameHubConnection)
         {
@@ -50,13 +54,12 @@ namespace TicTacToeGame.Services.GameProcessService
 
         private async Task CheckIfPlayerAlive()
         {
-            ///
             if(_gameManager.CurrentGame == null)
             {
                 _responseTimer?.Stop();
                 _moveTimer?.Stop();
             }
-            await _gameHubConnection.CheckIfOpponentLeaves((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.GameConnectionId);
+            await _gameHubConnection.CheckIfOpponentLeaves((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
             _responseTimer.Start();
         }
 
@@ -72,10 +75,11 @@ namespace TicTacToeGame.Services.GameProcessService
                 _gameManager.CurrentGame.Winner = PlayerType.None;
 
                 _gameManager.GameRepository.UpdateEntity(_gameManager.CurrentGame);
-
+                
                 await _gameHubConnection.OpponentLeft((int)_gameManager.CurrentGame.RoomId);
-                //_gameManager.ClearData();
             }
+            _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerHost.Id);
+            _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerGuest.Id);
         }
 
         public void ReloadMoveTimer()
@@ -96,21 +100,21 @@ namespace TicTacToeGame.Services.GameProcessService
                 StateHasChanged?.Invoke();
             }
         }
-        public void CheckIfOpponentLeaves(int roomId, string connectionId)
+        public void CheckIfOpponentLeaves(int roomId, string userId)
         {
-            CheckIfOpponentLeavesAsync(roomId, connectionId).GetAwaiter().GetResult();
+            CheckIfOpponentLeavesAsync(roomId, userId).GetAwaiter().GetResult();
         }
-        public async Task CheckIfOpponentLeavesAsync(int roomId, string connectionId)
+        public async Task CheckIfOpponentLeavesAsync(int roomId, string userId)
         {
-            if (_gameManager.CurrentPlayer.GameConnectionId != connectionId)
+            if (_gameManager.CurrentPlayer.Id != userId)
             {
-                await _gameHubConnection.OpponentNotLeaves((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.GameConnectionId);
+                await _gameHubConnection.OpponentNotLeaves((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
             }
         }
 
-        public void OpponentNotLeaves(int roomId, string connectionId)
+        public void OpponentNotLeaves(int roomId, string userId)
         {
-            if (_gameManager.CurrentPlayer.GameConnectionId != connectionId)
+            if (_gameManager.CurrentPlayer.Id != userId)
             {
                 ReloadMoveTimer();
             }
@@ -121,6 +125,7 @@ namespace TicTacToeGame.Services.GameProcessService
             {
                 Player host = _gameManager.PlayerRepository.GetById(_gameManager.CurrentPlayerHost.Id);
                 Player guest = _gameManager.PlayerRepository.GetById(_gameManager.CurrentPlayerGuest.Id);
+
                 if (!host.IsPlaying && !guest.IsPlaying)
                 {
                     Game CurrentGame = _gameManager.GameRepository.GetById(_gameManager.CurrentGame.Id);

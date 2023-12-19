@@ -70,13 +70,11 @@ namespace TicTacToeGame.Services.GameProcessService
                 };
 
                 _gameManager.GameRepository.AddEntity(newGame);
-                // make that host becomes such player that sends request
+
                 _gameManager.PlayerRepository.UpdatePlayerStatus(_gameManager.CurrentPlayer.Id, true);
-                // make new game with same players
 
                 await _gameHubConnection.JoinNextGame((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
 
-                //_gameManager.ClearData();
                 _navigationManager.NavigateTo("/game", forceLoad: true);
             }
         }
@@ -86,7 +84,6 @@ namespace TicTacToeGame.Services.GameProcessService
             {
                 _gameManager.PlayerRepository.UpdatePlayerStatus(_gameManager.CurrentPlayer.Id, true);
 
-                //_gameManager.ClearData();
                 _navigationManager.NavigateTo("/game", forceLoad: true);
             }
         }

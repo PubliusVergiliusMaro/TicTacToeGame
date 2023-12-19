@@ -214,10 +214,8 @@ public class MakeMovesGameManager
             StateHasChanged?.Invoke();
         }
     }
-    // Check if I can refactor it
     public void AskAnotherPlayerBoard(string userId, int gameId)
     {
-        // Convert the async method to a synchronous method
         AskAnotherPlayerBoardAsync(userId, gameId).GetAwaiter().GetResult();
     }
     private async Task AskAnotherPlayerBoardAsync(string userId, int gameId)

@@ -9,19 +9,11 @@ using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace TicTacToeGame.Services.HubConnections
 {
-    // TODO:
-
-    // Remove int from SendGameState , SendGameStatus
-
-    // maybe add strategy pattern for sending messages
-
     public class GameHubConnection : IAsyncDisposable
     {
         public readonly HubConnection _hubConnection;
 
         private readonly NavigationManager _navigationManager;
-
-        //private readonly ILogger<GameHubConnection> _logger;
 
         public event Action<BoardElements[], PlayerType, int> SendGameStateEvent;
         public event Action<GameState, string, int> SendGameStatusEvent;
@@ -160,41 +152,41 @@ namespace TicTacToeGame.Services.HubConnections
             }
             catch (Exception ex)
             {
-               // _logger.LogError(ex, "Error sending SendGameState message");
+                throw new Exception(ex.Message);
             }
         }
-    
-    public async Task StartConnectionAsync()
-    {
-        try
-        {
-            await _hubConnection.StartAsync();
-        }
-        catch (Exception ex)
-        {
-            //_logger.LogError(ex, "Error starting HubConnection");
-        }
-    }
 
-    public string? GetConnectionId() => _hubConnection.ConnectionId;
-
-    public async ValueTask DisposeAsync()
-    {
-        try
+        public async Task StartConnectionAsync()
         {
-            if (_hubConnection.State != HubConnectionState.Disconnected)
+            try
             {
-                await _hubConnection.StopAsync();
+                await _hubConnection.StartAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
             }
         }
-        catch (Exception ex)
+
+        public string? GetConnectionId() => _hubConnection.ConnectionId;
+
+        public async ValueTask DisposeAsync()
         {
-            //_logger.LogError(ex, "Error disposing HubConnection");
-        }
-        finally
-        {
-            await _hubConnection.DisposeAsync();
+            try
+            {
+                if (_hubConnection.State != HubConnectionState.Disconnected)
+                {
+                    await _hubConnection.StopAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+            finally
+            {
+                await _hubConnection.DisposeAsync();
+            }
         }
     }
-}
 }
