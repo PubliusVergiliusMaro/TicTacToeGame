@@ -24,6 +24,8 @@
 @inject GameRepository GameRepository
 @inject GamesStatisticsService GamesStatisticsService
 @inject GameSessionService GameSessionService
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
 @* @inject GameHubConnection GameHubConnection *@
 
 @implements IAsyncDisposable
@@ -203,24 +205,40 @@ else
 }
 @if (ChatService._isChatVisible)
 {
-    <div style="position: fixed; bottom: 0; right: 0; width: 300px; height: 400px; border: 1px solid #ccc; padding: 10px; margin: 10px; background-color: #f9f9f9;">
+    <div id="chatContainer" style="position: fixed; bottom: 0; right: 0; width: 300px; height: 400px; border: 1px solid #ccc; padding: 10px; margin: 10px; background-color: #f9f9f9;">
         <div class="d-flex justify-content-between">
             <h3>Chat</h3>
-            <button style="margin:0px 0px 5px 0px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;"
-                    @onclick="ChatService.ToggleChat">
+            <button style="margin:0px 0px 5px 0px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;" @onclick="ChatService.ToggleChat">
                 Toggle Chat
             </button>
         </div>
-        <div style="height: 80%; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; word-wrap: break-word;">
-            @foreach (var chatmsg in ChatService.ChatMessages)
+        <div id="chatContent" style="height: 80%; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; word-wrap: break-word;">
+            @foreach (var chatmsg in GameChatService.ChatMessages)
             {
                 <p><strong>@chatmsg.Key:</strong> @chatmsg.Value</p>
             }
         </div>
-        <input @bind="message" @oninput="UpdateSendButton" type="text" style="width: 70%; padding: 5px;" placeholder="Type your message here..." maxlength="250"/>
+        <input @bind="Message" @bind:event="oninput" type="text" style="width: 70%; padding: 5px;" placeholder="Type your message here..." />
         <button @onclick="SendMessage" disabled="@string.IsNullOrEmpty(message)" style="width: 28%; padding: 5px 10px; background-color: @(string.IsNullOrEmpty(message) ? "#ccc" : "#14bdac"); color: #fff; border: none; cursor: pointer;">Send</button>
     </div>
+
+    <script>
+        // JavaScript to scroll the chat window to the bottom
+        var chatContainer = document.getElementById("chatContent");
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        // Function to scroll the chat window to the bottom
+        function scrollChatToBottom() {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Call the function whenever the chat visibility changes
+        document.addEventListener("DOMContentLoaded", function () {
+            scrollChatToBottom();
+        });
+    </script>
 }
+
 @code {
 
     // Board
@@ -245,6 +263,15 @@ else
     private ClaimsPrincipal? user;
     // Chat
     string message = "";
+    public string Message
+    {   
+        get=>message;
+        set 
+        { 
+            message = value;
+            StateHasChanged();
+        } 
+    }
     private bool isInitialized = false;
     int hostWins = 0;
     int guestWins = 0;
@@ -486,6 +513,15 @@ else
         await ChatService.SendMessage(message);
         message = "";
     }
+    void UpdateMessage(ChangeEventArgs e)
+    {
+        InvokeAsync(() =>
+        {
+            message = e.Value.ToString();
+            StateHasChanged();
+        });
+    }
+
     void UpdateSendButton(ChangeEventArgs e) => message = e.Value.ToString();
 
     public async ValueTask DisposeAsync()
