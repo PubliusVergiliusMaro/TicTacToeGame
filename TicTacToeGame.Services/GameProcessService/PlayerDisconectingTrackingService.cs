@@ -27,7 +27,7 @@ namespace TicTacToeGame.Services.GameProcessService
 
 
         public PlayerDisconectingTrackingService(GameManager gameManager, GameHubConnection gameHubConnection,
-            CheckForWinnerManager checkForWinnerManager, 
+            CheckForWinnerManager checkForWinnerManager,
             GameReconnectingService gameReconnectingService)
         {
             _gameManager = gameManager;
@@ -76,7 +76,7 @@ namespace TicTacToeGame.Services.GameProcessService
                 _gameManager.CurrentGame.Winner = PlayerType.None;
 
                 _gameManager.GameRepository.UpdateEntity(_gameManager.CurrentGame);
-                
+
                 await _gameHubConnection.OpponentLeft((int)_gameManager.CurrentGame.RoomId);
             }
             _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerHost.Id);

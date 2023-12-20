@@ -21,7 +21,7 @@ namespace TicTacToeGame.Services.GamesStatisticServices
         public async Task<GamesHistory> GetGamesHistoryByPlayerId(string playerId)
         {
             GamesHistory gamesHistory = await _gamesHistoryRepository.GetGamesHistoryByPlayerId(playerId);
-            
+
             if (gamesHistory == null)
             {
                 return null;

@@ -44,12 +44,12 @@ public class GameInitializeService
                 _gameManager.InitializeRepositories(_gameRepository, _playerRepository);
                 bool isSuccesfullyGame = _gameManager.InitializeGame();
                 bool isSuccesfullyPlayer = _gameManager.InitializePlayers();
-                
+
                 if(!isSuccesfullyGame || !isSuccesfullyPlayer)
                 {
                     return false;
                 }
-                
+
                 _gameManager.IsInitialized = true;
                 return true;
             }

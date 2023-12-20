@@ -24,7 +24,7 @@ public class GameManager
     public BoardElements[] Board = new BoardElements[TicTacToeRules.BOARD_SIZE];
 
     public bool IsInitialized = false;
-   
+
     public async Task InitializeAuthState(AuthenticationStateProvider authenticationStateProvider)
     {
         AuthenticationState = await authenticationStateProvider.GetAuthenticationStateAsync();
