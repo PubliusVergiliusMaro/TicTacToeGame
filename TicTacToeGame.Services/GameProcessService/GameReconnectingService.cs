@@ -19,7 +19,7 @@ namespace TicTacToeGame.Services.GameProcessService
         public bool CheckIfRecconectPlayer(string userId)
         {
             Player player = _playerRepository.GetById(userId);
-            Game game = _gameRepository.GetByUsersId(userId);
+            Game game = _gameRepository.GetByUserId(userId);
 
             if (game != null && player.IsPlaying == false)
             {
@@ -31,7 +31,7 @@ namespace TicTacToeGame.Services.GameProcessService
         public bool CheckIfPlayerIsPlayingAndHasGame(string userId)
         {
             Player player = _playerRepository.GetById(userId);
-            Game game = _gameRepository.GetByUsersId(userId);
+            Game game = _gameRepository.GetByUserId(userId);
 
             if (game != null || player.IsPlaying != false)
             {
@@ -52,6 +52,20 @@ namespace TicTacToeGame.Services.GameProcessService
             {
                 MakePlayerPlaying(playerId);
                 return false;
+            }
+        }
+        public void CheckIfPlayerIsPlayingAndHasGameByUserName(string userName)
+        {
+            Player currentPlayer = _playerRepository.GetByUserName(userName);
+
+            if (currentPlayer != null && currentPlayer.IsPlaying == true)
+            {
+                Game game = _gameRepository.GetByUserId(currentPlayer.Id);
+
+                if (game == null)
+                {
+                    MakePlayerNotPlaying(currentPlayer.Id);
+                }
             }
         }
         public void MakePlayerNotPlaying(string playerId)

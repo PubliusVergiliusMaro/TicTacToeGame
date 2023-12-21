@@ -145,14 +145,6 @@
 
         if (isItCurrentRoom)
         {
-            bool isCurrentUserGuestPlaying = IsUserAlreadyPlaying(joinPlayer.Id);
-
-            if(isCurrentUserGuestPlaying)
-            {
-                await HostRoomHubConnection.DeclineJoining("You are already playing", joinPlayer.Id);
-                return;
-            }
-
             bool isCurrentUserHostPlaying = IsUserAlreadyPlaying(GetCurrentUserId());
             
             if(isCurrentUserHostPlaying)
@@ -160,6 +152,14 @@
                 errorMessage = "You are already playing";
                 await HostRoomHubConnection.DeclineJoining("Another player are already playing", joinPlayer.Id);
                 // add displaying message for host
+                return;
+            }
+
+            bool isCurrentUserGuestPlaying = IsUserAlreadyPlaying(joinPlayer.Id);
+
+            if(isCurrentUserGuestPlaying)
+            {
+                await HostRoomHubConnection.DeclineJoining("You are already playing", joinPlayer.Id);
                 return;
             }
             

@@ -57,7 +57,16 @@ namespace TicTacToeGame.Domain.Repositories
                 return null; // or throw a custom exception
             }
         }
-
+        public Player? GetByUserName(string userName)
+        {
+            return policy.Execute(() =>
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    return connection.Query<Player>("SelectUserByUserName", new { UserName = userName }, commandType: CommandType.StoredProcedure).ToList().LastOrDefault();
+                }
+            });
+        }
         public void UpdateCurrentPlayerGameContextId(string ContextId, Player currentPlayer)
         {
             currentPlayer.GameConnectionId = ContextId;

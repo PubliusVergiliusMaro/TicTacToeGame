@@ -28,7 +28,7 @@ namespace TicTacToeGame.Domain.Repositories
                 }
             });
         }
-        public Game? GetByUsersId(string userId)
+        public Game? GetByUserId(string userId)
         {
             try
             {

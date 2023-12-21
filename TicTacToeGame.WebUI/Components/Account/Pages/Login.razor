@@ -4,12 +4,17 @@
 @using TicTacToeGame.Domain.Models
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
+@using TicTacToeGame.Domain.Repositories
+@using TicTacToeGame.Services.GameProcessService
 @using TicTacToeGame.WebUI.Data
 
 @inject SignInManager<Player> SignInManager
 @inject ILogger<Login> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject GameReconnectingService GameReconnectingService
+@inject PlayerRepository PlayerRepository
+@inject GameRepository GameRepository
 
 <PageTitle>Log in</PageTitle>
 
@@ -102,6 +107,11 @@
         if (result.Succeeded)
         {
             Logger.LogInformation("User logged in.");
+
+            string userName = Input.UserName;
+
+            GameReconnectingService.CheckIfPlayerIsPlayingAndHasGameByUserName(userName);
+
             RedirectManager.RedirectTo("/");
         }
         else if (result.RequiresTwoFactor)

@@ -42,7 +42,7 @@ public class GameManager
     public bool InitializeGame()
     {
         string currentUserId = GetCurrentUserId();
-        CurrentGame = GameRepository.GetByUsersId(currentUserId);
+        CurrentGame = GameRepository.GetByUserId(currentUserId);
         if (CurrentGame == null)
         {
             return false;
