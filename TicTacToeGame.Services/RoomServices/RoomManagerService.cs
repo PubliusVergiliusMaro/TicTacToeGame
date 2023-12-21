@@ -49,17 +49,17 @@ namespace TicTacToeGame.Services.RoomServices
 
         public int CreateGame(int joinedRoomId, ClaimsPrincipal user, Player joinedPlayer)
         {
+            string userId = user.Claims.First().Value.ToString();
+            if (userId == joinedPlayer.Id)
+            {
+                return -1;
+            }
+
             Room room = OpenedRooms.Keys.First(r => r.ConnectionId == joinedRoomId);
             room.IsOpen = false;
 
             int roomId = _roomRepository.AddEntity(room);
             
-            string userId = user.Claims.First().Value.ToString();
-            
-            if (userId == joinedPlayer.Id)
-            {
-                return -1;
-            }
             
             Game game = new Game()
             {

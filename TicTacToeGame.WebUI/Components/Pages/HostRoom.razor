@@ -8,6 +8,7 @@
 @using TicTacToeGame.Domain.Enums
 @using TicTacToeGame.Domain.Models
 @using TicTacToeGame.Domain.Repositories
+@using TicTacToeGame.Services.GameProcessService
 @using TicTacToeGame.Services.HubConnections
 @using TicTacToeGame.Services.RoomServices
 @using TicTacToeGame.WebUI.Hubs
@@ -17,7 +18,8 @@
 @inject RoomManagerService _roomService
 @inject TemporaryRoomService _temporaryRoomService
 @inject HostRoomHubConnection HostRoomHubConnection
-
+@inject PlayerRepository _playerRepository
+@inject GameReconnectingService _reconnectService
 
 @rendermode InteractiveServer
 @implements IAsyncDisposable
@@ -138,13 +140,31 @@
 
         if (isItCurrentRoom)
         {
+            bool isCurrentUserGuestPlaying = IsUserAlreadyPlaying(joinPlayer.Id);
+
+            if(isCurrentUserGuestPlaying)
+            {
+                await HostRoomHubConnection.DeclineJoining("You are already playing", joinPlayer.Id);
+                return;
+            }
+
+            bool isCurrentUserHostPlaying = IsUserAlreadyPlaying(GetCurrentUserId());
+            
+            if(isCurrentUserHostPlaying)
+            {
+                // add displaying message for host
+                return;
+            }
+            
+
             int createdRoomId = _roomService.CreateGame(joinedRoomId, user, joinPlayer);
 
             if (createdRoomId == -1)
             {
-                _navigationManager.NavigateTo("/");
+                await HostRoomHubConnection.DeclineJoining("You can`t play with yourself", joinPlayer.Id);
                 return;
             }
+
 
             await HostRoomHubConnection.JoinGame(createdRoomId);
 
@@ -159,6 +179,12 @@
             });
         }
     }
+    public bool IsUserAlreadyPlaying(string userId) => _reconnectService.CheckIfPlayerIsPlayingAndHasGame(userId);
+   
+    public string GetCurrentUserId() =>  user?.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+
+    //public string GetPlayersId() => user.FindFirstValue(ClaimTypes.NameIdentifier);
+
     public async ValueTask DisposeAsync()
     {
         await HostRoomHubConnection.DisposeAsync();

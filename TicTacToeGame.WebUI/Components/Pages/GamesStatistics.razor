@@ -25,7 +25,12 @@
         <div class="row">
             @if (gamesHistory.Games.Count == 0)
             {
-                <h2 class="text-danger">You have no games played</h2>
+                <div class="row">
+                    <h2 class="text-warning col-6">You have no games played</h2>
+                    <div class="col-6 d-flex justify-content-end">
+                        <input type="button" class="btn btn-primary" value="Go To Home" @onclick="GoToHome" />
+                    </div>
+                </div>
             }
             else
             {

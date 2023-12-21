@@ -28,6 +28,18 @@ namespace TicTacToeGame.Services.GameProcessService
 
             return false;
         }
+        public bool CheckIfPlayerIsPlayingAndHasGame(string userId)
+        {
+            Player player = _playerRepository.GetById(userId);
+            Game game = _gameRepository.GetByUsersId(userId);
+
+            if (game != null || player.IsPlaying != false)
+            {
+                return true;
+            }
+
+            return false;
+        }
         public bool CheckIfPlayerIsAlreadyPlaying(string playerId)
         {
             Player CurrentPlayer = _playerRepository.GetById(playerId);

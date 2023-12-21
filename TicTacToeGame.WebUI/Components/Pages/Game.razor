@@ -50,7 +50,7 @@
         <p style="margin-top: 20px; font-size: 18px; color: #fff; background-color: #14bdac; padding: 10px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
             Current turn now: @MakeMovesManager.DetermineWhoMakeMoveNow().ToString();
         </p>
-     
+
         <table jsname="z2IlVe" class="KD6xlc" style="border-collapse: separate; border-spacing: 10px;">
             <tbody>
                 @for (int row = TicTacToeRules.FIRST_ROW_OF_BOARD; row < TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS; row++)
@@ -114,15 +114,13 @@
     <div class="d-flex">
         @if (GameManager.CurrentGame.GameResult == GameState.Finished)
         {
-            <button style="margin-top: 10px; padding: 10px 15px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;"
-                    @onclick="GoToHomePage">
-                Go to Home Page
-            </button>
-
-            <button style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;"
-                    @onclick="PlayNextGame">
-                Send ask to another game
-            </button>
+            @if (!GameSessionService.RequestForNextGame || GameSessionService.SendedRequestForNextGame)
+            {
+                <button style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;"
+                        @onclick="PlayNextGame">
+                    Send ask to another game
+                </button>
+            }
         }
         @if (ChatService.IsReceivedNewMessage == true)
         {
@@ -275,31 +273,31 @@ else
             else
             {
                 GameHubConnection = new GameHubConnection(NavigationManager);
-                try
-                {
+                //try
+                //{
+                // }
+                // catch (Exception ex)
+                // {
+                //     if (!GameInitializeProcess.IsPlayerAlreadyPlaying)
+                //     {
+                //         GameReconnectingService.MakePlayerNotPlaying(GameManager.GetCurrentUserId());
+                //         GameManager.CurrentPlayer.IsPlaying = false;
+                //     }
+                //     return;
+                // }
 
-                    InitializeGameHubConnection();
-                }
-                catch (Exception ex)
-                {
-                    if (!GameInitializeProcess.IsPlayerAlreadyPlaying)
-                    {
-                        GameReconnectingService.MakePlayerNotPlaying(GameManager.GetCurrentUserId());
-                        GameManager.CurrentPlayer.IsPlaying = false;
-                    }
-                    return;
-                }
+                // try
+                // {
+                //     await GameHubConnection.JoinGame((int)GameManager.CurrentGame.RoomId);
+                // }
 
-                try
-                {
-                    await GameHubConnection.JoinGame((int)GameManager.CurrentGame.RoomId);
-                }
+                // catch (Exception)
+                // {
 
-                catch (Exception)
-                {
+                //     return;
+                // }
+                await InitializeGameHubConnection();
 
-                    return;
-                }
                 DisconectingTrackingService.SetHubConnection(GameHubConnection);
 
                 ChatService.SetHubConnection(GameHubConnection);
@@ -412,14 +410,11 @@ else
             }
         }
     }
-    /// refactor
     private void LeaveGame()
     {
         GameReconnectingService.MakePlayerNotPlaying(GameManager.GetCurrentUserId());
         GameReconnectingService.IsPlayerLeaveGameByButton = true;
         NavigationManager.NavigateTo("/");
-        // GameReconnectingService.IsPlayerLeaveGameByButton = true;
-        // NavigationManager.NavigateTo("/");
     }
     private async Task Approve() => await GameSessionService.ApproveNextGamePlayerRequest();
 
@@ -446,8 +441,6 @@ else
     private string GetSquareValue(int index) => (GameManager.Board[index] == BoardElements.Empty) ? "" : GameManager.Board[index].ToString();
 
     private bool IsButtonDisabled(int index) => GameManager.CurrentGame.GameResult == GameState.Finished;
-
-    private void GoToHomePage() => NavigationManager.NavigateTo("/");
 
     private async Task SendMessage()
     {
