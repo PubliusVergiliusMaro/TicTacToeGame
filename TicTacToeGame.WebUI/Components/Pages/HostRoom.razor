@@ -45,6 +45,9 @@
                 <p>Waiting for another player to join...</p>
             </div>
         }
+            <div class="text-center">
+                <p class="text-danger">@errorMessage</p>
+            </div>
         @if (_temporaryRoomService.IsTimerElapsed)
         {
             <div class="container">
@@ -70,6 +73,8 @@
     private AuthenticationState authState;
 
     private ClaimsPrincipal? user;
+
+    private string errorMessage = "";
 
     private void InitializeRoom()
     {
@@ -152,6 +157,8 @@
             
             if(isCurrentUserHostPlaying)
             {
+                errorMessage = "You are already playing";
+                await HostRoomHubConnection.DeclineJoining("Another player are already playing", joinPlayer.Id);
                 // add displaying message for host
                 return;
             }
