@@ -13,44 +13,64 @@
 
 <PageTitle>Log in</PageTitle>
 
-<h1 class="text-center">Log in</h1>
-<div class="row justify-content-center">
-    <div class=" col-md-4">
-        <section>
-            <StatusMessage Message="@errorMessage" />
-            <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
-                <DataAnnotationsValidator />
-                <h2>Use a local account to log in.</h2>
-                <hr />
-                <ValidationSummary class="text-danger" role="alert" />
-                <div class="form-floating mb-3">
-                    <InputText @bind-Value="Input.UserName" class="form-control" autocomplete="username" aria-required="true" placeholder="nameexample" />
-                    <label for="username" class="form-label">UserName</label>
-                    <ValidationMessage For="() => Input.UserName" class="text-danger" />
+<style>
+    .content {
+        padding: 0;
+    }
+
+    @@media (min-width: 641px) {
+        .top-row[b-scnx1frxwo],
+        article[b-scnx1frxwo] {
+            padding-left: 0rem !important;
+            padding-right: 0rem !important;
+        }
+    }
+</style>
+
+<div class="container-fluid bg-primary vh-100 p-0">
+    <div class="row justify-content-center align-items-center h-100 m-0">
+        <div class="col-md-4">
+            <div class="card" style="border-radius: 15px;">
+                <div class="card-body">
+                    <h1 class="text-center mb-4" style="font-weight: bold; font-family: 'Oswald', sans-serif;">Log in</h1>
+                    <section>
+                        <StatusMessage Message="@errorMessage" />
+                        <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+                            <DataAnnotationsValidator />
+                            <ValidationSummary class="text-danger" role="alert" />
+                            <div class="form-floating mb-3">
+                                <InputText @bind-Value="Input.UserName" class="form-control" autocomplete="username" aria-required="true" placeholder="nameexample" />
+                                <label for="username" class="form-label">UserName</label>
+                                <ValidationMessage For="() => Input.UserName" class="text-danger" />
+                            </div>
+                            <div class="form-floating mb-3">
+                                <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
+                                <label for="password" class="form-label">Password</label>
+                                <ValidationMessage For="() => Input.Password" class="text-danger" />
+                            </div>
+                            <div class="checkbox mb-3">
+                                <label class="form-label">
+                                    <InputCheckbox @bind-Value="Input.RememberMe" class="darker-border-checkbox form-check-input" />
+                                    Remember me
+                                </label>
+                            </div>
+                            <div>
+                                <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
+                            </div>
+                            <div class="text-center mt-3">
+                                <p>
+                                    <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Register as a new user</a>
+                                </p>
+                            </div>
+                        </EditForm>
+                    </section>
                 </div>
-                <div class="form-floating mb-3">
-                    <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
-                    <label for="password" class="form-label">Password</label>
-                    <ValidationMessage For="() => Input.Password" class="text-danger" />
-                </div>
-                <div class="checkbox mb-3">
-                    <label class="form-label">
-                        <InputCheckbox @bind-Value="Input.RememberMe" class="darker-border-checkbox form-check-input" />
-                        Remember me
-                    </label>
-                </div>
-                <div>
-                    <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
-                </div>
-                <div class="text-center mt-3">
-                    <p>
-                        <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Register as a new user</a>
-                    </p>
-                </div>
-            </EditForm>
-        </section>
+            </div>
+        </div>
     </div>
 </div>
+
+
 
 @code {
     private string? errorMessage;
@@ -125,4 +145,5 @@
         [Display(Name = "Remember me?")]
         public bool RememberMe { get; set; }
     }
+
 }

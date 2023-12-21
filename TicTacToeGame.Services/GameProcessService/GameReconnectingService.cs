@@ -7,6 +7,9 @@ namespace TicTacToeGame.Services.GameProcessService
     {
         private readonly PlayerRepository _playerRepository;
         private readonly GameRepository _gameRepository;
+
+        public bool IsPlayerLeaveGameByButton = false;
+
         public GameReconnectingService(PlayerRepository playerRepository,
             GameRepository gameRepository)
         {

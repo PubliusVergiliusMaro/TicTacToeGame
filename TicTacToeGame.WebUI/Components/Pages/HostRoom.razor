@@ -22,40 +22,43 @@
 @rendermode InteractiveServer
 @implements IAsyncDisposable
 
-<section>
-    <div>
+<section style="height:100vh; background-color: #f2f2f2;" class="d-flex justify-content-center align-items-center">
+    <div class="card p-5 w-75">
+        <div class="d-flex justify-content-left">
+            <input type="button" class="btn btn-primary" value="Go To Home" @onclick="GoToHome" />
+        </div>
         <div class="top-row d-flex justify-content-end">
             <a href="join-room">Enter Code</a>
         </div>
-        <h3>HostRoom</h3>
+        <h3 class="text-center">HostRoom</h3>
         @if (isLoading)
         {
-            <div>
-                <h2>Loading...</h2>
+            <div class="text-center">
+                <h2>Loading...</h2>s
             </div>
         }
         else
         {
-            <div>
+            <div class="text-center">
                 <p>Waiting for another player to join...</p>
             </div>
         }
         @if (_temporaryRoomService.IsTimerElapsed)
         {
             <div class="container">
-                <div class="row d-flex align-items-center">
-                    <div class="col-7">
+                <div class="row d-flex align-items-center justify-content-center">
+                    <div class="col-7 d-flex align-items-center">
                         <div class="alert alert-secondary">Time of your room Id has run out</div>
                     </div>
-                    <div class="col-3">
+                    <div class="col-3 d-flex align-items-center">
                         <input type="button" class="btn btn-primary" value="Refresh" @onclick="InitializeRoom" />
                     </div>
                 </div>
             </div>
         }
 
-        <h4>Room Id: @_temporaryRoomService.ConnectionId</h4>
-        <h4>@_temporaryRoomService.WaitingTime</h4>
+        <h4 class="text-center">Room Id: @_temporaryRoomService.ConnectionId</h4>
+        <h4 class="text-center">@_temporaryRoomService.WaitingTime</h4>
     </div>
 </section>
 
@@ -66,7 +69,7 @@
 
     private ClaimsPrincipal? user;
 
-    public void InitializeRoom()
+    private void InitializeRoom()
     {
         _temporaryRoomService.CreateRoom();
 
@@ -81,6 +84,11 @@
            _temporaryRoomService.IsTimerElapsed = true;
            await InvokeAsync(StateHasChanged);
        });
+    }
+
+    private void GoToHome()
+    {
+        _navigationManager.NavigateTo("/");
     }
 
     protected override async Task OnInitializedAsync()

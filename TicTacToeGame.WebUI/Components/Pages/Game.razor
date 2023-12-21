@@ -28,6 +28,7 @@
 @inject GameHubConnection GameHubConnection
 @inject GameManager GameManager
 
+
 @implements IAsyncDisposable
 @rendermode InteractiveServer
 
@@ -49,6 +50,7 @@
         <p style="margin-top: 20px; font-size: 18px; color: #fff; background-color: #14bdac; padding: 10px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
             Current turn now: @MakeMovesManager.DetermineWhoMakeMoveNow().ToString();
         </p>
+     
         <table jsname="z2IlVe" class="KD6xlc" style="border-collapse: separate; border-spacing: 10px;">
             <tbody>
                 @for (int row = TicTacToeRules.FIRST_ROW_OF_BOARD; row < TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS; row++)
@@ -136,8 +138,10 @@
                 Chat
             </button>
         }
+        <button style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: #ff6347; color: #fff; border: none; cursor: pointer;" @onclick="LeaveGame">
+            Leave Game
+        </button>
     </div>
-
     @if (gamesHistory.Games.Count != 0)
     {
         <div class="scoreboard-container" style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 10px 0;">
@@ -199,30 +203,47 @@
 
     @if (ChatService.IsChatVisible)
     {
-        <div style="position: fixed; bottom: 0; right: 0; width: 300px; height: 400px; border: 1px solid #ccc; padding: 10px; margin: 10px; background-color: #f9f9f9;">
+        <div id="chatContainer" style="position: fixed; bottom: 0; right: 0; width: 300px; height: 400px; border: 1px solid #ccc; padding: 10px; margin: 10px; background-color: #f9f9f9;">
             <div class="d-flex justify-content-between">
                 <h3>Chat</h3>
-                <button style="margin:0px 0px 5px 0px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;"
-                        @onclick="ChatService.ToggleChat">
+                <button style="margin:0px 0px 5px 0px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;" @onclick="ChatService.ToggleChat">
                     Toggle Chat
                 </button>
             </div>
-            <div style="height: 80%; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; word-wrap: break-word;">
-                @foreach (var chatmsg in ChatService.ChatMessages)
+            <div id="chatContent" style="height: 80%; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; word-wrap: break-word;">
+                @foreach (var chatmsg in GameChatService.ChatMessages.Where(msg => (msg.PlayerId == GameManager.CurrentPlayerGuest.Id || msg.PlayerId == GameManager.CurrentPlayerHost.Id) && msg.RoomId == (int)GameManager.CurrentGame.RoomId))
                 {
-                    <p><strong>@chatmsg.Key:</strong> @chatmsg.Value</p>
+                    <p><strong>@chatmsg.PlayerNickname:</strong> @chatmsg.Message</p>
                 }
+
             </div>
-            <input @bind="ChatService.Message" @oninput="UpdateSendButton" type="text" style="width: 70%; padding: 5px;" placeholder="Type your message here..." />
-            <button @onclick="SendMessage"
-                    disabled="@string.IsNullOrEmpty(ChatService.Message)" style="width: 28%; padding: 5px 10px;
-                background-color: @(string.IsNullOrEmpty(ChatService.Message) ? "#ccc" : "#14bdac"); color: #fff; border: none; cursor: pointer;">
-                Send
-            </button>
+            <input @bind="ChatService.Message" @bind:event="oninput" type="text" style="width: 70%; padding: 5px;" placeholder="Type your message here..." maxlength="250" />
+            <button @onclick="SendMessage" disabled="@string.IsNullOrEmpty(ChatService.Message)" style="width: 28%; padding: 5px 10px; background-color: @(string.IsNullOrEmpty(ChatService.Message) ? "#ccc" : "#14bdac"); color: #fff; border: none; cursor: pointer;">Send</button>
         </div>
+
+        <script>
+            // JavaScript to scroll the chat window to the bottom
+            var chatContainer = document.getElementById("chatContent");
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            // Function to scroll the chat window to the bottom
+            function scrollChatToBottom() {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+
+            // Call the function whenever the chat visibility changes
+            document.addEventListener("DOMContentLoaded", function () {
+                scrollChatToBottom();
+            });
+        </script>
     }
 }
- 
+else
+{
+    <div style="display: flex;justify-content: center;align-items: center;height: 100vh;">
+        <div class="loader"></div>
+    </div>
+}
 
 
 @code {
@@ -378,7 +399,7 @@
             try
             {
                 await GameHubConnection.StartConnectionAsync();
-                if(GameManager.CurrentGame == null)
+                if (GameManager.CurrentGame == null)
                 {
                     await ReInitializeGame();
                 }
@@ -391,7 +412,15 @@
             }
         }
     }
-    
+    /// refactor
+    private void LeaveGame()
+    {
+        GameReconnectingService.MakePlayerNotPlaying(GameManager.GetCurrentUserId());
+        GameReconnectingService.IsPlayerLeaveGameByButton = true;
+        NavigationManager.NavigateTo("/");
+        // GameReconnectingService.IsPlayerLeaveGameByButton = true;
+        // NavigationManager.NavigateTo("/");
+    }
     private async Task Approve() => await GameSessionService.ApproveNextGamePlayerRequest();
 
     private async Task Decline() => await GameSessionService.DeclineNextPlayerRequest();
@@ -410,7 +439,7 @@
     private async Task MakeMove(int index)
     {
         DisconectingTrackingService.ReloadMoveTimer();
-  
+
         await MakeMovesManager.MakeMove(index);
     }
 
@@ -422,24 +451,27 @@
 
     private async Task SendMessage()
     {
-        await ChatService.SendMessage(ChatService.Message);
+        await ChatService.SendMessage(ChatService.Message, GameManager.CurrentPlayer, (int)GameManager.CurrentGame.RoomId);
         ChatService.Message = "";
     }
     void UpdateSendButton(ChangeEventArgs e) => ChatService.Message = e.Value.ToString();
 
     public async ValueTask DisposeAsync()
     {
-        if (isGameInitializedSuccesfully)
+        await InvokeAsync(async () =>
         {
-            GameReconnectingService.MakePlayerNotPlaying(GameManager.GetCurrentUserId());
+            if (isGameInitializedSuccesfully)
+            {
+                GameReconnectingService.MakePlayerNotPlaying(GameManager.GetCurrentUserId());
 
-            DisconectingTrackingService.UpdateGameResultAfterTwoPlayersDisconnection();
+                DisconectingTrackingService.UpdateGameResultAfterTwoPlayersDisconnection();
 
-            GameManager.ClearData();
+                GameManager.ClearData();
 
-            await DisconectingTrackingService.DisposeAsync();
+                await DisconectingTrackingService.DisposeAsync();
 
-            await GameHubConnection.DisposeAsync();
-        }
+                await GameHubConnection.DisposeAsync();
+            }
+        });
     }
 }

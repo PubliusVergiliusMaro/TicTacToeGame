@@ -12,43 +12,135 @@
 @inject NavigationManager NavigationManager
 @inject GameRepository GameRepository
 @inject GameReconnectingService GameReconnectingService
+@inject PlayerRepository PlayerRepository
 
 @rendermode InteractiveServer
 @attribute [Authorize]
 
-<h1 style="text-align: center;">Tic Tac Toe Game</h1>
+<style>
+    .home-section {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        height: 100vh;
+        padding: 0;
+        margin: 0;
+    }
+    .wrap-div {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-grow: 1;
+        background-color: #d4edda;
+        width: 100%;
+    }
 
-<div style="display: flex; justify-content: center; margin-top: 20px;">
-    <div class="nav-item px-3">
-        <NavLink class="nav-link" href="host-room">
-            <button style="margin-right: 10px; padding: 10px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">Create Room</button>
-        </NavLink>
+    .card {
+        background-color: white;
+        padding: 2rem;
+        border-radius: 1rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        text-align: center;
+    }
+
+    .title {
+        margin-bottom: 2rem;
+    }
+
+    .button-container {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .button {
+        padding: 10px;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .button-green {
+        background-color: #4CAF50;
+    }
+
+    .button-blue {
+        background-color: #008CBA;
+    }
+
+</style>
+
+<section class="home-section">
+    <div style="text-align: center;  padding: 10px; background-color: #f0f0f0; border-radius: 5px;">
+        <h4 style="margin: 0;">Welcome @CurrentPlayer.UserName</h4>
     </div>
-    <div class="nav-item px-3">
-        <NavLink class="nav-link" href="join-room">
-            <button style="padding: 10px; background-color: #008CBA; color: white; border: none; border-radius: 5px; cursor: pointer;" >Connect to Room</button>
-        </NavLink>
+    <div class="wrap-div">
+        <div class="card">
+            <h1 class="title">Tic Tac Toe Game</h1>
+            @if (isLoading)
+            {
+                <div class="loader"></div>
+            }
+            else
+            {
+                <div class="button-container">
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="host-room">
+                            <button class="button button-green">Create Room</button>
+                        </NavLink>
+                    </div>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="join-room">
+                            <button class="button button-blue">Connect to Room</button>
+                        </NavLink>
+                        <br />
+
+                    </div>
+                </div>
+                <div class="button-container justify-content-center">
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="games-statistics">
+                            <button class="btn btn-info">Games Statistics</button>
+                        </NavLink>
+                    </div>
+                </div>
+            }
+        </div>
     </div>
-</div>
+</section>
 
 @code {
     private TicTacToeGame.Domain.Models.Game ExistingGame;
 
-    protected override async Task OnInitializedAsync()
+    private Player CurrentPlayer;
+    private bool isLoading = true;
+
+    protected override void OnInitialized()
     {
-        AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
-        ClaimsPrincipal? user = authState.User;
 
-        string userId = GetCurrentUserIdentifier(user);
-
-        bool needsToReconect = GameReconnectingService.CheckIfRecconectPlayer(userId);
-        
-        if(needsToReconect)
+        _ = InvokeAsync(async () =>
         {
-            NavigationManager.NavigateTo("/game");
-        }
+            AuthenticationState authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
+            ClaimsPrincipal? user = authState.User;
+
+            string userId = GetCurrentUserIdentifier(user);
+            
+            CurrentPlayer = PlayerRepository.GetById(userId);
+
+            bool needsToReconect = GameReconnectingService.CheckIfRecconectPlayer(userId);
+
+            if (needsToReconect)
+            {
+                if (GameReconnectingService.IsPlayerLeaveGameByButton)
+                {
+                    NavigationManager.NavigateTo("/game");
+                }
+            }
+            isLoading = false;
+            StateHasChanged();
+        });
     }
-    
+
     protected string GetCurrentUserIdentifier(ClaimsPrincipal? claimsPrincipal)
     {
         return claimsPrincipal?.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;

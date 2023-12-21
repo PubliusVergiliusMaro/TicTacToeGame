@@ -1,59 +1,39 @@
 ﻿@implements IDisposable
 
 @inject NavigationManager NavigationManager
-<div class="top-row ps-3 navbar navbar-dark" style="background-color: #14bdac;">
+
+<div class="navbar navbar-dark fixed-top" style="position:absolute;width:10%;">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">TicTacToe Game</a>
+        <nav class="flex-column">
+            <AuthorizeView>
+                <Authorized>
+                    <div class="nav-item px-3" style="margin: 55px 0px 0px 0px;">
+                        <form action="Account/Logout" method="post">
+                            <AntiforgeryToken />
+                            <input type="hidden" name="ReturnUrl" value="Account/Login" />
+                            <button type="submit" class="nav-link" style="color: white;width:100px;background-color: #d5d5d5;">
+                                <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Logout
+                            </button>
+                        </form>
+                    </div>
+                </Authorized>
+            </AuthorizeView>
+        </nav>
     </div>
 </div>
+<style>
+    .content {
+        padding: 0;
+    }
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
-
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()" style="background-color: #14bdac;">
-
-    <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-
-
-        <AuthorizeView>
-            <Authorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="games-statistics">
-                        <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> Games Statistics
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="Account/Manage">
-                        <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> @context.User.Identity?.Name
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <form action="Account/Logout" method="post">
-                        <AntiforgeryToken />
-                        <input type="hidden" name="ReturnUrl" value="Account/Login" />
-                        <button type="submit" class="nav-link">
-                            <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Logout
-                        </button>
-                    </form>
-                </div>
-
-
-            </Authorized>
-            <NotAuthorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="Account/Register">
-                        <span class="bi bi-person-nav-menu" aria-hidden="true"></span> Register
-                    </NavLink>
-                </div>
-            </NotAuthorized>
-        </AuthorizeView>
-    </nav>
-</div>
-
+    @@media (min-width: 641px) {
+        .top-row[b-scnx1frxwo],
+        article[b-scnx1frxwo] {
+            padding-left: 0rem !important;
+            padding-right: 0rem !important;
+        }
+    }
+</style>
 @code {
     private string? currentUrl;
 
@@ -74,4 +54,3 @@
         NavigationManager.LocationChanged -= OnLocationChanged;
     }
 }
-
