@@ -79,36 +79,7 @@ namespace TicTacToeGame.Services.GameProcessService
                 _navigationManager.NavigateTo("/game", forceLoad: true);
             }
         }
-        //public async Task AcceptAnotherGameRequestAsync(string userId)
-        //{
-        //    if (userId != _gameManager.CurrentPlayer.Id)
-        //    {
-        //        ApprovedNextGame = true;
-        //        DeclinedNextGame = false;
-        //        Random random = new Random();
-
-        //        bool isAnotherPlayerAlreadyCreatedGame = _gameManager.GameRepository.GetByUsersId(userId) != null;
-
-        //        if (isAnotherPlayerAlreadyCreatedGame)
-        //        {
-        //            Game newGame = new()
-        //            {
-        //                PlayerHostId = _gameManager.CurrentGame.PlayerHostId,
-        //                PlayerGuestId = _gameManager.CurrentGame.PlayerGuestId,
-        //                RoomId = _gameManager.CurrentGame.RoomId,
-        //                GameResult = GameState.Starting,
-        //                CurrentTurn = random.Next(3) == 0 ? PlayerType.Host : PlayerType.Guest
-        //            };
-
-        //            _gameManager.GameRepository.AddEntity(newGame);
-
-        //            await _gameHubConnection.JoinNextGame((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
-        //        }
-        //        _gameManager.PlayerRepository.UpdatePlayerStatus(_gameManager.CurrentPlayer.Id, true);
-
-        //        _navigationManager.NavigateTo("/game", forceLoad: true);
-        //    }
-        //}
+        
         public void JoinNextGame(string userId)
         {
             if (userId != _gameManager.CurrentPlayer.Id)

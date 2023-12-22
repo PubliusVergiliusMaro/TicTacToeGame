@@ -1,5 +1,6 @@
 ﻿@page "/game"
 
+@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.SignalR.Client
 @using TicTacToeGame.Domain.Constants
 @using TicTacToeGame.Domain.Enums
@@ -28,9 +29,11 @@
 @inject GameHubConnection GameHubConnection
 @inject GameManager GameManager
 
-
 @implements IAsyncDisposable
+
 @rendermode InteractiveServer
+
+@attribute [Authorize]
 
 @if (GameManager.IsInitialized)
 {
@@ -273,29 +276,7 @@ else
             else
             {
                 GameHubConnection = new GameHubConnection(NavigationManager);
-                //try
-                //{
-                // }
-                // catch (Exception ex)
-                // {
-                //     if (!GameInitializeProcess.IsPlayerAlreadyPlaying)
-                //     {
-                //         GameReconnectingService.MakePlayerNotPlaying(GameManager.GetCurrentUserId());
-                //         GameManager.CurrentPlayer.IsPlaying = false;
-                //     }
-                //     return;
-                // }
 
-                // try
-                // {
-                //     await GameHubConnection.JoinGame((int)GameManager.CurrentGame.RoomId);
-                // }
-
-                // catch (Exception)
-                // {
-
-                //     return;
-                // }
                 await InitializeGameHubConnection();
 
                 DisconectingTrackingService.SetHubConnection(GameHubConnection);
@@ -433,9 +414,15 @@ else
 
     private async Task MakeMove(int index)
     {
+        if (MakeMovesManager.MoveWasMade)
+        {
+            return;
+        }
         DisconectingTrackingService.ReloadMoveTimer();
 
         await MakeMovesManager.MakeMove(index);
+
+        MakeMovesManager.MoveWasMade = true;
     }
 
     private string GetSquareValue(int index) => (GameManager.Board[index] == BoardElements.Empty) ? "" : GameManager.Board[index].ToString();

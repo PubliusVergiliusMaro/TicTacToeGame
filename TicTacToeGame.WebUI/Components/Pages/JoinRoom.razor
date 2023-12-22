@@ -2,6 +2,7 @@
 
 @using System.Timers
 @using System.Diagnostics
+@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.SignalR.Client
 @using System.Security.Claims
 @using TicTacToeGame.Domain.Models
@@ -16,6 +17,8 @@
 
 @implements IAsyncDisposable
 @rendermode InteractiveServer
+
+@attribute [Authorize]
 
 <section style="height:100vh; background-color: #f2f2f2;" class="d-flex justify-content-center align-items-center">
     <div class="card p-5 w-75">

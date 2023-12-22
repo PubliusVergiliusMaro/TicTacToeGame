@@ -1,5 +1,6 @@
 ﻿@page "/games-statistics"
 @using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
 @using TicTacToeGame.Domain.Models
 @using TicTacToeGame.Services.GamesStatisticServices
 
@@ -8,6 +9,8 @@
 @inject NavigationManager _navigationManager
 
 @rendermode InteractiveServer
+
+@attribute [Authorize]
 
 <section>
 

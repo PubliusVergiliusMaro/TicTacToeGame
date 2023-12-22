@@ -22,6 +22,7 @@ public class MakeMovesGameManager
 
     public event Action StateHasChanged;
 
+    public bool MoveWasMade { get; set; } = false;
     public MakeMovesGameManager(GamesStatisticsService gamesStatisticsService,
         CheckForWinnerManager checkForWinnerManager,
         GameReconnectingService gameReconnectingService,
@@ -233,6 +234,7 @@ public class MakeMovesGameManager
         _gameManager.Board = receivedBoard;
         _gameManager.CurrentGame.CurrentTurn = nextPlayerTurn;
         UpdateGameAfterMove();
+        MoveWasMade = false;
         StateHasChanged?.Invoke();
     }
 }
