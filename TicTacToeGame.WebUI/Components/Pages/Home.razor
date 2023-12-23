@@ -136,7 +136,11 @@
                     NavigationManager.NavigateTo("/game");
                 }
             }
+
             isLoading = false;
+            
+            GameReconnectingService.CheckIfPlayerIsPlayingAndHasGameById(userId);
+
             StateHasChanged();
         });
     }

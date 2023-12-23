@@ -68,7 +68,22 @@ namespace TicTacToeGame.Services.GameProcessService
                 }
             }
         }
+        public void CheckIfPlayerIsPlayingAndHasGameById(string userId)
+        {
+            Player currentPlayer = _playerRepository.GetById(userId);
+
+            if (currentPlayer != null && currentPlayer.IsPlaying == true)
+            {
+                Game game = _gameRepository.GetByUserId(currentPlayer.Id);
+
+                if (game == null)
+                {
+                    MakePlayerNotPlaying(currentPlayer.Id);
+                }
+            }
+        }
         public void MakePlayerNotPlaying(string playerId)
+
         {
             _playerRepository.UpdatePlayerStatus(playerId, false);
         }

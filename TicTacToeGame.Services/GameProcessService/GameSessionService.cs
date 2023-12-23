@@ -39,8 +39,11 @@ namespace TicTacToeGame.Services.GameProcessService
         {
             if (userId != _gameManager.CurrentPlayer.Id)
             {
-                RequestForNextGame = true;
-                StateHasChanged?.Invoke();
+                if (SendedRequestForNextGame == false)
+                {
+                    RequestForNextGame = true;
+                    StateHasChanged?.Invoke();
+                }
             }
         }
         public void DeclineAnotherGameRequest(string userId)
@@ -79,7 +82,7 @@ namespace TicTacToeGame.Services.GameProcessService
                 _navigationManager.NavigateTo("/game", forceLoad: true);
             }
         }
-        
+
         public void JoinNextGame(string userId)
         {
             if (userId != _gameManager.CurrentPlayer.Id)
@@ -103,6 +106,7 @@ namespace TicTacToeGame.Services.GameProcessService
         }
         public async Task PlayNextGame()
         {
+            SendedRequestForNextGame = true;
             await _gameHubConnection.AskAnotherPlayerForNextGame((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
         }
     }

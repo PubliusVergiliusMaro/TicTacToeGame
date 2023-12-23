@@ -143,32 +143,34 @@
             Leave Game
         </button>
     </div>
-    @if (gamesHistory.Games.Count != 0)
+    @if (GamesStatisticsService.GamesHistory.Games.Count != 0)
     {
         <div class="scoreboard-container" style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 10px 0;">
             <div class="scoreboard" style="text-align: center; background-color: #f0f0f0; padding: 20px; border-radius: 10px;">
-                <h4 class="scoreboard-header" style="margin-bottom: 10px;">Games played: @gamesHistory.Games.Count</h4>
+                <h4 class="scoreboard-header" style="margin-bottom: 10px;">Games played: @GamesStatisticsService.GamesHistory.Games.Count</h4>
 
                 <div class="scoreboard-players" style="display: flex; justify-content: center; align-items: center;">
                     <div class="scoreboard-player" style="display: flex; flex-direction: column; margin: 0 10px;">
                         <span class="scoreboard-username" style="font-size: 1.2em;">@GameManager.CurrentPlayerHost.UserName</span>
-                        <span class="scoreboard-score" style="font-size: 1.5em; font-weight: bold;">@hostWins</span>
+                        <span class="scoreboard-score" style="font-size: 1.5em; font-weight: bold;">@GamesStatisticsService.HostWinsCount</span>
                     </div>
 
                     <div class="scoreboard-divider" style="font-size: 1.5em; margin: 0 5px;">:</div>
 
                     <div class="scoreboard-player" style="display: flex; flex-direction: column; margin: 0 10px;">
                         <span class="scoreboard-username" style="font-size: 1.2em;">@GameManager.CurrentPlayerGuest.UserName</span>
-                        <span class="scoreboard-score" style="font-size: 1.5em; font-weight: bold;">@guestWins</span>
+                        <span class="scoreboard-score" style="font-size: 1.5em; font-weight: bold;">@GamesStatisticsService.GuestWinsCount</span>
                     </div>
                 </div>
 
-                <h3 class="scoreboard-tie" style="color: orange; margin-top: 10px;">Tie @(gamesHistory.Games.Count - (hostWins + guestWins))</h3>
+                <h3 class="scoreboard-tie" style="color: orange; margin-top: 10px;">
+                    Tie @(GamesStatisticsService.GamesHistory.Games.Count - (GamesStatisticsService.HostWinsCount + GamesStatisticsService.GuestWinsCount))
+                    </h3>
             </div>
         </div>
 
 
-        @foreach (var game in gamesHistory.Games)
+        @foreach (var game in GamesStatisticsService.GamesHistory.Games)
         {
             string cardColorClass = "";
             Player winner = GamesStatisticsService.GetWinner(game.Winner, GameManager.CurrentPlayerHost, GameManager.CurrentPlayerGuest);
@@ -191,7 +193,7 @@
                             <h5 class="card-title">
                                 @(isDraw ? "Draw" : $"Winner: {winner.UserName}")
                                 @{
-                                    string.Format("{0} ({1}) : {2} ({3})", GameManager.CurrentPlayerHost.UserName, hostWins, GameManager.CurrentPlayerGuest.UserName, guestWins);
+                                    string.Format("{0} ({1}) : {2} ({3})", GameManager.CurrentPlayerHost.UserName, GamesStatisticsService.HostWinsCount, GameManager.CurrentPlayerGuest.UserName, GamesStatisticsService.GuestWinsCount);
                                 }
                             </h5>
                             <p class="card-text">@game.CreatedAt.ToString("D")</p>
@@ -249,12 +251,12 @@ else
 
 @code {
 
-    private GamesHistory gamesHistory = new GamesHistory();
+    //private GamesHistory gamesHistory = new GamesHistory();
 
     private bool isInitialized = false;
 
-    int hostWins = 0;
-    int guestWins = 0;
+    // int hostWins = 0;
+    // int guestWins = 0;
 
     private bool isGameInitializedSuccesfully = false;
 
@@ -316,7 +318,10 @@ else
 
                     GameSessionService.IsTwoPlayersPlaying = GameManager.IsTwoPlayersPlaying();
 
-                    gamesHistory.Games = GetGamesByResultAndPlayers();
+                    GamesStatisticsService.UpdatePlayersGameHistory(GameManager.CurrentPlayerHost.Id, GameManager.CurrentPlayerGuest.Id, GameManager.CurrentGame.RoomId);
+
+                    // GamesStatisticsService.GamesHistory.Games = GamesStatisticsService.GetGamesHistoryResults(
+                    //     GameManager.CurrentPlayerHost.Id, GameManager.CurrentPlayerGuest.Id, GameManager.CurrentGame.RoomId);
                 }
                 InvokeAsync(StateHasChanged);
             }
@@ -395,6 +400,7 @@ else
     {
         GameReconnectingService.MakePlayerNotPlaying(GameManager.GetCurrentUserId());
         GameReconnectingService.IsPlayerLeaveGameByButton = true;
+        DisconectingTrackingService.UpdateGameResultAfterTwoPlayersDisconnection();
         NavigationManager.NavigateTo("/");
     }
     private async Task Approve() => await GameSessionService.ApproveNextGamePlayerRequest();
@@ -403,14 +409,14 @@ else
 
     private async Task PlayNextGame() => await GameSessionService.PlayNextGame();
 
-    public List<TicTacToeGame.Domain.Models.Game> GetGamesByResultAndPlayers()
-    {
-        var gamesList = GameRepository.GetGameHistoryInSession(GameState.Finished, GameManager.CurrentPlayerHost.Id,
-            GameManager.CurrentPlayerGuest.Id, GameManager.CurrentGame.RoomId);
-        hostWins = gamesList.Count(game => game.Winner == PlayerType.Host);
-        guestWins = gamesList.Count(game => game.Winner == PlayerType.Guest);
-        return gamesList;
-    }
+    // public List<TicTacToeGame.Domain.Models.Game> GetGamesByResultAndPlayers()
+    // {
+    //     var gamesList = GameRepository.GetGameHistoryInSession(GameState.Finished, GameManager.CurrentPlayerHost.Id,
+    //         GameManager.CurrentPlayerGuest.Id, GameManager.CurrentGame.RoomId);
+    //     hostWins = gamesList.Count(game => game.Winner == PlayerType.Host);
+    //     guestWins = gamesList.Count(game => game.Winner == PlayerType.Guest);
+    //     return gamesList;
+    // }
 
     private async Task MakeMove(int index)
     {
@@ -418,6 +424,7 @@ else
         {
             return;
         }
+
         DisconectingTrackingService.ReloadMoveTimer();
 
         await MakeMovesManager.MakeMove(index);
@@ -443,8 +450,6 @@ else
             if (isGameInitializedSuccesfully)
             {
                 GameReconnectingService.MakePlayerNotPlaying(GameManager.GetCurrentUserId());
-
-                DisconectingTrackingService.UpdateGameResultAfterTwoPlayersDisconnection();
 
                 GameManager.ClearData();
 

@@ -101,6 +101,7 @@ public class GameManager
     {
         return PlayerRepository.CheckIfTwoPlayersArePlaying(CurrentPlayerHost.Id, CurrentPlayerGuest.Id);
     }
+
     public void ClearData()
     {
         AuthenticationState = null;

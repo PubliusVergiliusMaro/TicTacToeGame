@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using Serilog.Sinks.SystemConsole.Themes;
 using TicTacToeGame.Domain.Constants;
 using TicTacToeGame.Domain.Models;
 using TicTacToeGame.Domain.Repositories;
@@ -9,6 +10,7 @@ using TicTacToeGame.Services.GameProcessService;
 using TicTacToeGame.Services.GamesStatisticServices;
 using TicTacToeGame.Services.HubConnections;
 using TicTacToeGame.Services.RoomServices;
+using TicTacToeGame.WebUI.BackgroundServices;
 using TicTacToeGame.WebUI.Components;
 using TicTacToeGame.WebUI.Components.Account;
 using TicTacToeGame.WebUI.Data;
@@ -86,6 +88,8 @@ builder.Services.AddScoped<GameHubConnection>();
 
 builder.Services.AddTransient<HostRoomHubConnection>();
 
+builder.Services.AddHostedService<GameTrackingService>();
+
 builder.Services.AddServerSideBlazor(options =>
 {
     options.DisconnectedCircuitMaxRetained = 100;
@@ -94,7 +98,7 @@ builder.Services.AddServerSideBlazor(options =>
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
-    .WriteTo.Console()
+    .WriteTo.Console(theme: AnsiConsoleTheme.Code)
     .CreateLogger();
 
 builder.Host.UseSerilog();
