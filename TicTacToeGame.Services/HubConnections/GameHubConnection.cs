@@ -15,23 +15,23 @@ namespace TicTacToeGame.Services.HubConnections
 
         private readonly NavigationManager _navigationManager;
 
-        public event Action<BoardElements[], PlayerType, int> SendGameStateEvent;
-        public event Action<GameState, string, int> SendGameStatusEvent;
+        public event Action<BoardElements[], PlayerType, int> ReceiveGameStateEvent;
+        public event Action<GameState, string, int> ReceiveGameStatusEvent;
 
-        public event Action OpponentLeftEvent;
-        public event Action<int, string> OpponentLeavesEvent;
-        public event Action<int, string> CheckIfOpponentLeavesEvent;
-        public event Action<int, string> OpponentNotLeavesEvent;
+        public event Action ReceiveOpponentLeftEvent;
+        public event Action<int, string> ReceiveOpponentLeavesEvent;
+        public event Action<int, string> ReceiveIfOpponentLeavesEvent;
+        public event Action<int, string> ReceiveOpponentNotLeavesEvent;
 
-        public event Action<string, int> AskAnotherPlayerBoardEvent;
-        public event Action<string, BoardElements[]> SendAnotherPlayerBoardEvent;
+        public event Action<string, int> AskToReceiveAnotherPlayerBoardEvent;
+        public event Action<string, BoardElements[]> ReceiveAnotherPlayerBoardEvent;
 
         public event Action<string, string> ReceiveChatMessageEvent;
 
-        public event Action<string> AskAnotherPlayerForNextGameEvent;
-        public event Action<string> DeclineAnotherGameRequestEvent;
-        public event Action<string> AcceptAnotherGameRequestEvent;
-        public event Action<string> JoinNextGameEvent;
+        public event Action<string> ReceiveAnotherPlayerAnswerForNextGameEvent;
+        public event Action<string> ReceiveDeclineAnotherGameRequestEvent;
+        public event Action<string> ReceiveAcceptAnotherGameRequestEvent;
+        public event Action<string> ReceiveJoinningToNextGameEvent;
 
 
         public GameHubConnection(NavigationManager navigationManager)
@@ -47,48 +47,54 @@ namespace TicTacToeGame.Services.HubConnections
 
         private void RegisterEventHandlers()
         {
-            _hubConnection.On<BoardElements[], PlayerType, int>("SendGameState", (receivedBoard, nextPlayerTurn, gameId)
-                => SendGameStateEvent?.Invoke(receivedBoard, nextPlayerTurn, gameId));
+            // Moves
+            _hubConnection.On<BoardElements[], PlayerType, int>("ReceiveGameState", (receivedBoard, nextPlayerTurn, gameId)
+                => ReceiveGameStateEvent?.Invoke(receivedBoard, nextPlayerTurn, gameId));
 
-            _hubConnection.On<GameState, string, int>("SendGameStatus", (receiveGameResult, receiveGameStatus, gameId)
-                => SendGameStatusEvent?.Invoke(receiveGameResult, receiveGameStatus, gameId));
+            _hubConnection.On<GameState, string, int>("ReceiveGameStatus", (receiveGameResult, receiveGameStatus, gameId)
+                => ReceiveGameStatusEvent?.Invoke(receiveGameResult, receiveGameStatus, gameId));
 
-            _hubConnection.On("OpponentLeft", () => OpponentLeftEvent?.Invoke());
+            // Disconnections
+            _hubConnection.On("ReceiveOpponentLeft", () => ReceiveOpponentLeftEvent?.Invoke());
 
-            _hubConnection.On<string, int>("AskAnotherPlayerBoard", (userId, gameId) =>
+            _hubConnection.On<int, string>("ReceiveOpponentLeaves", (gameId, connectionId)
+                => ReceiveOpponentLeavesEvent?.Invoke(gameId, connectionId));
+
+            _hubConnection.On<int, string>("ReceiveIfOpponentLeaves", (roomId, connectionId) =>
             {
-                Task.Run(() => AskAnotherPlayerBoardEvent?.Invoke(userId, gameId)).Wait();
-            });
-            _hubConnection.On<string, BoardElements[]>("SendAnotherPlayerBoard", (userId, playerBoard)
-                => SendAnotherPlayerBoardEvent?.Invoke(userId, playerBoard));
-
-            _hubConnection.On<int, string>("OpponentLeaves", (gameId, connectionId)
-                => OpponentLeavesEvent?.Invoke(gameId, connectionId));
-
-            _hubConnection.On<int, string>("CheckIfOpponentLeaves", (roomId, connectionId) =>
-            {
-                Task.Run(() => CheckIfOpponentLeavesEvent?.Invoke(roomId, connectionId)).Wait();
+                Task.Run(() => ReceiveIfOpponentLeavesEvent?.Invoke(roomId, connectionId)).Wait();
             });
 
-            _hubConnection.On<int, string>("OpponentNotLeaves", (roomId, connectionId)
-                => OpponentNotLeavesEvent?.Invoke(roomId, connectionId));
+            _hubConnection.On<int, string>("ReceiveOpponentNotLeaves", (roomId, connectionId)
+                => ReceiveOpponentNotLeavesEvent?.Invoke(roomId, connectionId));
 
+            // Get board
+            _hubConnection.On<string, int>("AskToReceiveAnotherPlayerBoard", (userId, gameId) =>
+            {
+                Task.Run(() => AskToReceiveAnotherPlayerBoardEvent?.Invoke(userId, gameId)).Wait();
+            });
+
+            _hubConnection.On<string, BoardElements[]>("ReceiveAnotherPlayerBoard", (userId, playerBoard)
+                => ReceiveAnotherPlayerBoardEvent?.Invoke(userId, playerBoard));
+
+            // Chat
             _hubConnection.On<string, string>("ReceiveChatMessage", (playerNickname, message)
                 => ReceiveChatMessageEvent?.Invoke(playerNickname, message));
 
-            _hubConnection.On<string>("AskAnotherPlayerForNextGame", (userId)
-                => AskAnotherPlayerForNextGameEvent?.Invoke(userId));
+            // Next game
+            _hubConnection.On<string>("ReceiveAnotherPlayerAnswerForNextGame", (userId)
+                => ReceiveAnotherPlayerAnswerForNextGameEvent?.Invoke(userId));
 
-            _hubConnection.On<string>("DeclineAnotherGameRequest", (userId)
-                => DeclineAnotherGameRequestEvent?.Invoke(userId));
+            _hubConnection.On<string>("ReceiveDeclineAnotherGameRequest", (userId)
+                => ReceiveDeclineAnotherGameRequestEvent?.Invoke(userId));
 
-            _hubConnection.On<string>("AcceptAnotherGameRequest", (userId) =>
+            _hubConnection.On<string>("ReceiveAcceptAnotherGameRequest", (userId) =>
             {
-                Task.Run(() => AcceptAnotherGameRequestEvent?.Invoke(userId)).Wait();
+                Task.Run(() => ReceiveAcceptAnotherGameRequestEvent?.Invoke(userId)).Wait();
             });
 
-            _hubConnection.On<string>("JoinNextGame", (userId)
-                => JoinNextGameEvent?.Invoke(userId));
+            _hubConnection.On<string>("ReceiveJoinningToNextGame", (userId)
+                => ReceiveJoinningToNextGameEvent?.Invoke(userId));
         }
 
         // Game component
@@ -109,13 +115,13 @@ namespace TicTacToeGame.Services.HubConnections
         {
             await _hubConnection.SendAsync("CheckIfOpponentLeaves", roomId, gameConnectionId);
         }
-        public async Task OpponentLeft(int roomId)
+        public async Task SendOpponentLeft(int roomId)
         {
-            await _hubConnection.SendAsync("OpponentLeft", roomId);
+            await _hubConnection.SendAsync("SendOpponentLeft", roomId);
         }
-        public async Task OpponentNotLeaves(int roomId, string gameConnectionId)
+        public async Task SendOpponentNotLeaves(int roomId, string gameConnectionId)
         {
-            await _hubConnection.SendAsync("OpponentNotLeaves", roomId, gameConnectionId);
+            await _hubConnection.SendAsync("SendOpponentNotLeaves", roomId, gameConnectionId);
         }
         // Chat logic
         public async Task SendChatMessage(int roomId, string playerNickname, string message)
@@ -123,21 +129,21 @@ namespace TicTacToeGame.Services.HubConnections
             await _hubConnection.SendAsync("SendChatMessage", roomId, playerNickname, message);
         }
         // Next Game logic
-        public async Task JoinNextGame(int roomId, string userId)
-        {
-            await _hubConnection.SendAsync("JoinNextGame", roomId, userId);
-        }
-        public async Task AcceptAnotherGameRequest(int roomId, string userId)
-        {
-            await _hubConnection.SendAsync("AcceptAnotherGameRequest", roomId, userId);
-        }
-        public async Task DeclineAnotherGameRequest(int roomId, string userId)
-        {
-            await _hubConnection.SendAsync("DeclineAnotherGameRequest", roomId, userId);
-        }
         public async Task AskAnotherPlayerForNextGame(int roomId, string userId)
         {
             await _hubConnection.SendAsync("AskAnotherPlayerForNextGame", roomId, userId);
+        }
+        public async Task AskToJoinNextGame(int roomId, string userId)
+        {
+            await _hubConnection.SendAsync("AskToJoinNextGame", roomId, userId);
+        }
+        public async Task SendAcceptAnotherGameRequest(int roomId, string userId)
+        {
+            await _hubConnection.SendAsync("SendAcceptAnotherGameRequest", roomId, userId);
+        }
+        public async Task SendDeclineAnotherGameRequest(int roomId, string userId)
+        {
+            await _hubConnection.SendAsync("SendDeclineAnotherGameRequest", roomId, userId);
         }
         // MakeMovesGameManager
         public async Task SendGameStatus(GameState gameResult, string gameStatus, int gameId)

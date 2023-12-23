@@ -347,31 +347,31 @@ else
     {
         GameHubConnection = new GameHubConnection(NavigationManager);
 
-        GameHubConnection.SendGameStateEvent += MakeMovesManager.SendGameState;
+        GameHubConnection.ReceiveGameStateEvent += MakeMovesManager.SendGameState;
 
-        GameHubConnection.SendGameStatusEvent += CheckForWinnerManager.SendGameStatus;
+        GameHubConnection.ReceiveGameStatusEvent += CheckForWinnerManager.SendGameStatus;
 
-        GameHubConnection.OpponentLeftEvent += DisconectingTrackingService.OpponentLeft;
+        GameHubConnection.ReceiveOpponentLeftEvent += DisconectingTrackingService.OpponentLeft;
 
-        GameHubConnection.AskAnotherPlayerBoardEvent += MakeMovesManager.AskAnotherPlayerBoard;
+        GameHubConnection.AskToReceiveAnotherPlayerBoardEvent += MakeMovesManager.AskAnotherPlayerBoard;
 
-        GameHubConnection.SendAnotherPlayerBoardEvent += MakeMovesManager.SendAnotherPlayerBoard;
+        GameHubConnection.ReceiveAnotherPlayerBoardEvent += MakeMovesManager.SendAnotherPlayerBoard;
 
-        GameHubConnection.OpponentLeavesEvent += DisconectingTrackingService.OpponentLeaves;
+        GameHubConnection.ReceiveOpponentLeavesEvent += DisconectingTrackingService.OpponentLeaves;
 
-        GameHubConnection.CheckIfOpponentLeavesEvent += DisconectingTrackingService.CheckIfOpponentLeaves;
+        GameHubConnection.ReceiveIfOpponentLeavesEvent += DisconectingTrackingService.CheckIfOpponentLeaves;
 
-        GameHubConnection.OpponentNotLeavesEvent += DisconectingTrackingService.OpponentNotLeaves;
+        GameHubConnection.ReceiveOpponentNotLeavesEvent += DisconectingTrackingService.OpponentNotLeaves;
 
         GameHubConnection.ReceiveChatMessageEvent += ChatService.AddMessage;
 
-        GameHubConnection.AskAnotherPlayerForNextGameEvent += GameSessionService.AskAnotherPlayerForNextGame;
+        GameHubConnection.ReceiveAnotherPlayerAnswerForNextGameEvent += GameSessionService.AskAnotherPlayerForNextGame;
 
-        GameHubConnection.DeclineAnotherGameRequestEvent += GameSessionService.DeclineAnotherGameRequest;
+        GameHubConnection.ReceiveDeclineAnotherGameRequestEvent += GameSessionService.DeclineAnotherGameRequest;
 
-        GameHubConnection.AcceptAnotherGameRequestEvent += GameSessionService.AcceptAnotherGameRequest;
+        GameHubConnection.ReceiveAcceptAnotherGameRequestEvent += GameSessionService.AcceptAnotherGameRequest;
 
-        GameHubConnection.JoinNextGameEvent += GameSessionService.JoinNextGame;
+        GameHubConnection.ReceiveJoinningToNextGameEvent += GameSessionService.JoinNextGame;
 
         await EnsureConnectionEstablished();
     }
@@ -408,15 +408,6 @@ else
     private async Task Decline() => await GameSessionService.DeclineNextPlayerRequest();
 
     private async Task PlayNextGame() => await GameSessionService.PlayNextGame();
-
-    // public List<TicTacToeGame.Domain.Models.Game> GetGamesByResultAndPlayers()
-    // {
-    //     var gamesList = GameRepository.GetGameHistoryInSession(GameState.Finished, GameManager.CurrentPlayerHost.Id,
-    //         GameManager.CurrentPlayerGuest.Id, GameManager.CurrentGame.RoomId);
-    //     hostWins = gamesList.Count(game => game.Winner == PlayerType.Host);
-    //     guestWins = gamesList.Count(game => game.Winner == PlayerType.Guest);
-    //     return gamesList;
-    // }
 
     private async Task MakeMove(int index)
     {

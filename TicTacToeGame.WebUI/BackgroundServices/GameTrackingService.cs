@@ -53,7 +53,13 @@ namespace TicTacToeGame.WebUI.BackgroundServices
         {
             foreach (var emptyGame in EmptyGames)
             {
-                _gameRepository.UpdateGameResult(emptyGame.Key.Id, GameState.Declined);
+                Game currentEmptyGame = _gameRepository.GetById(emptyGame.Key.Id);
+
+                if(currentEmptyGame.GameResult == GameState.Starting)
+                {
+                    _gameRepository.UpdateGameResult(emptyGame.Key.Id, GameState.Declined);
+                }
+                
                 EmptyGames.Remove(emptyGame.Key);
             }
         }

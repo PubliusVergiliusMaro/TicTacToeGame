@@ -77,7 +77,7 @@ namespace TicTacToeGame.Services.GameProcessService
 
                 _gameManager.PlayerRepository.UpdatePlayerStatus(_gameManager.CurrentPlayer.Id, true);
 
-                await _gameHubConnection.JoinNextGame((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
+                await _gameHubConnection.AskToJoinNextGame((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
 
                 _navigationManager.NavigateTo("/game", forceLoad: true);
             }
@@ -95,11 +95,11 @@ namespace TicTacToeGame.Services.GameProcessService
 
         public async Task ApproveNextGamePlayerRequest()
         {
-            await _gameHubConnection.AcceptAnotherGameRequest((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
+            await _gameHubConnection.SendAcceptAnotherGameRequest((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
         }
         public async Task DeclineNextPlayerRequest()
         {
-            await _gameHubConnection.DeclineAnotherGameRequest((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
+            await _gameHubConnection.SendDeclineAnotherGameRequest((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
 
             DeclinedNextGame = true;
             StateHasChanged?.Invoke();

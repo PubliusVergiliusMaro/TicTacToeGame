@@ -39,7 +39,7 @@ namespace TicTacToeGame.Services.GameProcessService
         {
             _gameHubConnection = gameHubConnection;
         }
-        
+        // Disconnection with timers
         public void InitializeTimers()
         {
             _moveTimer = new Timer(DisconnectingTrackingConstants.MOVE_TIME * 1000);
@@ -77,10 +77,12 @@ namespace TicTacToeGame.Services.GameProcessService
 
                 _gameManager.GameRepository.UpdateEntity(_gameManager.CurrentGame);
 
-                await _gameHubConnection.OpponentLeft((int)_gameManager.CurrentGame.RoomId);
+                await _gameHubConnection.SendOpponentLeft((int)_gameManager.CurrentGame.RoomId);
             }
             _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerHost.Id);
             _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerGuest.Id);
+
+            StateHasChanged?.Invoke();
         }
 
         public void ReloadMoveTimer()
@@ -89,7 +91,7 @@ namespace TicTacToeGame.Services.GameProcessService
             _moveTimer?.Stop();
             _moveTimer?.Start();
         }
-
+        
         public void OpponentLeaves(int roomId, string connectionId)
         {
             if (_gameManager.CurrentGame.RoomId == roomId)
@@ -109,7 +111,7 @@ namespace TicTacToeGame.Services.GameProcessService
         {
             if (_gameManager.CurrentPlayer.Id != userId)
             {
-                await _gameHubConnection.OpponentNotLeaves((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
+                await _gameHubConnection.SendOpponentNotLeaves((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
             }
         }
 
@@ -120,6 +122,8 @@ namespace TicTacToeGame.Services.GameProcessService
                 ReloadMoveTimer();
             }
         }
+
+        // Disconnection on Leave Game button
         public void UpdateGameResultAfterTwoPlayersDisconnection()
         {
             if (_gameManager.CurrentPlayerGuest is not null && _gameManager.CurrentPlayerHost is not null)
@@ -146,7 +150,7 @@ namespace TicTacToeGame.Services.GameProcessService
                 }
             }
         }
-
+        // 
         public void OpponentLeft()
         {
             OpponentLeaved = true;

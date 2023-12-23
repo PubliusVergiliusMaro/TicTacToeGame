@@ -30,13 +30,14 @@ namespace TicTacToeGame.WebUI.Hubs
         // moves
         public async Task SendGameState(BoardElements[] board, PlayerType nextPlayerTurn, int roomId)
         {
-            await Clients.Group(roomId.ToString()).SendAsync("SendGameState", board, nextPlayerTurn, roomId);
+            await Clients.Group(roomId.ToString()).SendAsync("ReceiveGameState", board, nextPlayerTurn, roomId);
         }
         public async Task SendGameStatus(GameState gameState, string gameStatus, int roomId)
         {
-            await Clients.Group(roomId.ToString()).SendAsync("SendGameStatus", gameState, gameStatus, roomId);
+            await Clients.Group(roomId.ToString()).SendAsync("ReceiveGameStatus", gameState, gameStatus, roomId);
         }
         // connects
+        // check if it is using
         public async Task SendConnectedStatus(int roomId, string userId,bool hasConnectedStatusReceived)
         {
             await Clients.Group(roomId.ToString()).SendAsync("SendConnectedStatus", userId, hasConnectedStatusReceived);
@@ -44,28 +45,28 @@ namespace TicTacToeGame.WebUI.Hubs
         // disconections
         public async Task CheckIfOpponentLeaves(int roomId, string userId)
         {
-            await Clients.Group(roomId.ToString()).SendAsync("CheckIfOpponentLeaves", roomId, userId);
+            await Clients.Group(roomId.ToString()).SendAsync("ReceiveIfOpponentLeaves", roomId, userId);
         }
-        public async Task OpponentNotLeaves(int roomId, string userId)
+        public async Task SendOpponentNotLeaves(int roomId, string userId)
         {
-            await Clients.Group(roomId.ToString()).SendAsync("OpponentNotLeaves", roomId, userId);
+            await Clients.Group(roomId.ToString()).SendAsync("ReceiveOpponentNotLeaves", roomId, userId);
         }
         public async Task UserLeaves(int roomId, string userId)
         {
-            await Clients.Group(roomId.ToString()).SendAsync("OpponentLeaves", roomId, userId);
+            await Clients.Group(roomId.ToString()).SendAsync("ReceiveOpponentLeaves", roomId, userId);
         }
-        public async Task OpponentLeft(int roomId)
+        public async Task SendOpponentLeft(int roomId)
         {
-            await Clients.Group(roomId.ToString()).SendAsync("OpponentLeft");
+            await Clients.Group(roomId.ToString()).SendAsync("ReceiveOpponentLeft");
         }
         // get board
         public async Task AskAnotherPlayerBoard(int roomId, string userId)
         {
-            await Clients.Group(roomId.ToString()).SendAsync("AskAnotherPlayerBoard", userId, roomId);
+            await Clients.Group(roomId.ToString()).SendAsync("AskToReceiveAnotherPlayerBoard", userId, roomId);
         }
         public async Task SendAnotherPlayerBoard(int roomId, string userId, BoardElements[] board)
         {
-            await Clients.Group(roomId.ToString()).SendAsync("SendAnotherPlayerBoard", userId, board);
+            await Clients.Group(roomId.ToString()).SendAsync("ReceiveAnotherPlayerBoard", userId, board);
         }
         // chat
         public async Task SendChatMessage(int roomId, string senderNickname, string message)
@@ -76,19 +77,19 @@ namespace TicTacToeGame.WebUI.Hubs
 
         public async Task AskAnotherPlayerForNextGame(int roomId, string userId)
         {
-            await Clients.Group(roomId.ToString()).SendAsync("AskAnotherPlayerForNextGame", userId);
+            await Clients.Group(roomId.ToString()).SendAsync("ReceiveAnotherPlayerAnswerForNextGame", userId);
         }
-        public async Task DeclineAnotherGameRequest(int roomId, string userId)
+        public async Task SendDeclineAnotherGameRequest(int roomId, string userId)
         {
-            await Clients.Group(roomId.ToString()).SendAsync("DeclineAnotherGameRequest", userId);
+            await Clients.Group(roomId.ToString()).SendAsync("ReceiveDeclineAnotherGameRequest", userId);
         }
-        public async Task AcceptAnotherGameRequest(int roomId, string userId)
+        public async Task SendAcceptAnotherGameRequest(int roomId, string userId)
         {
-            await Clients.Group(roomId.ToString()).SendAsync("AcceptAnotherGameRequest", userId);
+            await Clients.Group(roomId.ToString()).SendAsync("ReceiveAcceptAnotherGameRequest", userId);
         }
-        public async Task JoinNextGame(int roomId, string userId)
+        public async Task AskToJoinNextGame(int roomId, string userId)
         {
-            await Clients.Group(roomId.ToString()).SendAsync("JoinNextGame", userId);
+            await Clients.Group(roomId.ToString()).SendAsync("ReceiveJoinningToNextGame", userId);
         }
     }
 }
