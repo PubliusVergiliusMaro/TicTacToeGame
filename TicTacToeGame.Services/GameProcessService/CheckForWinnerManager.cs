@@ -89,7 +89,7 @@ public class CheckForWinnerManager
         return a != BoardElements.Empty && a == b && b == c;
     }
 
-    public void SendGameStatus(GameState receiveGameResult, string receiveGameStatus, int gameId)
+    public void ReceiveGameStatus(GameState receiveGameResult, string receiveGameStatus, int gameId)
     {
         _gameManager.CurrentGame.GameResult = receiveGameResult;
         

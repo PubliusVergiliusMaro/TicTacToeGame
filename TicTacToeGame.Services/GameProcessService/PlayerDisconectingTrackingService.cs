@@ -60,10 +60,12 @@ namespace TicTacToeGame.Services.GameProcessService
                 _responseTimer?.Stop();
                 _moveTimer?.Stop();
             }
+            
             await _gameHubConnection.CheckIfOpponentLeaves((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
+            
             _responseTimer.Start();
         }
-
+        // method that makes all dirty work
         private async void OpponentIsNotAlive()
         {
             OpponentLeaved = true;
@@ -79,7 +81,9 @@ namespace TicTacToeGame.Services.GameProcessService
 
                 await _gameHubConnection.SendOpponentLeft((int)_gameManager.CurrentGame.RoomId);
             }
+
             _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerHost.Id);
+            
             _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerGuest.Id);
 
             StateHasChanged?.Invoke();
@@ -91,19 +95,20 @@ namespace TicTacToeGame.Services.GameProcessService
             _moveTimer?.Stop();
             _moveTimer?.Start();
         }
-        
-        public void OpponentLeaves(int roomId, string connectionId)
+
+        // I think it`s on signalR
+        public void ReceiveOpponentLeaves(int roomId, string userId)
         {
-            if (_gameManager.CurrentGame.RoomId == roomId)
+            if (_gameManager.CurrentPlayer.Id != userId)
             {
-                LivedPlayerName = _gameManager.GetOpponentName(connectionId);
+                LivedPlayerName = _gameManager.GetOpponentName(userId);
 
                 OpponentIsNotAlive();
 
                 StateHasChanged?.Invoke();
             }
         }
-        public void CheckIfOpponentLeaves(int roomId, string userId)
+        public void ReceiveCheckIfOpponentLeaves(int roomId, string userId)
         {
             CheckIfOpponentLeavesAsync(roomId, userId).GetAwaiter().GetResult();
         }
@@ -115,7 +120,7 @@ namespace TicTacToeGame.Services.GameProcessService
             }
         }
 
-        public void OpponentNotLeaves(int roomId, string userId)
+        public void ReceiveOpponentNotLeaves(int roomId, string userId)
         {
             if (_gameManager.CurrentPlayer.Id != userId)
             {
@@ -151,7 +156,7 @@ namespace TicTacToeGame.Services.GameProcessService
             }
         }
         // 
-        public void OpponentLeft()
+        public void ReceiveOpponentLeft()
         {
             OpponentLeaved = true;
             _checkForWinnerManager.GameStatus = "Game Over";

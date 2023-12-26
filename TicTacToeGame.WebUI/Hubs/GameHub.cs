@@ -51,7 +51,7 @@ namespace TicTacToeGame.WebUI.Hubs
         {
             await Clients.Group(roomId.ToString()).SendAsync("ReceiveOpponentNotLeaves", roomId, userId);
         }
-        public async Task UserLeaves(int roomId, string userId)
+        public async Task SendUserLeaves(int roomId, string userId)
         {
             await Clients.Group(roomId.ToString()).SendAsync("ReceiveOpponentLeaves", roomId, userId);
         }

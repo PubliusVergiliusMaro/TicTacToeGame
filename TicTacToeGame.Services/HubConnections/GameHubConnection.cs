@@ -123,6 +123,10 @@ namespace TicTacToeGame.Services.HubConnections
         {
             await _hubConnection.SendAsync("SendOpponentNotLeaves", roomId, gameConnectionId);
         }
+        public async Task SendUserLeaves(int roomId, string userId)
+        {
+            await _hubConnection.SendAsync("SendUserLeaves", roomId, userId);
+        }
         // Chat logic
         public async Task SendChatMessage(int roomId, string playerNickname, string message)
         {

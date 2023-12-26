@@ -39,7 +39,7 @@ namespace TicTacToeGame.Services.GameProcessService
             _gameHubConnection = gameHubConnection;
         }
 
-        public void AddMessage(string playerNickname, string message)
+        public void ReceiveChatMessage(string playerNickname, string message)
         {
             if (!IsChatVisible)
                 IsReceivedNewMessage = true;

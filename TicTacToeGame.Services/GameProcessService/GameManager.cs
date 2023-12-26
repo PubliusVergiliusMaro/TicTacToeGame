@@ -85,16 +85,10 @@ public class GameManager
     }
 
     public bool IsAuthenticatedUser() => ClaimsPrincipal?.Identity?.IsAuthenticated == true;
-    public string GetOpponentName(string connectionId)
+    
+    public string GetOpponentName(string userId)
     {
-        if (CurrentPlayerHost.GameConnectionId == connectionId)
-        {
-            return CurrentPlayerHost.UserName;
-        }
-        else
-        {
-            return CurrentPlayerGuest.UserName;
-        }
+        return CurrentPlayerHost.Id == userId ? CurrentPlayerHost.UserName : CurrentPlayerGuest.UserName;
     }
 
     public bool IsTwoPlayersPlaying()

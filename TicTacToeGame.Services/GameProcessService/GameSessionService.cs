@@ -35,7 +35,7 @@ namespace TicTacToeGame.Services.GameProcessService
         {
             _gameHubConnection = gameHubConnection;
         }
-        public void AskAnotherPlayerForNextGame(string userId)
+        public void ReceiveAnotherPlayerAnswerForNextGame(string userId)
         {
             if (userId != _gameManager.CurrentPlayer.Id)
             {
@@ -46,14 +46,14 @@ namespace TicTacToeGame.Services.GameProcessService
                 }
             }
         }
-        public void DeclineAnotherGameRequest(string userId)
+        public void ReceiveDeclineAnotherGameRequest(string userId)
         {
             ApprovedNextGame = false;
             DeclinedNextGame = true;
             RequestForNextGame = true;
             StateHasChanged?.Invoke();
         }
-        public void AcceptAnotherGameRequest(string userId)
+        public void ReceiveAcceptAnotherGameRequest(string userId)
         {
             AcceptAnotherGameRequestAsync(userId).GetAwaiter().GetResult();
         }
@@ -83,7 +83,7 @@ namespace TicTacToeGame.Services.GameProcessService
             }
         }
 
-        public void JoinNextGame(string userId)
+        public void ReceiveJoinningToNextGame(string userId)
         {
             if (userId != _gameManager.CurrentPlayer.Id)
             {

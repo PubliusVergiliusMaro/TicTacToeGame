@@ -209,7 +209,7 @@ public class MakeMovesGameManager
         _gameManager.GameRepository.UpdateEntity(_gameManager.CurrentGame);
     }
 
-    public void SendAnotherPlayerBoard(string userId, BoardElements[] playerBoard)
+    public void ReceiveAnotherPlayerBoard(string userId, BoardElements[] playerBoard)
     {
         if (userId != _gameManager.CurrentPlayer.Id)
         {
@@ -217,7 +217,7 @@ public class MakeMovesGameManager
             StateHasChanged?.Invoke();
         }
     }
-    public void AskAnotherPlayerBoard(string userId, int gameId)
+    public void AskToReceiveAnotherPlayerBoard(string userId, int gameId)
     {
         AskAnotherPlayerBoardAsync(userId, gameId).GetAwaiter().GetResult();
     }
@@ -231,7 +231,7 @@ public class MakeMovesGameManager
         }
     }
 
-    public void SendGameState(BoardElements[] receivedBoard, PlayerType nextPlayerTurn, int gameId)
+    public void ReceiveGameState(BoardElements[] receivedBoard, PlayerType nextPlayerTurn, int gameId)
     {
         _gameManager.Board = receivedBoard;
         _gameManager.CurrentGame.CurrentTurn = nextPlayerTurn;
