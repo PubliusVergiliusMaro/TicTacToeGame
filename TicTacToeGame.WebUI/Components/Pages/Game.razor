@@ -12,6 +12,7 @@
 @using TicTacToeGame.Services.HubConnections
 @using TicTacToeGame.WebUI.Components.Account
 @using TicTacToeGame.WebUI.Components.Layout
+@using Microsoft.AspNetCore.Components.Web
 @using TicTacToeGame.WebUI.Hubs
 
 @inject PlayerRepository _playerRepository
@@ -29,6 +30,10 @@
 @inject GameHubConnection GameHubConnection
 @inject GameManager GameManager
 @inject GameBoardManager GameBoardManager
+
+@inject IServiceProvider ServiceProvider
+
+@inject IJSRuntime JSRuntime
 
 @implements IAsyncDisposable
 
@@ -139,14 +144,14 @@
         }
         @if (ChatService.IsReceivedNewMessage == true)
         {
-            <button style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: orangered; color: #fff; border: none; cursor: pointer;"
+            <button id="chatButton" style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: orangered; color: #fff; border: none; cursor: pointer;"
                     @onclick="ChatService.ToggleChat">
                 Chat
             </button>
         }
         else
         {
-            <button style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;"
+            <button id="chatButton" style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;"
                     @onclick="ChatService.ToggleChat">
                 Chat
             </button>
@@ -164,25 +169,24 @@
                 <div class="scoreboard-players" style="display: flex; justify-content: center; align-items: center;">
                     <div class="scoreboard-player" style="display: flex; flex-direction: column; margin: 0 10px;">
                         <span class="scoreboard-username" style="font-size: 1.2em;">@GameManager.CurrentPlayerHost.UserName</span>
-                        <span class="scoreboard-score" style="font-size: 1.5em; font-weight: bold;">@GamesStatisticsService.HostWinsCount</span>
+                        <span class="scoreboard-score" style="font-size: 1.5em; font-weight: bold;">@GameManager.HostWins</span>
                     </div>
 
                     <div class="scoreboard-divider" style="font-size: 1.5em; margin: 0 5px;">:</div>
 
                     <div class="scoreboard-player" style="display: flex; flex-direction: column; margin: 0 10px;">
                         <span class="scoreboard-username" style="font-size: 1.2em;">@GameManager.CurrentPlayerGuest.UserName</span>
-                        <span class="scoreboard-score" style="font-size: 1.5em; font-weight: bold;">@GamesStatisticsService.GuestWinsCount</span>
+                        <span class="scoreboard-score" style="font-size: 1.5em; font-weight: bold;">@GameManager.GuestWins</span>
                     </div>
                 </div>
 
-                <h3 class="scoreboard-tie" style="color: orange; margin-top: 10px;">
-                    Tie @(GamesStatisticsService.GamesHistory.Games.Count - (GamesStatisticsService.HostWinsCount + GamesStatisticsService.GuestWinsCount))
-                </h3>
+            <h3 class="scoreboard-tie" style="color: orange; margin-top: 10px;">Tie @(GameManager.GamesHistory.Games.Count - (GameManager.HostWins + GameManager.GuestWins))</h3>
             </div>
         </div>
 
-
-        @foreach (var game in GamesStatisticsService.GamesHistory.Games)
+    @if (GameManager.GamesHistory.Games.Count != 0)
+    { 
+        @foreach (var game in GameManager.GamesHistory.Games)
         {
             string cardColorClass = "";
             Player winner = GamesStatisticsService.GetWinner(game.Winner, GameManager.CurrentPlayerHost, GameManager.CurrentPlayerGuest);
@@ -205,7 +209,7 @@
                             <h5 class="card-title">
                                 @(isDraw ? "Draw" : $"Winner: {winner.UserName}")
                                 @{
-                                    string.Format("{0} ({1}) : {2} ({3})", GameManager.CurrentPlayerHost.UserName, GamesStatisticsService.HostWinsCount, GameManager.CurrentPlayerGuest.UserName, GamesStatisticsService.GuestWinsCount);
+                                    string.Format("{0} ({1}) : {2} ({3})", GameManager.CurrentPlayerHost.UserName, GameManager.HostWins, GameManager.CurrentPlayerGuest.UserName, GameManager.GuestWins);
                                 }
                             </h5>
                             <p class="card-text">@game.CreatedAt.ToString("D")</p>
@@ -213,13 +217,13 @@
                     </div>
                 </div>
             </div>
-        }
+        }             
     }
 
 
     @if (ChatService.IsChatVisible)
     {
-        <div id="chatContainer" style="position: fixed; bottom: 0; right: 0; width: 300px; height: 400px; border: 1px solid #ccc; padding: 10px; margin: 10px; background-color: #f9f9f9;">
+        <div id="chatContainer" style="position: fixed;  bottom: 0; right: 0; width: 300px; height: 400px; border: 1px solid #ccc; padding: 10px; margin: 10px; background-color: #f9f9f9;">
             <div class="d-flex justify-content-between">
                 <h3>Chat</h3>
                 <button style="margin:0px 0px 5px 0px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;" @onclick="ChatService.ToggleChat">
@@ -233,8 +237,8 @@
                 }
 
             </div>
-            <input @bind="ChatService.Message" @bind:event="oninput" type="text" style="width: 70%; padding: 5px;" placeholder="Type your message here..." maxlength="250" />
-            <button @onclick="SendMessage" disabled="@string.IsNullOrEmpty(ChatService.Message)" style="width: 28%; padding: 5px 10px; background-color: @(string.IsNullOrEmpty(ChatService.Message) ? "#ccc" : "#14bdac"); color: #fff; border: none; cursor: pointer;">Send</button>
+            <input @bind="ChatService.Message" @bind:event="oninput" @onkeydown="@Enter" type="text" style="width: 70%; padding: 5px;" placeholder="Type your message here..." maxlength="250" />
+            <button @onclick="SendMessage" disabled="@string.IsNullOrWhiteSpace(ChatService.Message)" style="width: 28%; padding: 5px 10px; background-color: @(string.IsNullOrWhiteSpace(ChatService.Message) ? "#ccc" : "#14bdac"); color: #fff; border: none; cursor: pointer;">Send</button>
         </div>
 
         <script>
@@ -252,6 +256,7 @@
                 scrollChatToBottom();
             });
         </script>
+       
     }
 }
 else
@@ -264,17 +269,16 @@ else
 
 @code {
 
-    //private GamesHistory gamesHistory = new GamesHistory();
-
     private bool isInitialized = false;
-
-    // int hostWins = 0;
-    // int guestWins = 0;
 
     private bool isGameInitializedSuccesfully = false;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("registerEventHandler", "click", DotNetObjectReference.Create(this), nameof(OnDocumentClick));
+        }
         if (!isInitialized)
         {
             isInitialized = true;
@@ -334,14 +338,20 @@ else
 
                     GameSessionService.IsTwoPlayersPlaying = GameManager.IsTwoPlayersPlaying();
 
-                    GamesStatisticsService.UpdatePlayersGameHistory(GameManager.CurrentPlayerHost.Id, GameManager.CurrentPlayerGuest.Id, GameManager.CurrentGame.RoomId);
-
-                    // GamesStatisticsService.GamesHistory.Games = GamesStatisticsService.GetGamesHistoryResults(
-                    //     GameManager.CurrentPlayerHost.Id, GameManager.CurrentPlayerGuest.Id, GameManager.CurrentGame.RoomId);
+                    GamesStatisticsService.GetGamesByResultAndPlayers(GameManager);
                 }
                 InvokeAsync(StateHasChanged);
             }
         }
+    }
+    [JSInvokable]
+    public void OnDocumentClick()
+    {
+        // Hide the chat when clicking outside the chat area
+        ChatService.IsChatVisible = false;
+
+        // Force a re-render to update the UI
+        StateHasChanged();
     }
     private async Task<bool> ReInitializeGame()
     {
@@ -457,12 +467,20 @@ else
 
     private string GetSquareValue(int index) => (GameManager.Board[index] == BoardElements.Empty) ? "" : GameManager.Board[index].ToString();
 
-    private bool IsButtonDisabled(int index) => GameManager.CurrentGame.GameResult == GameState.Finished;
+    private bool IsButtonDisabled(int index) => MakeMovesManager.MoveWasMade|| GameManager.CurrentGame.GameResult == GameState.Finished;
 
     private async Task SendMessage()
     {
         await ChatService.SendMessage(ChatService.Message, GameManager.CurrentPlayer, (int)GameManager.CurrentGame.RoomId);
         ChatService.Message = "";
+    }
+    
+    public async Task Enter(KeyboardEventArgs e)
+    {
+        if ((e.Code == "Enter" || e.Code == "NumpadEnter") && !string.IsNullOrWhiteSpace(ChatService.Message))
+        {
+            await SendMessage();
+        }
     }
     void UpdateSendButton(ChangeEventArgs e) => ChatService.Message = e.Value.ToString();
 

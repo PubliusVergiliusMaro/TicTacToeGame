@@ -110,14 +110,12 @@ namespace TicTacToeGame.Services.GamesStatisticServices
             return player;
         }
 
-        public List<Game> GetGamesHistoryResults(string playerHostId, string playerGuestId,int? roomId)
+        public void GetGamesByResultAndPlayers(GameManager gameManager)
         {
-            List<Game> gamesList = _gameRepository.GetGameHistoryInSession(GameState.Finished, playerHostId, playerGuestId, roomId);
-            
-            HostWinsCount = gamesList.Count(game => game.Winner == PlayerType.Host);
-            GuestWinsCount = gamesList.Count(game => game.Winner == PlayerType.Guest);
-            
-            return gamesList;
+            gameManager.GamesHistory.Games = _gameRepository.GetGameHistoryInSession(GameState.Finished, gameManager.CurrentPlayerHost.Id,
+              gameManager.  CurrentPlayerGuest.Id, gameManager. CurrentGame.RoomId);
+            gameManager. HostWins = gameManager. GamesHistory.Games.Count(game => game.Winner == PlayerType.Host);
+            gameManager.GuestWins = gameManager. GamesHistory.Games.Count(game => game.Winner == PlayerType.Guest);
         }
     }
 }

@@ -82,7 +82,10 @@ public class MakeMovesGameManager
                     // Switch player turns
                     await SentGameState();
                     // Only after 3 movements can a player win
-                    await CheckForWinnerAfterMoves();
+                    if (_gameManager.Board.Count(cell => cell == BoardElements.Empty)<TicTacToeRules.MIN_COUNT_MOVES_TO_WIN)
+                    {
+                        await CheckForWinnerAfterMoves();
+                    }
                 }
             }
         }

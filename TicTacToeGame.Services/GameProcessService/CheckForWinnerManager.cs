@@ -1,5 +1,6 @@
 ﻿using TicTacToeGame.Domain.Constants;
 using TicTacToeGame.Domain.Enums;
+using TicTacToeGame.Domain.Repositories;
 using TicTacToeGame.Services.GamesStatisticServices;
 
 namespace TicTacToeGame.Services.GameProcessService;
@@ -13,21 +14,14 @@ public class CheckForWinnerManager
 
     public string GameStatus { get; set; }
 
-    public CheckForWinnerManager(GameManager gameManager , GamesStatisticsService gamesStatisticsService)
+    public CheckForWinnerManager(GameManager gameManager, GamesStatisticsService gamesStatisticsService)
     {
         _gameManager = gameManager;
-        _gamesStatisticsService=gamesStatisticsService;
+        _gamesStatisticsService = gamesStatisticsService;
     }
 
-    public bool CheckForWinner()
-    {
-        if (CheckRowsForWinner() || CheckColumnsForWinner() || CheckDiagonalsForWinner())
-        {
-            return true;
-        }
+    public bool CheckForWinner() => CheckRowsForWinner() || CheckColumnsForWinner() || CheckDiagonalsForWinner();
 
-        return false;
-    }
     public bool CheckForTie()
     {
         if (_gameManager.Board.All(cell => cell != BoardElements.Empty))
@@ -97,7 +91,7 @@ public class CheckForWinnerManager
             _gamesStatisticsService.UpdatePlayersGameHistory(_gameManager.CurrentPlayerHost.Id, _gameManager.CurrentPlayerGuest.Id, _gameManager.CurrentGame.RoomId);
         
         GameStatus = receiveGameStatus;
-        
+        _gamesStatisticsService.GetGamesByResultAndPlayers(_gameManager);
         StateHasChanged?.Invoke();
     }
 
