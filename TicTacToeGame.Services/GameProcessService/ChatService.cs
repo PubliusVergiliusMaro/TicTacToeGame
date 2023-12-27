@@ -10,6 +10,7 @@ namespace TicTacToeGame.Services.GameProcessService
         public string PlayerNickname { get; set; }
         public string Message { get; set; }
         public int RoomId { get; set; }
+        public DateTime SendTime { get; set; } = DateTime.UtcNow;
     }
 
     public class GameChatService
@@ -61,7 +62,8 @@ namespace TicTacToeGame.Services.GameProcessService
                 PlayerId = player.Id,
                 PlayerNickname = player.UserName,
                 Message = message,
-                RoomId = CurrentRoom
+                RoomId = CurrentRoom,
+                SendTime = DateTime.UtcNow,
             };
             // Add the new message to the list
             ChatMessages.Add(newMessage);
