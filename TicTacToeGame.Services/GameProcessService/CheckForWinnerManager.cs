@@ -87,8 +87,8 @@ public class CheckForWinnerManager
     {
         _gameManager.CurrentGame.GameResult = receiveGameResult;
         
-        if(receiveGameResult == GameState.Finished)
-            _gamesStatisticsService.UpdatePlayersGameHistory(_gameManager.CurrentPlayerHost.Id, _gameManager.CurrentPlayerGuest.Id, _gameManager.CurrentGame.RoomId);
+        //if(receiveGameResult == GameState.Finished)
+        //    _gamesStatisticsService.UpdatePlayersGameHistory(_gameManager.CurrentPlayerHost.Id, _gameManager.CurrentPlayerGuest.Id, _gameManager.CurrentGame.RoomId);
         
         GameStatus = receiveGameStatus;
         _gamesStatisticsService.GetGamesByResultAndPlayers(_gameManager);

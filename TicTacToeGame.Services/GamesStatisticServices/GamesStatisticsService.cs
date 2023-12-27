@@ -17,7 +17,7 @@ namespace TicTacToeGame.Services.GamesStatisticServices
         
         public int GuestWinsCount { get; set; }
 
-        public GamesHistory GamesHistory { get; set; } = new();
+        //public GamesHistory GamesHistory { get; set; } = new();
 
         public GamesStatisticsService(GamesHistoryRepository gamesHistoryRepository,
             PlayerRepository playerRepository,
@@ -28,12 +28,12 @@ namespace TicTacToeGame.Services.GamesStatisticServices
             _gameRepository = gameRepository;
         }
 
-        public void UpdatePlayersGameHistory(string playerHostId, string playerGuestId, int? roomId)
-        {
-            GamesHistory = new();
+        //public void UpdatePlayersGameHistory(string playerHostId, string playerGuestId, int? roomId)
+        //{
+        //    GamesHistory = new();
 
-            GamesHistory.Games = GetGamesHistoryResults(playerHostId, playerGuestId, roomId);
-        }
+        //    GamesHistory.Games = GetGamesHistoryResults(playerHostId, playerGuestId, roomId);
+        //}
 
         public async Task<GamesHistory> GetGamesHistoryByPlayerId(string playerId)
         {

@@ -160,11 +160,10 @@
             Leave Game
         </button>
     </div>
-    @if (GamesStatisticsService.GamesHistory.Games.Count != 0)
-    {
+  
         <div class="scoreboard-container" style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 10px 0;">
             <div class="scoreboard" style="text-align: center; background-color: #f0f0f0; padding: 20px; border-radius: 10px;">
-                <h4 class="scoreboard-header" style="margin-bottom: 10px;">Games played: @GamesStatisticsService.GamesHistory.Games.Count</h4>
+                <h4 class="scoreboard-header" style="margin-bottom: 10px;">Games played: @GameManager.GamesHistory.Games.Count</h4>
 
                 <div class="scoreboard-players" style="display: flex; justify-content: center; align-items: center;">
                     <div class="scoreboard-player" style="display: flex; flex-direction: column; margin: 0 10px;">

@@ -177,7 +177,7 @@ public class MakeMovesGameManager
             _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerGuest.Id);
             _gameManager.CurrentPlayerGuest.IsPlaying = false;
 
-            _gamesStatisticsService.UpdatePlayersGameHistory(_gameManager.CurrentPlayerHost.Id, _gameManager.CurrentPlayerGuest.Id, _gameManager.CurrentGame.RoomId);
+            //_gamesStatisticsService.UpdatePlayersGameHistory(_gameManager.CurrentPlayerHost.Id, _gameManager.CurrentPlayerGuest.Id, _gameManager.CurrentGame.RoomId);
 
             _gameBoardManager.RemoveBoard(_gameManager.CurrentGame.UniqueId);
 
