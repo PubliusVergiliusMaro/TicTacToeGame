@@ -18,6 +18,8 @@ namespace TicTacToeGame.Services.GameProcessService
 
         private readonly GameReconnectingService _gameReconnectingService;
 
+        private readonly GameBoardManager _gameBoardManager;
+
         public event Action StateHasChanged;
 
         public bool OpponentLeaved { get; set; } = false;
@@ -29,11 +31,14 @@ namespace TicTacToeGame.Services.GameProcessService
         public Timer _responseTimer;
 
 
-        public PlayerDisconectingTrackingService(GameManager gameManager, GameHubConnection gameHubConnection,
+        public PlayerDisconectingTrackingService(GameManager gameManager,
+            GameHubConnection gameHubConnection,
             CheckForWinnerManager checkForWinnerManager,
-            GameReconnectingService gameReconnectingService)
+            GameReconnectingService gameReconnectingService,
+            GameBoardManager gameBoardManager)
         {
             _gameManager = gameManager;
+            _gameBoardManager = gameBoardManager;
             _gameHubConnection = gameHubConnection;
             _checkForWinnerManager = checkForWinnerManager;
             _gameReconnectingService = gameReconnectingService;
@@ -105,17 +110,15 @@ namespace TicTacToeGame.Services.GameProcessService
 
                 _gameManager.GameRepository.UpdateEntity(_gameManager.CurrentGame);
 
-                await _gameHubConnection.SendOpponentLeft((int)_gameManager.CurrentGame.RoomId);
+                await _gameHubConnection.SendOpponentLeft((int)_gameManager.CurrentGame.RoomId);// Refactor and maybe remove
             }
 
             _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerHost.Id);
 
             _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerGuest.Id);
             
-            //// Hz
-            //_gameManager.ClearData();
-            ////
-           
+            _gameBoardManager.RemoveBoard(_gameManager.CurrentGame.UniqueId);
+
             StateHasChanged?.Invoke();
         }
 

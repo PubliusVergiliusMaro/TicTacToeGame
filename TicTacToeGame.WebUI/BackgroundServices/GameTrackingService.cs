@@ -1,14 +1,14 @@
 ﻿
+using TicTacToeGame.Domain.Constants;
 using TicTacToeGame.Domain.Enums;
 using TicTacToeGame.Domain.Models;
 using TicTacToeGame.Domain.Repositories;
+using TicTacToeGame.Services.GameProcessService;
 
 namespace TicTacToeGame.WebUI.BackgroundServices
 {
     public class GameTrackingService : IHostedService, IDisposable
     {
-        private const int SECONDS_BEFORE_DELETING_GAME = 35;
-
         private int executionCount = 0;
 
         private readonly ILogger<GameTrackingService> _logger;
@@ -19,10 +19,13 @@ namespace TicTacToeGame.WebUI.BackgroundServices
 
         private readonly Dictionary<Game, TimeSpan> EmptyGames = new();
 
-        public GameTrackingService(ILogger<GameTrackingService> logger, GameRepository gameRepository)
+        private readonly GameBoardManager _gameBoardManager;
+
+        public GameTrackingService(ILogger<GameTrackingService> logger, GameRepository gameRepository, GameBoardManager gameBoardManager)
         {
             _logger = logger;
             _gameRepository = gameRepository;
+            _gameBoardManager = gameBoardManager;
         }
 
         public Task StartAsync(CancellationToken stoppingToken)
@@ -30,7 +33,7 @@ namespace TicTacToeGame.WebUI.BackgroundServices
             _logger.LogInformation("Game Tracking Service running.");
 
             _timer = new Timer(DoWork, null, TimeSpan.Zero,
-                TimeSpan.FromSeconds(SECONDS_BEFORE_DELETING_GAME));
+                TimeSpan.FromSeconds(GameTrackingConstants.SECONDS_BEFORE_DELETING_GAME));
 
             return Task.CompletedTask;
         }
@@ -47,6 +50,10 @@ namespace TicTacToeGame.WebUI.BackgroundServices
             {
                 AddEmptyGame(game);
             }
+            
+            // Remove
+            _logger.LogError("Game Tracking Service is working. Iteration: {Count}. Number of games with no players {EmptyGames}", count, EmptyGames.Count);
+            //
 
             _logger.LogInformation("Game Tracking Service is working. Iteration: {Count}. Number of games with no players {EmptyGames}", count, EmptyGames.Count);
         }

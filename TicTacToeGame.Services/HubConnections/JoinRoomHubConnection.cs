@@ -15,6 +15,7 @@ namespace TicTacToeGame.Services.HubConnections
 
         public event Func<int, int, Task> AcceptJoiningEvent;
         public event Action<string, string> DeclineJoiningEvent;
+        public event Action<string, double> ReceiveLatencyEvent;
 
         public JoinRoomHubConnection(ILogger<JoinRoomHubConnection> logger, NavigationManager navigationManager)
         {
@@ -36,8 +37,14 @@ namespace TicTacToeGame.Services.HubConnections
 
             _hubConnection.On<string,string>("DeclineJoining", (declineMessage, playerId) =>
                 DeclineJoiningEvent?.Invoke(declineMessage, playerId));
-        }
 
+            _hubConnection.On<string,double>("ReceiveLatency", (userId,latency) =>
+                ReceiveLatencyEvent?.Invoke(userId,latency));
+        }
+        public async Task MeasureLatency(string userId)
+        {
+            await _hubConnection.SendAsync("MeasureLatency", userId);
+        }
         public async Task StartConnectionAsync()
         {
             try

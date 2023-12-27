@@ -90,6 +90,8 @@ builder.Services.AddTransient<HostRoomHubConnection>();
 
 builder.Services.AddHostedService<GameTrackingService>();
 
+builder.Services.AddSingleton<GameBoardManager>();
+
 builder.Services.AddServerSideBlazor(options =>
 {
     options.DisconnectedCircuitMaxRetained = 100;
@@ -98,7 +100,7 @@ builder.Services.AddServerSideBlazor(options =>
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
-    .WriteTo.Console(theme: AnsiConsoleTheme.Code)
+    .WriteTo.Console()
     .CreateLogger();
 
 builder.Host.UseSerilog();

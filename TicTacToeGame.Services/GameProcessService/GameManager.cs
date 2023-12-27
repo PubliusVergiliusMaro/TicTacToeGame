@@ -28,15 +28,19 @@ public class GameManager
 
     public bool IsLoadingNextGame = false;
 
+    public bool IsCleanedUp = false;
+
     public async Task InitializeAuthState(AuthenticationStateProvider authenticationStateProvider)
     {
         AuthenticationState = await authenticationStateProvider.GetAuthenticationStateAsync();
         ClaimsPrincipal = AuthenticationState.User;
+        IsCleanedUp = false;
     }
     public void InitializeRepositories(GameRepository gameRepository, PlayerRepository playerRepository)
     {
         GameRepository = gameRepository;
         PlayerRepository = playerRepository;
+        IsCleanedUp = false;
     }
     public string GetCurrentUserId()
     {
@@ -50,6 +54,7 @@ public class GameManager
         {
             return false;
         }
+        IsCleanedUp = false;
         return true;
     }
     public bool InitializePlayers()
@@ -62,6 +67,7 @@ public class GameManager
         CurrentPlayerHost = PlayerRepository.GetById(CurrentGame.PlayerHostId);
         CurrentPlayerGuest = PlayerRepository.GetById(CurrentGame.PlayerGuestId);
         CurrentPlayer = PlayerRepository.GetById(GetCurrentUserId());
+        IsCleanedUp = false;
 
         return true;
     }
@@ -101,6 +107,7 @@ public class GameManager
 
     public void ClearData()
     {
+        IsCleanedUp = true;
         AuthenticationState = null;
         ClaimsPrincipal = null;
         CurrentPlayerHost = null;

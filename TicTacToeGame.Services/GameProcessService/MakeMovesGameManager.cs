@@ -15,6 +15,8 @@ public class MakeMovesGameManager
 
     private readonly CheckForWinnerManager _checkForWinnerManager;
 
+    private readonly GameBoardManager _gameBoardManager;
+
     private GameHubConnection _gameHubConnection;
 
     private readonly GameManager _gameManager;
@@ -28,6 +30,7 @@ public class MakeMovesGameManager
         CheckForWinnerManager checkForWinnerManager,
         GameReconnectingService gameReconnectingService,
         GameHubConnection gameHubConnection,
+        GameBoardManager gameBoardManager,
         GameManager gameManager)
     {
         _gamesStatisticsService = gamesStatisticsService;
@@ -35,6 +38,7 @@ public class MakeMovesGameManager
         _gameReconnectingService = gameReconnectingService;
         _gameHubConnection = gameHubConnection;
         _gameManager = gameManager;
+        _gameBoardManager = gameBoardManager;
     }
     public void SetHubConnection(GameHubConnection gameHubConnection)
     {
@@ -171,6 +175,9 @@ public class MakeMovesGameManager
             _gameManager.CurrentPlayerGuest.IsPlaying = false;
 
             _gamesStatisticsService.UpdatePlayersGameHistory(_gameManager.CurrentPlayerHost.Id, _gameManager.CurrentPlayerGuest.Id, _gameManager.CurrentGame.RoomId);
+
+            _gameBoardManager.RemoveBoard(_gameManager.CurrentGame.UniqueId);
+
             StateHasChanged?.Invoke();
         }
         catch (NullReferenceException ex)
@@ -208,6 +215,8 @@ public class MakeMovesGameManager
     private async Task SentGameState()
     {
         PlayerType nextPlayerTurn = (_gameManager.CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
+
+        _gameBoardManager.UpdateBoard(_gameManager.CurrentGame.UniqueId, _gameManager.Board);
 
         await _gameHubConnection.SendGameState(_gameManager.Board, nextPlayerTurn, (int)_gameManager.CurrentGame.RoomId);
     }

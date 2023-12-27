@@ -28,6 +28,7 @@
 @inject GameSessionService GameSessionService
 @inject GameHubConnection GameHubConnection
 @inject GameManager GameManager
+@inject GameBoardManager GameBoardManager
 
 @implements IAsyncDisposable
 
@@ -328,7 +329,7 @@ else
                     CheckForWinnerManager.StateHasChanged += () => InvokeAsync(StateHasChanged);
 
                     await DisconectingTrackingService.SendConnectedStatus((int)GameManager.CurrentGame.RoomId, GameManager.GetCurrentUserId());
-                   
+
                     await GameHubConnection.AskAnotherPlayerBoard((int)GameManager.CurrentGame.RoomId, GameManager.CurrentPlayer.Id);
 
                     GameSessionService.IsTwoPlayersPlaying = GameManager.IsTwoPlayersPlaying();
@@ -344,7 +345,7 @@ else
     }
     private async Task<bool> ReInitializeGame()
     {
-        GameManager.ClearData(); 
+        GameManager.ClearData();
 
         GameReconnectingService.MakePlayerNotPlaying(GameManager.GetCurrentUserId());
 
@@ -420,13 +421,18 @@ else
 
     private async Task LeaveGame()
     {
-        await GameHubConnection.SendUserLeaves((int)GameManager.CurrentGame.RoomId, GameManager.GetCurrentUserId());
+        if (!GameManager.IsCleanedUp)
+        {
+            await GameHubConnection.SendUserLeaves((int)GameManager.CurrentGame.RoomId, GameManager.GetCurrentUserId());
 
-        GameReconnectingService.MakePlayerNotPlaying(GameManager.GetCurrentUserId());
+            GameReconnectingService.MakePlayerNotPlaying(GameManager.GetCurrentUserId());
+            
+            GameBoardManager.RemoveBoard(GameManager.CurrentGame.UniqueId);
 
-        GameReconnectingService.IsPlayerLeaveGameByButton = true;
+            GameReconnectingService.IsPlayerLeaveGameByButton = true;
 
-        DisconectingTrackingService.UpdateGameResultAfterTwoPlayersDisconnection();
+            DisconectingTrackingService.UpdateGameResultAfterTwoPlayersDisconnection();
+        }
 
         GameManager.ClearData();
 

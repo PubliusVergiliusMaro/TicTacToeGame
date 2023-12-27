@@ -4,22 +4,66 @@ namespace TicTacToeGame.Services.GameProcessService
 {
     public class GameBoardManager
     {
-        private readonly Dictionary<string, BoardElements[]> GameBoard = new Dictionary<string, BoardElements[]>();
+        private readonly Dictionary<Guid, BoardElements[]> GameBoard = new();
 
-
-        public void AddBoard(string gameUniqueId, BoardElements[] board)
+        public void AddBoardIfNotExist(Guid gameUniqueId, BoardElements[] board)
         {
-            GameBoard.Add(gameUniqueId, board);
+            try
+            {
+                if (!GameBoard.ContainsKey(gameUniqueId))
+                {
+                    GameBoard.Add(gameUniqueId, board);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        public void UpdateBoard(Guid gameUniqueId, BoardElements[] board)
+        {
+            try
+            {
+                if (GameBoard.ContainsKey(gameUniqueId))
+                    GameBoard[gameUniqueId] = board;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
 
-        public BoardElements[] GetBoard(string gameUniqueId)
+        public BoardElements[] GetBoard(Guid gameUniqueId)
         {
-            return GameBoard[gameUniqueId];
+            try
+            {
+                if (GameBoard.ContainsKey(gameUniqueId))
+                {
+                    return GameBoard[gameUniqueId];
+                }
+                else
+                    throw new Exception("Board not found");
+                   
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
 
-        public void RemoveBoard(string gameUniqueId)
+        public void RemoveBoard(Guid gameUniqueId)
         {
-            GameBoard.Remove(gameUniqueId);
+            try
+            {
+                if (GameBoard.ContainsKey(gameUniqueId))
+                {
+                    GameBoard.Remove(gameUniqueId);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
     }
 }
