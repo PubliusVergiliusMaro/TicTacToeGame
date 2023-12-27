@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Data;
+using TicTacToeGame.Domain.Constants;
 using TicTacToeGame.Domain.Enums;
 using TicTacToeGame.Domain.Models;
 using TicTacToeGame.Services.GamesStatisticServices;
@@ -55,11 +56,6 @@ public class MakeMovesGameManager
     {
         try
         {
-            if (index < 0 || index >= _gameManager.Board.Length)
-            {
-                throw new IndexOutOfRangeException("Invalid index");
-            }
-
             if (_gameManager.Board[index] == BoardElements.Empty && _gameManager.CurrentGame.GameResult == GameState.Starting)
             {
                 // Check if it's the correct player's turn
@@ -70,7 +66,10 @@ public class MakeMovesGameManager
                     // Switch player turns
                     await SentGameState();
                     // Only after 3 movements can a player win
-                    await CheckForWinnerAfterMoves();
+                    if (_gameManager.Board.Count(cell => cell == BoardElements.Empty)<TicTacToeRules.MIN_COUNT_MOVES_TO_WIN)
+                    {
+                        await CheckForWinnerAfterMoves();
+                    }
                 }
             }
         }

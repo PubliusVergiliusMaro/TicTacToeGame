@@ -19,5 +19,5 @@ public class TicTacToeRules
     public const int FIRST_ELEMENT_OF_REVERSE_DIAGONAL = 2;
     public const int SECOND_ELEMENT_OF_REVERSE_DIAGONAL = 4;
     public const int THIRD_ELEMENT_OF_REVERSE_DIAGONAL = 6;
-
+    public const int MIN_COUNT_MOVES_TO_WIN = 5;
 }

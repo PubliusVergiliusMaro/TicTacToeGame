@@ -1,6 +1,7 @@
 ﻿using TicTacToeGame.Domain.Enums;
 using TicTacToeGame.Domain.Models;
 using TicTacToeGame.Domain.Repositories;
+using TicTacToeGame.Services.GameProcessService;
 
 namespace TicTacToeGame.Services.GamesStatisticServices
 {
@@ -92,6 +93,13 @@ namespace TicTacToeGame.Services.GamesStatisticServices
                 return null;
             }
             return player;
+        }
+        public void GetGamesByResultAndPlayers(GameManager gameManager)
+        {
+            gameManager.GamesHistory.Games = _gameRepository.GetGameHistoryInSession(GameState.Finished, gameManager.CurrentPlayerHost.Id,
+              gameManager.  CurrentPlayerGuest.Id, gameManager. CurrentGame.RoomId);
+            gameManager. HostWins = gameManager. GamesHistory.Games.Count(game => game.Winner == PlayerType.Host);
+            gameManager.GuestWins = gameManager. GamesHistory.Games.Count(game => game.Winner == PlayerType.Guest);
         }
     }
 }

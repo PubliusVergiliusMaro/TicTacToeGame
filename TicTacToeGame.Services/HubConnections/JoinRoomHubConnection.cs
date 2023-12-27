@@ -18,7 +18,7 @@ namespace TicTacToeGame.Services.HubConnections
 
         public JoinRoomHubConnection(ILogger<JoinRoomHubConnection> logger, NavigationManager navigationManager)
         {
-            this._logger = logger;
+            _logger = logger;
 
             _navigationManager = navigationManager;
 

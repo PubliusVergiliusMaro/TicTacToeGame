@@ -63,7 +63,6 @@ namespace TicTacToeGame.Services.HubConnections
             }
         }
 
-        public string? GetConnectionId() => _hubConnection.ConnectionId;
 
         public async ValueTask DisposeAsync()
         {

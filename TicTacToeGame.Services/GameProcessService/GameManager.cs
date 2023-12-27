@@ -14,6 +14,9 @@ public class GameManager
     public Player CurrentPlayer;
 
     public Game CurrentGame;
+    public GamesHistory GamesHistory = new();
+    public int HostWins = 0;
+    public int GuestWins = 0;
 
     private AuthenticationState AuthenticationState;
     private ClaimsPrincipal? ClaimsPrincipal;
@@ -49,6 +52,7 @@ public class GameManager
         }
         return true;
     }
+    
     public bool InitializePlayers()
     {
         if (CurrentGame == null)
