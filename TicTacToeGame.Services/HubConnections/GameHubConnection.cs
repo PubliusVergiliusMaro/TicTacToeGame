@@ -73,7 +73,7 @@ namespace TicTacToeGame.Services.HubConnections
             _hubConnection.On<int, string>("OpponentNotLeaves", (roomId, connectionId)
                 => OpponentNotLeavesEvent?.Invoke(roomId, connectionId));
 
-            _hubConnection.On<string, string>("ReceiveChatMessage", (playerNickname, message)
+            _hubConnection.On<string, string>("ReceiveChatMessage", (playerNickname, message )
                 => ReceiveChatMessageEvent?.Invoke(playerNickname, message));
 
             _hubConnection.On<string>("AskAnotherPlayerForNextGame", (userId)

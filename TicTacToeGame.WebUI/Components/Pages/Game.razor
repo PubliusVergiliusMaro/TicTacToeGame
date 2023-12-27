@@ -12,6 +12,7 @@
 @using TicTacToeGame.Services.HubConnections
 @using TicTacToeGame.WebUI.Components.Account
 @using TicTacToeGame.WebUI.Components.Layout
+@using Microsoft.AspNetCore.Components.Web
 @using TicTacToeGame.WebUI.Hubs
 
 @inject PlayerRepository _playerRepository
@@ -28,6 +29,9 @@
 @inject GameSessionService GameSessionService
 @inject GameHubConnection GameHubConnection
 @inject GameManager GameManager
+@inject IServiceProvider ServiceProvider
+
+@inject IJSRuntime JSRuntime
 
 @implements IAsyncDisposable
 
@@ -127,18 +131,19 @@
         }
         @if (ChatService.IsReceivedNewMessage == true)
         {
-            <button style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: orangered; color: #fff; border: none; cursor: pointer;"
+            <button id="chatButton" style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: orangered; color: #fff; border: none; cursor: pointer;"
                     @onclick="ChatService.ToggleChat">
                 Chat
             </button>
         }
         else
         {
-            <button style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;"
+            <button id="chatButton" style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;"
                     @onclick="ChatService.ToggleChat">
                 Chat
             </button>
         }
+    
         <button style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: #ff6347; color: #fff; border: none; cursor: pointer;" @onclick="LeaveGame">
             Leave Game
         </button>
@@ -206,7 +211,7 @@
 
     @if (ChatService.IsChatVisible)
     {
-        <div id="chatContainer" style="position: fixed; bottom: 0; right: 0; width: 300px; height: 400px; border: 1px solid #ccc; padding: 10px; margin: 10px; background-color: #f9f9f9;">
+        <div id="chatContainer" style="position: fixed;  bottom: 0; right: 0; width: 300px; height: 400px; border: 1px solid #ccc; padding: 10px; margin: 10px; background-color: #f9f9f9;">
             <div class="d-flex justify-content-between">
                 <h3>Chat</h3>
                 <button style="margin:0px 0px 5px 0px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;" @onclick="ChatService.ToggleChat">
@@ -220,8 +225,8 @@
                 }
 
             </div>
-            <input @bind="ChatService.Message" @bind:event="oninput" type="text" style="width: 70%; padding: 5px;" placeholder="Type your message here..." maxlength="250" />
-            <button @onclick="SendMessage" disabled="@string.IsNullOrEmpty(ChatService.Message)" style="width: 28%; padding: 5px 10px; background-color: @(string.IsNullOrEmpty(ChatService.Message) ? "#ccc" : "#14bdac"); color: #fff; border: none; cursor: pointer;">Send</button>
+            <input @bind="ChatService.Message" @bind:event="oninput" @onkeydown="@Enter" type="text" style="width: 70%; padding: 5px;" placeholder="Type your message here..." maxlength="250" />
+            <button @onclick="SendMessage" disabled="@string.IsNullOrWhiteSpace(ChatService.Message)" style="width: 28%; padding: 5px 10px; background-color: @(string.IsNullOrWhiteSpace(ChatService.Message) ? "#ccc" : "#14bdac"); color: #fff; border: none; cursor: pointer;">Send</button>
         </div>
 
         <script>
@@ -239,6 +244,7 @@
                 scrollChatToBottom();
             });
         </script>
+       
     }
 }
 else
@@ -260,6 +266,10 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("registerEventHandler", "click", DotNetObjectReference.Create(this), nameof(OnDocumentClick));
+        }
         if (!isInitialized)
         {
             isInitialized = true;
@@ -321,6 +331,15 @@ else
                 InvokeAsync(StateHasChanged);
             }
         }
+    }
+    [JSInvokable]
+    public void OnDocumentClick()
+    {
+        // Hide the chat when clicking outside the chat area
+        ChatService.IsChatVisible = false;
+
+        // Force a re-render to update the UI
+        StateHasChanged();
     }
     private async Task<bool> ReInitializeGame()
     {
@@ -426,6 +445,14 @@ else
     {
         await ChatService.SendMessage(ChatService.Message, GameManager.CurrentPlayer, (int)GameManager.CurrentGame.RoomId);
         ChatService.Message = "";
+    }
+    
+    public async Task Enter(KeyboardEventArgs e)
+    {
+        if ((e.Code == "Enter" || e.Code == "NumpadEnter") && !string.IsNullOrWhiteSpace(ChatService.Message))
+        {
+            await SendMessage();
+        }
     }
     void UpdateSendButton(ChangeEventArgs e) => ChatService.Message = e.Value.ToString();
 
