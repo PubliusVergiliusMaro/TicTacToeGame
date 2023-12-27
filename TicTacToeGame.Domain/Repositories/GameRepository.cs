@@ -19,12 +19,32 @@ namespace TicTacToeGame.Domain.Repositories
         public List<Game> GetAll() => _db.Query<Game>("Select", commandType: CommandType.StoredProcedure).AsList();
         public Game? GetById(int id)
         {
-          
+
             return policy.Execute(() =>
             {
                 using (var connection = new SqlConnection(_connectionString))
                 {
                     return connection.Query<Game>("GetGameById", new { GameId = id }, commandType: CommandType.StoredProcedure).FirstOrDefault();
+                }
+            });
+        }
+        public List<Game> GetEmptyGames()
+        {
+            return policy.Execute(() =>
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    return connection.Query<Game>("SelectEmptyGames", commandType: CommandType.StoredProcedure).AsList();
+                }
+            });
+        }
+        public void UpdateGameResult(int gameId, GameState gameResult)
+        {
+            policy.Execute(() =>
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    connection.Query("UpdateGameResult", new { Id = gameId, GameResult = gameResult }, commandType: CommandType.StoredProcedure);
                 }
             });
         }
@@ -70,16 +90,16 @@ namespace TicTacToeGame.Domain.Repositories
                 return null; // or throw a custom exception
             }
         }
-        public List<Game> GetGameHistoryInSession(GameState gameResult,string hostId,string guestId,int? roomId)
+        public List<Game> GetGameHistoryInSession(GameState gameResult, string hostId, string guestId, int? roomId)
         {
-            
+
             try
             {
                 return policy.Execute(() =>
                 {
                     using (var connection = new SqlConnection(_connectionString))
                     {
-                        return connection.Query<Game>("GetGamesByResultAndPlayers", new { GameResult = gameResult, HostId = hostId,GuestId = guestId,RoomId = roomId },
+                        return connection.Query<Game>("GetGamesByResultAndPlayers", new { GameResult = gameResult, HostId = hostId, GuestId = guestId, RoomId = roomId },
                         commandType: CommandType.StoredProcedure).ToList();
                     }
                 });

@@ -7,7 +7,9 @@ namespace TicTacToeGame.Services.GameProcessService;
 public class CheckForWinnerManager
 {
     private readonly GameManager _gameManager;
+
     private readonly GamesStatisticsService _gamesStatisticsService;
+
     public event Action StateHasChanged;
 
     public string GameStatus { get; set; }
@@ -81,9 +83,13 @@ public class CheckForWinnerManager
         return a != BoardElements.Empty && a == b && b == c;
     }
 
-    public void SendGameStatus(GameState receiveGameResult, string receiveGameStatus, int gameId)
+    public void ReceiveGameStatus(GameState receiveGameResult, string receiveGameStatus, int gameId)
     {
         _gameManager.CurrentGame.GameResult = receiveGameResult;
+        
+        if(receiveGameResult == GameState.Finished)
+            _gamesStatisticsService.UpdatePlayersGameHistory(_gameManager.CurrentPlayerHost.Id, _gameManager.CurrentPlayerGuest.Id, _gameManager.CurrentGame.RoomId);
+        
         GameStatus = receiveGameStatus;
         _gamesStatisticsService.GetGamesByResultAndPlayers(_gameManager);
         StateHasChanged?.Invoke();

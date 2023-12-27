@@ -8,8 +8,16 @@ namespace TicTacToeGame.Services.GamesStatisticServices
     public class GamesStatisticsService
     {
         private readonly GamesHistoryRepository _gamesHistoryRepository;
+
         private readonly PlayerRepository _playerRepository;
+        
         private readonly GameRepository _gameRepository;
+
+        public int HostWinsCount { get; set; }
+        
+        public int GuestWinsCount { get; set; }
+
+        public GamesHistory GamesHistory { get; set; } = new();
 
         public GamesStatisticsService(GamesHistoryRepository gamesHistoryRepository,
             PlayerRepository playerRepository,
@@ -19,6 +27,14 @@ namespace TicTacToeGame.Services.GamesStatisticServices
             _playerRepository = playerRepository;
             _gameRepository = gameRepository;
         }
+
+        public void UpdatePlayersGameHistory(string playerHostId, string playerGuestId, int? roomId)
+        {
+            GamesHistory = new();
+
+            GamesHistory.Games = GetGamesHistoryResults(playerHostId, playerGuestId, roomId);
+        }
+
         public async Task<GamesHistory> GetGamesHistoryByPlayerId(string playerId)
         {
             GamesHistory gamesHistory = await _gamesHistoryRepository.GetGamesHistoryByPlayerId(playerId);
@@ -31,11 +47,11 @@ namespace TicTacToeGame.Services.GamesStatisticServices
             return gamesHistory;
         }
 
+
         public async Task<List<Game>> GetPlayedGames(string playerId)
         {
             try
             {
-                // 1. Get the player's game history
                 GamesHistory gamesHistory = await GetGamesHistoryByPlayerId(playerId);
 
                 if (gamesHistory == null)
@@ -43,7 +59,6 @@ namespace TicTacToeGame.Services.GamesStatisticServices
                     throw new ArgumentNullException(nameof(gamesHistory), "Games history not found for the player");
                 }
 
-                // 2. Get games by the id of the games history
                 List<Game> games = _gameRepository.GetGamesByGamesHistoryId(gamesHistory.Id);
 
                 if (games == null)
@@ -94,6 +109,7 @@ namespace TicTacToeGame.Services.GamesStatisticServices
             }
             return player;
         }
+
         public void GetGamesByResultAndPlayers(GameManager gameManager)
         {
             gameManager.GamesHistory.Games = _gameRepository.GetGameHistoryInSession(GameState.Finished, gameManager.CurrentPlayerHost.Id,

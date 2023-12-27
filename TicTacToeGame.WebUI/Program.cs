@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using Serilog.Sinks.SystemConsole.Themes;
 using TicTacToeGame.Domain.Constants;
 using TicTacToeGame.Domain.Models;
 using TicTacToeGame.Domain.Repositories;
@@ -10,6 +11,7 @@ using TicTacToeGame.Services.GameProcessService;
 using TicTacToeGame.Services.GamesStatisticServices;
 using TicTacToeGame.Services.HubConnections;
 using TicTacToeGame.Services.RoomServices;
+using TicTacToeGame.WebUI.BackgroundServices;
 using TicTacToeGame.WebUI.Components;
 using TicTacToeGame.WebUI.Components.Account;
 using TicTacToeGame.WebUI.Data;
@@ -86,6 +88,10 @@ builder.Services.AddTransient<JoinRoomHubConnection>();
 builder.Services.AddScoped<GameHubConnection>();
 
 builder.Services.AddTransient<HostRoomHubConnection>();
+
+builder.Services.AddHostedService<GameTrackingService>();
+
+builder.Services.AddSingleton<GameBoardManager>();
 
 builder.Services.AddServerSideBlazor(options =>
 {

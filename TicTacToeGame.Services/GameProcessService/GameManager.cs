@@ -25,18 +25,25 @@ public class GameManager
     public PlayerRepository PlayerRepository;
 
     public BoardElements[] Board = new BoardElements[TicTacToeRules.BOARD_SIZE];
+    public BoardElements[] OldBoard = new BoardElements[TicTacToeRules.BOARD_SIZE];
 
     public bool IsInitialized = false;
+
+    public bool IsLoadingNextGame = false;
+
+    public bool IsCleanedUp = false;
 
     public async Task InitializeAuthState(AuthenticationStateProvider authenticationStateProvider)
     {
         AuthenticationState = await authenticationStateProvider.GetAuthenticationStateAsync();
         ClaimsPrincipal = AuthenticationState.User;
+        IsCleanedUp = false;
     }
     public void InitializeRepositories(GameRepository gameRepository, PlayerRepository playerRepository)
     {
         GameRepository = gameRepository;
         PlayerRepository = playerRepository;
+        IsCleanedUp = false;
     }
     public string GetCurrentUserId()
     {
@@ -50,6 +57,7 @@ public class GameManager
         {
             return false;
         }
+        IsCleanedUp = false;
         return true;
     }
     
@@ -63,6 +71,7 @@ public class GameManager
         CurrentPlayerHost = PlayerRepository.GetById(CurrentGame.PlayerHostId);
         CurrentPlayerGuest = PlayerRepository.GetById(CurrentGame.PlayerGuestId);
         CurrentPlayer = PlayerRepository.GetById(GetCurrentUserId());
+        IsCleanedUp = false;
 
         return true;
     }
@@ -89,24 +98,20 @@ public class GameManager
     }
 
     public bool IsAuthenticatedUser() => ClaimsPrincipal?.Identity?.IsAuthenticated == true;
-    public string GetOpponentName(string connectionId)
+    
+    public string GetOpponentName(string userId)
     {
-        if (CurrentPlayerHost.GameConnectionId == connectionId)
-        {
-            return CurrentPlayerHost.UserName;
-        }
-        else
-        {
-            return CurrentPlayerGuest.UserName;
-        }
+        return CurrentPlayerHost.Id == userId ? CurrentPlayerHost.UserName : CurrentPlayerGuest.UserName;
     }
 
     public bool IsTwoPlayersPlaying()
     {
         return PlayerRepository.CheckIfTwoPlayersArePlaying(CurrentPlayerHost.Id, CurrentPlayerGuest.Id);
     }
+
     public void ClearData()
     {
+        IsCleanedUp = true;
         AuthenticationState = null;
         ClaimsPrincipal = null;
         CurrentPlayerHost = null;
@@ -116,6 +121,8 @@ public class GameManager
         GameRepository = null;
         PlayerRepository = null;
         IsInitialized = false;
+        IsLoadingNextGame = false;
+        OldBoard = Board;
         Board = new BoardElements[TicTacToeRules.BOARD_SIZE];
     }
 }

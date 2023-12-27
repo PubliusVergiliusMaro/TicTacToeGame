@@ -11,6 +11,8 @@ public class GameInitializeService
 
     private readonly GameReconnectingService _gameReconnectingService;
 
+    private readonly GameBoardManager _gameBoardManager;
+
     private readonly GameManager _gameManager;
     public bool IsPlayerAlreadyPlaying { get; set; } = false;
 
@@ -18,13 +20,15 @@ public class GameInitializeService
         GameReconnectingService gameReconnectingService,
         GameRepository gameRepository,
         PlayerRepository playerRepository,
-        GameManager gameManager)
+        GameManager gameManager,
+        GameBoardManager gameBoardManager)
     {
         _gameRepository = gameRepository;
         _gameReconnectingService = gameReconnectingService;
         _playerRepository = playerRepository;
         _authenticationStateProvider = authenticationStateProvider;
         _gameManager = gameManager;
+        _gameBoardManager = gameBoardManager;
     }
 
     public async Task<bool> InitializeGameForAuthenticatedUser()
@@ -44,12 +48,13 @@ public class GameInitializeService
                 _gameManager.InitializeRepositories(_gameRepository, _playerRepository);
                 bool isSuccesfullyGame = _gameManager.InitializeGame();
                 bool isSuccesfullyPlayer = _gameManager.InitializePlayers();
-
                 if(!isSuccesfullyGame || !isSuccesfullyPlayer)
                 {
                     return false;
                 }
 
+                AddBoardToManager();
+                
                 _gameManager.IsInitialized = true;
                 return true;
             }
@@ -64,5 +69,11 @@ public class GameInitializeService
             IsPlayerAlreadyPlaying = true;
             return false;
         }
+    }
+    private void AddBoardToManager()
+    {
+        _gameBoardManager.AddBoardIfNotExist(_gameManager.CurrentGame.UniqueId, _gameManager.Board);
+
+        _gameManager.Board = _gameBoardManager.GetBoard(_gameManager.CurrentGame.UniqueId);
     }
 }

@@ -1,4 +1,5 @@
-﻿using TicTacToeGame.Domain.Constants;
+﻿using System.Runtime.CompilerServices;
+using TicTacToeGame.Domain.Constants;
 using TicTacToeGame.Domain.Enums;
 using TicTacToeGame.Domain.Models;
 using TicTacToeGame.Domain.Repositories;
@@ -17,20 +18,27 @@ namespace TicTacToeGame.Services.GameProcessService
 
         private readonly GameReconnectingService _gameReconnectingService;
 
+        private readonly GameBoardManager _gameBoardManager;
+
         public event Action StateHasChanged;
 
         public bool OpponentLeaved { get; set; } = false;
         public string LivedPlayerName { get; set; } = "";
 
+        public bool IsOpponentConnected = false;
+
         public Timer _moveTimer;
         public Timer _responseTimer;
 
 
-        public PlayerDisconectingTrackingService(GameManager gameManager, GameHubConnection gameHubConnection,
+        public PlayerDisconectingTrackingService(GameManager gameManager,
+            GameHubConnection gameHubConnection,
             CheckForWinnerManager checkForWinnerManager,
-            GameReconnectingService gameReconnectingService)
+            GameReconnectingService gameReconnectingService,
+            GameBoardManager gameBoardManager)
         {
             _gameManager = gameManager;
+            _gameBoardManager = gameBoardManager;
             _gameHubConnection = gameHubConnection;
             _checkForWinnerManager = checkForWinnerManager;
             _gameReconnectingService = gameReconnectingService;
@@ -39,7 +47,7 @@ namespace TicTacToeGame.Services.GameProcessService
         {
             _gameHubConnection = gameHubConnection;
         }
-        
+        // Disconnection with timers
         public void InitializeTimers()
         {
             _moveTimer = new Timer(DisconnectingTrackingConstants.MOVE_TIME * 1000);
@@ -50,20 +58,45 @@ namespace TicTacToeGame.Services.GameProcessService
             _responseTimer.AutoReset = false;
             _responseTimer.Elapsed += (sender, e) => OpponentIsNotAlive();
 
-            _moveTimer.Start();
+            //_moveTimer.Start();
+        }
+        public void StartTimers()
+        {
+            if (_moveTimer == null)
+            {
+                InitializeTimers();
+                StartTimers();
+            }
+            else
+            {
+                _moveTimer.Start();
+            }
         }
 
         private async Task CheckIfPlayerAlive()
         {
-            if(_gameManager.CurrentGame == null)
+            if (_gameManager.CurrentGame == null)
             {
                 _responseTimer?.Stop();
                 _moveTimer?.Stop();
             }
-            await _gameHubConnection.CheckIfOpponentLeaves((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
-            _responseTimer.Start();
-        }
+            else
+            {
 
+                if (_gameHubConnection._hubConnection.State == Microsoft.AspNetCore.SignalR.Client.HubConnectionState.Disconnected)
+                {
+                    _responseTimer?.Stop();
+                    _moveTimer?.Stop();
+                }
+                else
+                {
+                    await _gameHubConnection.CheckIfOpponentLeaves((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
+
+                    _responseTimer.Start();
+                }
+            }
+        }
+        // method that makes all dirty work
         private async void OpponentIsNotAlive()
         {
             OpponentLeaved = true;
@@ -77,10 +110,16 @@ namespace TicTacToeGame.Services.GameProcessService
 
                 _gameManager.GameRepository.UpdateEntity(_gameManager.CurrentGame);
 
-                await _gameHubConnection.OpponentLeft((int)_gameManager.CurrentGame.RoomId);
+                await _gameHubConnection.SendOpponentLeft((int)_gameManager.CurrentGame.RoomId);// Refactor and maybe remove
             }
+
             _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerHost.Id);
+
             _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerGuest.Id);
+            
+            _gameBoardManager.RemoveBoard(_gameManager.CurrentGame.UniqueId);
+
+            StateHasChanged?.Invoke();
         }
 
         public void ReloadMoveTimer()
@@ -90,18 +129,19 @@ namespace TicTacToeGame.Services.GameProcessService
             _moveTimer?.Start();
         }
 
-        public void OpponentLeaves(int roomId, string connectionId)
+        // I think it`s on signalR
+        public void ReceiveOpponentLeaves(int roomId, string userId)
         {
-            if (_gameManager.CurrentGame.RoomId == roomId)
+            if (_gameManager.CurrentPlayer != null && _gameManager.CurrentPlayer.Id != userId)
             {
-                LivedPlayerName = _gameManager.GetOpponentName(connectionId);
+                LivedPlayerName = _gameManager.GetOpponentName(userId);
 
                 OpponentIsNotAlive();
 
                 StateHasChanged?.Invoke();
             }
         }
-        public void CheckIfOpponentLeaves(int roomId, string userId)
+        public void ReceiveCheckIfOpponentLeaves(int roomId, string userId)
         {
             CheckIfOpponentLeavesAsync(roomId, userId).GetAwaiter().GetResult();
         }
@@ -109,17 +149,19 @@ namespace TicTacToeGame.Services.GameProcessService
         {
             if (_gameManager.CurrentPlayer.Id != userId)
             {
-                await _gameHubConnection.OpponentNotLeaves((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
+                await _gameHubConnection.SendOpponentNotLeaves((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
             }
         }
 
-        public void OpponentNotLeaves(int roomId, string userId)
+        public void ReceiveOpponentNotLeaves(int roomId, string userId)
         {
             if (_gameManager.CurrentPlayer.Id != userId)
             {
                 ReloadMoveTimer();
             }
         }
+
+        // Disconnection on Leave Game button
         public void UpdateGameResultAfterTwoPlayersDisconnection()
         {
             if (_gameManager.CurrentPlayerGuest is not null && _gameManager.CurrentPlayerHost is not null)
@@ -130,28 +172,69 @@ namespace TicTacToeGame.Services.GameProcessService
                 if (!host.IsPlaying && !guest.IsPlaying)
                 {
                     Game CurrentGame = _gameManager.GameRepository.GetById(_gameManager.CurrentGame.Id);
-                    CurrentGame.GameResult = GameState.Finished;
-                    if (!_checkForWinnerManager.CheckForWinner())
+
+                    if (CurrentGame.GameResult != GameState.Declined)
                     {
-                        if (_checkForWinnerManager.CheckForTie())
+                        CurrentGame.GameResult = GameState.Finished;
+                        if (!_checkForWinnerManager.CheckForWinner())
                         {
-                            CurrentGame.Winner = PlayerType.None;
+                            if (_checkForWinnerManager.CheckForTie())
+                            {
+                                CurrentGame.Winner = PlayerType.None;
+                            }
                         }
-                    }
-                    else
-                    {
-                        CurrentGame.Winner = (CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
+                        else
+                        {
+                            CurrentGame.Winner = (CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
+                        }
                     }
                     _gameManager.GameRepository.UpdateEntity(CurrentGame);
                 }
             }
         }
-
-        public void OpponentLeft()
+        // 
+        public void ReceiveOpponentLeft()
         {
             OpponentLeaved = true;
             _checkForWinnerManager.GameStatus = "Game Over";
             StateHasChanged?.Invoke();
+        }
+
+        // Player connection
+
+        // плеєр конектиться і чекає другого, другий конектиться
+        // і відправляє меседж про це і коли той отримує то він перевіряє чи отримував вже чи ні якщо
+        // ні то відправляє назад, цей отримує і
+        // відправляє назад і той замикає коло бо не відправляє назад
+
+        public bool isReceivedConnectedStatus = false;
+        public async Task SendConnectedStatus(int roomId, string userId)
+        {
+            await _gameHubConnection.SendConnectedStatus(roomId, userId, isReceivedConnectedStatus);
+        }
+        public void ReceiveConnectedStatus(string userId, bool isAnotherPlayerNotified)
+        {
+            ReceiveConnectedStatusAsync(userId, isAnotherPlayerNotified).GetAwaiter().GetResult();
+        }
+        public async Task ReceiveConnectedStatusAsync(string userId, bool isAnotherPlayerNotified)
+        {
+            if (_gameManager.CurrentPlayer.Id != userId && !_gameManager.IsLoadingNextGame)
+            {
+                if (isReceivedConnectedStatus == false)
+                {
+                    isReceivedConnectedStatus = true;
+
+                    StartTimers();
+
+                    IsOpponentConnected = true;
+                    StateHasChanged?.Invoke();
+                }
+
+                if (!isAnotherPlayerNotified)
+                {
+                    await _gameHubConnection.SendConnectedStatus((int)_gameManager.CurrentGame.RoomId, _gameManager.GetCurrentUserId(), isReceivedConnectedStatus);
+                }
+            }
         }
 
         public async ValueTask DisposeAsync()

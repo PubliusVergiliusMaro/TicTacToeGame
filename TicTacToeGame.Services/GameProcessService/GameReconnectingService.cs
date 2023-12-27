@@ -40,6 +40,17 @@ namespace TicTacToeGame.Services.GameProcessService
 
             return false;
         }
+        public bool CheckIfPlayerIsPlaying(string userId)
+        {
+            Player player = _playerRepository.GetById(userId);
+
+            if (player.IsPlaying == true)
+            {
+                return true;
+            }
+
+            return false;
+        }
         public bool CheckIfPlayerIsAlreadyPlaying(string playerId)
         {
             Player CurrentPlayer = _playerRepository.GetById(playerId);
@@ -68,7 +79,22 @@ namespace TicTacToeGame.Services.GameProcessService
                 }
             }
         }
+        public void CheckIfPlayerIsPlayingAndHasGameById(string userId)
+        {
+            Player currentPlayer = _playerRepository.GetById(userId);
+
+            if (currentPlayer != null && currentPlayer.IsPlaying == true)
+            {
+                Game game = _gameRepository.GetByUserId(currentPlayer.Id);
+
+                if (game == null)
+                {
+                    MakePlayerNotPlaying(currentPlayer.Id);
+                }
+            }
+        }
         public void MakePlayerNotPlaying(string playerId)
+
         {
             _playerRepository.UpdatePlayerStatus(playerId, false);
         }

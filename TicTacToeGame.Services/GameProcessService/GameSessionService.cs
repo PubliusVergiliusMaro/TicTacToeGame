@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.SignalR.Client;
 using TicTacToeGame.Domain.Enums;
 using TicTacToeGame.Domain.Models;
-using TicTacToeGame.Domain.Repositories;
 using TicTacToeGame.Services.HubConnections;
 
 namespace TicTacToeGame.Services.GameProcessService
@@ -35,75 +33,94 @@ namespace TicTacToeGame.Services.GameProcessService
         {
             _gameHubConnection = gameHubConnection;
         }
-        public void AskAnotherPlayerForNextGame(string userId)
+       
+        // Send from one client to another request on next game
+        // If it accept it sends to the service message about that it have to create new game
+        // service creates new game and send to the two clients message about that they have to join to the new game
+
+        // method for sending,method for receiving, method for accepting/declining, method for creating new game, method for sending to clients message about joining
+
+        // Request for next game
+        public async Task SendRequestOnNextGame(int roomId, string userId)
+        {
+            SendedRequestForNextGame = true;
+            await _gameHubConnection.AskAnotherPlayerForNextGame(roomId, userId);
+        }
+
+        public void ReceiveRequestOnNextGame(string userId)
         {
             if (userId != _gameManager.CurrentPlayer.Id)
             {
-                RequestForNextGame = true;
-                StateHasChanged?.Invoke();
+                if (SendedRequestForNextGame == false)
+                {
+                    RequestForNextGame = true;
+                    StateHasChanged?.Invoke();
+                }
             }
         }
-        public void DeclineAnotherGameRequest(string userId)
+
+        // Decline request on next game
+        public async Task DeclineRequestOnNextGame()
+        {
+            await _gameHubConnection.SendDeclineAnotherGameRequest((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
+
+            DeclinedNextGame = true;
+            StateHasChanged?.Invoke();
+        }
+        public void ReceiveDeclineRequestOnNextGame(string userId)
         {
             ApprovedNextGame = false;
             DeclinedNextGame = true;
             RequestForNextGame = true;
             StateHasChanged?.Invoke();
         }
-        public void AcceptAnotherGameRequest(string userId)
+
+        // Accept request on next game
+        public async Task AcceptNextGameRequest()
         {
-            AcceptAnotherGameRequestAsync(userId).GetAwaiter().GetResult();
-        }
-        public async Task AcceptAnotherGameRequestAsync(string userId)
-        {
-            if (userId != _gameManager.CurrentPlayer.Id)
+            bool isSuccesfullyCreatedGame = await CreateNextGame();
+        
+            if (isSuccesfullyCreatedGame)
             {
-                ApprovedNextGame = true;
-                DeclinedNextGame = false;
-                Random random = new Random();
+                await _gameHubConnection.SendReadyNextGameStatus((int)_gameManager.CurrentGame.RoomId);
+            }
+        }
+        public void ReceiveReadyNextGameStatus()
+        {
+            _gameManager.IsLoadingNextGame = true;
+
+            _navigationManager.NavigateTo("/game", forceLoad: true);
+        }
+
+        public async Task<bool> CreateNextGame()
+        {
+            try
+            {
                 Game newGame = new()
                 {
                     PlayerHostId = _gameManager.CurrentGame.PlayerHostId,
                     PlayerGuestId = _gameManager.CurrentGame.PlayerGuestId,
                     RoomId = _gameManager.CurrentGame.RoomId,
                     GameResult = GameState.Starting,
-                    CurrentTurn = random.Next(3) == 0 ? PlayerType.Host : PlayerType.Guest
+                    CurrentTurn = new Random().Next(3) == 0 ? PlayerType.Host : PlayerType.Guest
                 };
 
                 _gameManager.GameRepository.AddEntity(newGame);
 
-                _gameManager.PlayerRepository.UpdatePlayerStatus(_gameManager.CurrentPlayer.Id, true);
+                _gameManager.PlayerRepository.UpdatePlayerStatus(_gameManager.CurrentPlayer.Id, false);
+                _gameManager.PlayerRepository.UpdatePlayerStatus(_gameManager.CurrentGame.PlayerHostId, false);
+                _gameManager.PlayerRepository.UpdatePlayerStatus(_gameManager.CurrentGame.PlayerGuestId, false);
 
-                await _gameHubConnection.JoinNextGame((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
+                _gameManager.CurrentPlayer.IsPlaying = false;
+                _gameManager.CurrentPlayerHost.IsPlaying = false;
+                _gameManager.CurrentPlayerGuest.IsPlaying = false;
 
-                _navigationManager.NavigateTo("/game", forceLoad: true);
+                return true;
             }
-        }
-        
-        public void JoinNextGame(string userId)
-        {
-            if (userId != _gameManager.CurrentPlayer.Id)
+            catch (Exception)
             {
-                _gameManager.PlayerRepository.UpdatePlayerStatus(_gameManager.CurrentPlayer.Id, true);
-
-                _navigationManager.NavigateTo("/game", forceLoad: true);
+                return false;
             }
-        }
-
-        public async Task ApproveNextGamePlayerRequest()
-        {
-            await _gameHubConnection.AcceptAnotherGameRequest((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
-        }
-        public async Task DeclineNextPlayerRequest()
-        {
-            await _gameHubConnection.DeclineAnotherGameRequest((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
-
-            DeclinedNextGame = true;
-            StateHasChanged?.Invoke();
-        }
-        public async Task PlayNextGame()
-        {
-            await _gameHubConnection.AskAnotherPlayerForNextGame((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
         }
     }
 }

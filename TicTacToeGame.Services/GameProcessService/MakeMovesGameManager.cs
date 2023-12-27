@@ -15,6 +15,8 @@ public class MakeMovesGameManager
 
     private readonly CheckForWinnerManager _checkForWinnerManager;
 
+    private readonly GameBoardManager _gameBoardManager;
+
     private GameHubConnection _gameHubConnection;
 
     private readonly GameManager _gameManager;
@@ -28,6 +30,7 @@ public class MakeMovesGameManager
         CheckForWinnerManager checkForWinnerManager,
         GameReconnectingService gameReconnectingService,
         GameHubConnection gameHubConnection,
+        GameBoardManager gameBoardManager,
         GameManager gameManager)
     {
         _gamesStatisticsService = gamesStatisticsService;
@@ -35,6 +38,7 @@ public class MakeMovesGameManager
         _gameReconnectingService = gameReconnectingService;
         _gameHubConnection = gameHubConnection;
         _gameManager = gameManager;
+        _gameBoardManager = gameBoardManager;
     }
     public void SetHubConnection(GameHubConnection gameHubConnection)
     {
@@ -56,6 +60,18 @@ public class MakeMovesGameManager
     {
         try
         {
+            if (MoveWasMade)
+            {
+                return;
+            }
+
+            MoveWasMade = true;
+
+            if (index < 0 || index >= _gameManager.Board.Length)
+            {
+                throw new IndexOutOfRangeException("Invalid index");
+            }
+
             if (_gameManager.Board[index] == BoardElements.Empty && _gameManager.CurrentGame.GameResult == GameState.Starting)
             {
                 // Check if it's the correct player's turn
@@ -161,6 +177,11 @@ public class MakeMovesGameManager
             _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerGuest.Id);
             _gameManager.CurrentPlayerGuest.IsPlaying = false;
 
+            _gamesStatisticsService.UpdatePlayersGameHistory(_gameManager.CurrentPlayerHost.Id, _gameManager.CurrentPlayerGuest.Id, _gameManager.CurrentGame.RoomId);
+
+            _gameBoardManager.RemoveBoard(_gameManager.CurrentGame.UniqueId);
+
+            StateHasChanged?.Invoke();
         }
         catch (NullReferenceException ex)
         {
@@ -198,6 +219,8 @@ public class MakeMovesGameManager
     {
         PlayerType nextPlayerTurn = (_gameManager.CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
 
+        _gameBoardManager.UpdateBoard(_gameManager.CurrentGame.UniqueId, _gameManager.Board);
+
         await _gameHubConnection.SendGameState(_gameManager.Board, nextPlayerTurn, (int)_gameManager.CurrentGame.RoomId);
     }
 
@@ -206,7 +229,7 @@ public class MakeMovesGameManager
         _gameManager.GameRepository.UpdateEntity(_gameManager.CurrentGame);
     }
 
-    public void SendAnotherPlayerBoard(string userId, BoardElements[] playerBoard)
+    public void ReceiveAnotherPlayerBoard(string userId, BoardElements[] playerBoard)
     {
         if (userId != _gameManager.CurrentPlayer.Id)
         {
@@ -214,21 +237,28 @@ public class MakeMovesGameManager
             StateHasChanged?.Invoke();
         }
     }
-    public void AskAnotherPlayerBoard(string userId, int gameId)
+    public void AskToReceiveAnotherPlayerBoard(string userId, int gameId)
     {
         AskAnotherPlayerBoardAsync(userId, gameId).GetAwaiter().GetResult();
     }
     private async Task AskAnotherPlayerBoardAsync(string userId, int gameId)
     {
-        if (_gameManager.CurrentPlayer != null)
+        if (_gameManager.CurrentPlayer != null && _gameManager.CurrentPlayer.Id != userId)
         {
-            string currentUserId = _gameManager.CurrentPlayer.Id;
-            if (userId != currentUserId)
-                await _gameHubConnection.SendAnotherPlayerBoard((int)_gameManager.CurrentGame.RoomId, currentUserId, _gameManager.Board);
+            if (!_gameManager.IsLoadingNextGame)
+            {
+                await _gameHubConnection.SendAnotherPlayerBoard((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id, _gameManager.Board);
+            }
+            else
+            {
+                Game newGame = _gameManager.GameRepository.GetByUserId(_gameManager.GetCurrentUserId());
+
+                await _gameHubConnection.SendAnotherPlayerBoard((int)newGame.RoomId, _gameManager.CurrentPlayer.Id, new BoardElements[TicTacToeRules.BOARD_SIZE]);
+            }
         }
     }
 
-    public void SendGameState(BoardElements[] receivedBoard, PlayerType nextPlayerTurn, int gameId)
+    public void ReceiveGameState(BoardElements[] receivedBoard, PlayerType nextPlayerTurn, int gameId)
     {
         _gameManager.Board = receivedBoard;
         _gameManager.CurrentGame.CurrentTurn = nextPlayerTurn;

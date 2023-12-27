@@ -15,6 +15,7 @@
 @inject PlayerRepository PlayerRepository
 
 @rendermode InteractiveServer
+
 @attribute [Authorize]
 
 <style>
@@ -115,6 +116,7 @@
     private Player CurrentPlayer;
     private bool isLoading = true;
 
+
     protected override void OnInitialized()
     {
 
@@ -136,7 +138,11 @@
                     NavigationManager.NavigateTo("/game");
                 }
             }
+
             isLoading = false;
+            
+            GameReconnectingService.CheckIfPlayerIsPlayingAndHasGameById(userId);
+
             StateHasChanged();
         });
     }
