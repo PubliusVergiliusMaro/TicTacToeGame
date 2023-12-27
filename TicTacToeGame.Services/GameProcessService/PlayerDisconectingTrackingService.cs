@@ -1,4 +1,5 @@
-﻿using TicTacToeGame.Domain.Constants;
+﻿using System.Runtime.CompilerServices;
+using TicTacToeGame.Domain.Constants;
 using TicTacToeGame.Domain.Enums;
 using TicTacToeGame.Domain.Models;
 using TicTacToeGame.Domain.Repositories;
@@ -21,6 +22,8 @@ namespace TicTacToeGame.Services.GameProcessService
 
         public bool OpponentLeaved { get; set; } = false;
         public string LivedPlayerName { get; set; } = "";
+
+        public bool IsOpponentConnected = false;
 
         public Timer _moveTimer;
         public Timer _responseTimer;
@@ -50,20 +53,43 @@ namespace TicTacToeGame.Services.GameProcessService
             _responseTimer.AutoReset = false;
             _responseTimer.Elapsed += (sender, e) => OpponentIsNotAlive();
 
-            _moveTimer.Start();
+            //_moveTimer.Start();
+        }
+        public void StartTimers()
+        {
+            if (_moveTimer == null)
+            {
+                InitializeTimers();
+                StartTimers();
+            }
+            else
+            {
+                _moveTimer.Start();
+            }
         }
 
         private async Task CheckIfPlayerAlive()
         {
-            if(_gameManager.CurrentGame == null)
+            if (_gameManager.CurrentGame == null)
             {
                 _responseTimer?.Stop();
                 _moveTimer?.Stop();
             }
-            
-            await _gameHubConnection.CheckIfOpponentLeaves((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
-            
-            _responseTimer.Start();
+            else
+            {
+
+                if (_gameHubConnection._hubConnection.State == Microsoft.AspNetCore.SignalR.Client.HubConnectionState.Disconnected)
+                {
+                    _responseTimer?.Stop();
+                    _moveTimer?.Stop();
+                }
+                else
+                {
+                    await _gameHubConnection.CheckIfOpponentLeaves((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
+
+                    _responseTimer.Start();
+                }
+            }
         }
         // method that makes all dirty work
         private async void OpponentIsNotAlive()
@@ -83,9 +109,13 @@ namespace TicTacToeGame.Services.GameProcessService
             }
 
             _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerHost.Id);
-            
-            _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerGuest.Id);
 
+            _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerGuest.Id);
+            
+            //// Hz
+            //_gameManager.ClearData();
+            ////
+           
             StateHasChanged?.Invoke();
         }
 
@@ -99,7 +129,7 @@ namespace TicTacToeGame.Services.GameProcessService
         // I think it`s on signalR
         public void ReceiveOpponentLeaves(int roomId, string userId)
         {
-            if (_gameManager.CurrentPlayer.Id != userId)
+            if (_gameManager.CurrentPlayer != null && _gameManager.CurrentPlayer.Id != userId)
             {
                 LivedPlayerName = _gameManager.GetOpponentName(userId);
 
@@ -139,17 +169,21 @@ namespace TicTacToeGame.Services.GameProcessService
                 if (!host.IsPlaying && !guest.IsPlaying)
                 {
                     Game CurrentGame = _gameManager.GameRepository.GetById(_gameManager.CurrentGame.Id);
-                    CurrentGame.GameResult = GameState.Finished;
-                    if (!_checkForWinnerManager.CheckForWinner())
+
+                    if (CurrentGame.GameResult != GameState.Declined)
                     {
-                        if (_checkForWinnerManager.CheckForTie())
+                        CurrentGame.GameResult = GameState.Finished;
+                        if (!_checkForWinnerManager.CheckForWinner())
                         {
-                            CurrentGame.Winner = PlayerType.None;
+                            if (_checkForWinnerManager.CheckForTie())
+                            {
+                                CurrentGame.Winner = PlayerType.None;
+                            }
                         }
-                    }
-                    else
-                    {
-                        CurrentGame.Winner = (CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
+                        else
+                        {
+                            CurrentGame.Winner = (CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
+                        }
                     }
                     _gameManager.GameRepository.UpdateEntity(CurrentGame);
                 }
@@ -161,6 +195,43 @@ namespace TicTacToeGame.Services.GameProcessService
             OpponentLeaved = true;
             _checkForWinnerManager.GameStatus = "Game Over";
             StateHasChanged?.Invoke();
+        }
+
+        // Player connection
+
+        // плеєр конектиться і чекає другого, другий конектиться
+        // і відправляє меседж про це і коли той отримує то він перевіряє чи отримував вже чи ні якщо
+        // ні то відправляє назад, цей отримує і
+        // відправляє назад і той замикає коло бо не відправляє назад
+
+        public bool isReceivedConnectedStatus = false;
+        public async Task SendConnectedStatus(int roomId, string userId)
+        {
+            await _gameHubConnection.SendConnectedStatus(roomId, userId, isReceivedConnectedStatus);
+        }
+        public void ReceiveConnectedStatus(string userId, bool isAnotherPlayerNotified)
+        {
+            ReceiveConnectedStatusAsync(userId, isAnotherPlayerNotified).GetAwaiter().GetResult();
+        }
+        public async Task ReceiveConnectedStatusAsync(string userId, bool isAnotherPlayerNotified)
+        {
+            if (_gameManager.CurrentPlayer.Id != userId && !_gameManager.IsLoadingNextGame)
+            {
+                if (isReceivedConnectedStatus == false)
+                {
+                    isReceivedConnectedStatus = true;
+
+                    StartTimers();
+
+                    IsOpponentConnected = true;
+                    StateHasChanged?.Invoke();
+                }
+
+                if (!isAnotherPlayerNotified)
+                {
+                    await _gameHubConnection.SendConnectedStatus((int)_gameManager.CurrentGame.RoomId, _gameManager.GetCurrentUserId(), isReceivedConnectedStatus);
+                }
+            }
         }
 
         public async ValueTask DisposeAsync()

@@ -7,6 +7,8 @@ namespace TicTacToeGame.WebUI.BackgroundServices
 {
     public class GameTrackingService : IHostedService, IDisposable
     {
+        private const int SECONDS_BEFORE_DELETING_GAME = 35;
+
         private int executionCount = 0;
 
         private readonly ILogger<GameTrackingService> _logger;
@@ -28,7 +30,7 @@ namespace TicTacToeGame.WebUI.BackgroundServices
             _logger.LogInformation("Game Tracking Service running.");
 
             _timer = new Timer(DoWork, null, TimeSpan.Zero,
-                TimeSpan.FromSeconds(5));
+                TimeSpan.FromSeconds(SECONDS_BEFORE_DELETING_GAME));
 
             return Task.CompletedTask;
         }

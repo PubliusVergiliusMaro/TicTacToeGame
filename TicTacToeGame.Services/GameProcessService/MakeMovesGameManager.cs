@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Data;
+using TicTacToeGame.Domain.Constants;
 using TicTacToeGame.Domain.Enums;
 using TicTacToeGame.Domain.Models;
 using TicTacToeGame.Services.GamesStatisticServices;
@@ -55,6 +56,13 @@ public class MakeMovesGameManager
     {
         try
         {
+            if (MoveWasMade)
+            {
+                return;
+            }
+
+            MoveWasMade = true;
+
             if (index < 0 || index >= _gameManager.Board.Length)
             {
                 throw new IndexOutOfRangeException("Invalid index");
@@ -223,11 +231,18 @@ public class MakeMovesGameManager
     }
     private async Task AskAnotherPlayerBoardAsync(string userId, int gameId)
     {
-        if (_gameManager.CurrentPlayer != null)
+        if (_gameManager.CurrentPlayer != null && _gameManager.CurrentPlayer.Id != userId)
         {
-            string currentUserId = _gameManager.CurrentPlayer.Id;
-            if (userId != currentUserId)
-                await _gameHubConnection.SendAnotherPlayerBoard((int)_gameManager.CurrentGame.RoomId, currentUserId, _gameManager.Board);
+            if (!_gameManager.IsLoadingNextGame)
+            {
+                await _gameHubConnection.SendAnotherPlayerBoard((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id, _gameManager.Board);
+            }
+            else
+            {
+                Game newGame = _gameManager.GameRepository.GetByUserId(_gameManager.GetCurrentUserId());
+
+                await _gameHubConnection.SendAnotherPlayerBoard((int)newGame.RoomId, _gameManager.CurrentPlayer.Id, new BoardElements[TicTacToeRules.BOARD_SIZE]);
+            }
         }
     }
 

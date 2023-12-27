@@ -189,7 +189,7 @@
             });
         }
     }
-    public bool IsUserAlreadyPlaying(string userId) => _reconnectService.CheckIfPlayerIsPlayingAndHasGame(userId);
+    public bool IsUserAlreadyPlaying(string userId) => _reconnectService.CheckIfPlayerIsPlaying(userId);
    
     public string GetCurrentUserId() =>  user?.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
 

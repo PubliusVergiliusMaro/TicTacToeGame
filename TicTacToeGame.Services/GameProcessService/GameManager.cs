@@ -22,8 +22,11 @@ public class GameManager
     public PlayerRepository PlayerRepository;
 
     public BoardElements[] Board = new BoardElements[TicTacToeRules.BOARD_SIZE];
+    public BoardElements[] OldBoard = new BoardElements[TicTacToeRules.BOARD_SIZE];
 
     public bool IsInitialized = false;
+
+    public bool IsLoadingNextGame = false;
 
     public async Task InitializeAuthState(AuthenticationStateProvider authenticationStateProvider)
     {
@@ -107,6 +110,8 @@ public class GameManager
         GameRepository = null;
         PlayerRepository = null;
         IsInitialized = false;
+        IsLoadingNextGame = false;
+        OldBoard = Board;
         Board = new BoardElements[TicTacToeRules.BOARD_SIZE];
     }
 }

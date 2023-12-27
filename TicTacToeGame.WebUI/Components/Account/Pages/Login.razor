@@ -15,6 +15,7 @@
 @inject GameReconnectingService GameReconnectingService
 @inject PlayerRepository PlayerRepository
 @inject GameRepository GameRepository
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Log in</PageTitle>
 
@@ -95,6 +96,13 @@
         {
             // Clear the existing external cookie to ensure a clean login process
             await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+        }
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        
+        if (authState.User.Identity.IsAuthenticated)
+        {
+            NavigationManager.NavigateTo("/");
         }
     }
 

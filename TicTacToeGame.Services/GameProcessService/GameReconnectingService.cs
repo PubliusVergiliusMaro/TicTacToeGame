@@ -40,6 +40,17 @@ namespace TicTacToeGame.Services.GameProcessService
 
             return false;
         }
+        public bool CheckIfPlayerIsPlaying(string userId)
+        {
+            Player player = _playerRepository.GetById(userId);
+
+            if (player.IsPlaying == true)
+            {
+                return true;
+            }
+
+            return false;
+        }
         public bool CheckIfPlayerIsAlreadyPlaying(string playerId)
         {
             Player CurrentPlayer = _playerRepository.GetById(playerId);
