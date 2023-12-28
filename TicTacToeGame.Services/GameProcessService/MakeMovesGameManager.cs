@@ -65,8 +65,6 @@ public class MakeMovesGameManager
                 return;
             }
 
-            MoveWasMade = true;
-
             if (index < 0 || index >= _gameManager.Board.Length)
             {
                 throw new IndexOutOfRangeException("Invalid index");
@@ -80,6 +78,9 @@ public class MakeMovesGameManager
                     // Put X or O on cell
                     PlaceMoveOnCell(index);
                     // Switch player turns
+                    
+                    MoveWasMade = true;
+                    
                     await SentGameState();
                     // Only after 3 movements can a player win
                     if (_gameManager.Board.Count(cell => cell == BoardElements.Empty)<TicTacToeRules.MIN_COUNT_MOVES_TO_WIN)
