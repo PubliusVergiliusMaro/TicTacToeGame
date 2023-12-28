@@ -34,13 +34,6 @@ namespace TicTacToeGame.Services.GameProcessService
             _gameHubConnection = gameHubConnection;
         }
        
-        // Send from one client to another request on next game
-        // If it accept it sends to the service message about that it have to create new game
-        // service creates new game and send to the two clients message about that they have to join to the new game
-
-        // method for sending,method for receiving, method for accepting/declining, method for creating new game, method for sending to clients message about joining
-
-        // Request for next game
         public async Task SendRequestOnNextGame(int roomId, string userId)
         {
             SendedRequestForNextGame = true;
