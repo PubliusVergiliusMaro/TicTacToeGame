@@ -38,6 +38,16 @@ namespace TicTacToeGame.Domain.Repositories
                 }
             });
         }
+        public List<Game> GetOldNotClosedGamesByPlayerId(string playerId)
+        {
+            return policy.Execute(() =>
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    return connection.Query<Game>("SelectOldNotClosedGamesByPlayerId", new { PlayerId = playerId }, commandType: CommandType.StoredProcedure).AsList();
+                }
+            });
+        }
         public void UpdateGameResult(int gameId, GameState gameResult)
         {
             policy.Execute(() =>

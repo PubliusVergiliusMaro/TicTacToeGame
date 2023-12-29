@@ -89,6 +89,7 @@ builder.Services.AddScoped<GameHubConnection>();
 
 builder.Services.AddTransient<HostRoomHubConnection>();
 
+builder.Services.AddTransient<GameCleaner>();
 
 builder.Services.AddSingleton<GameBoardManager>();
 

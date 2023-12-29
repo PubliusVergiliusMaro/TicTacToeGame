@@ -17,21 +17,25 @@ public class GameInitializeService
     private readonly GameManager _gameManager;
 
     private readonly ILogger<GameInitializeService> _logger;
+
+    private readonly GameCleaner _gameCleaner;
     
     public GameInitializeService(AuthenticationStateProvider authenticationStateProvider,
         GameReconnectingService gameReconnectingService,
-        GameRepository gameRepository,
         PlayerRepository playerRepository,
-        GameManager gameManager,
         GameBoardManager gameBoardManager,
+        GameRepository gameRepository,
+        GameManager gameManager,
+        GameCleaner gameCleaner,
         ILogger<GameInitializeService> logger)
     {
-        _gameRepository = gameRepository;
+        _authenticationStateProvider = authenticationStateProvider;
         _gameReconnectingService = gameReconnectingService;
         _playerRepository = playerRepository;
-        _authenticationStateProvider = authenticationStateProvider;
-        _gameManager = gameManager;
         _gameBoardManager = gameBoardManager;
+        _gameRepository = gameRepository;
+        _gameManager = gameManager;
+        _gameCleaner = gameCleaner;
         _logger = logger;
     }
 
@@ -59,6 +63,9 @@ public class GameInitializeService
                 _logger.LogError($"Initialize AuthState");
                 _gameManager.InitializeRepositories(_gameRepository, _playerRepository);
                 _logger.LogError($"Initialize Repositories");
+
+                _gameCleaner.ClearEmptyGames(_gameManager.GetCurrentUserId());
+
                 bool isSuccesfullyGame = _gameManager.InitializeGame();
                 _logger.LogError($"Initialize Game");
                 bool isSuccesfullyPlayer = _gameManager.InitializePlayers();

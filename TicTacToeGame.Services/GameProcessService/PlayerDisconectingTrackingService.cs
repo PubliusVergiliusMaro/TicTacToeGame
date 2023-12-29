@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.Logging;
 using System.Runtime.CompilerServices;
 using TicTacToeGame.Domain.Constants;
 using TicTacToeGame.Domain.Enums;
@@ -28,14 +29,15 @@ namespace TicTacToeGame.Services.GameProcessService
         public string LivedPlayerName { get; set; } = "";
         public bool OpponentLeaved { get; set; } = false;
 
+        private int _moveTimerElapsedCounter = 0;
+
         public bool IsOpponentConnected = false;
 
         public bool IsWaitingTimeUp = false;
 
         public Timer _moveTimer;
         public Timer _responseTimer;
-        //public Timer _waitingAnotherPlayerTimer;
-        public Timer _updateUITimer;
+        public Timer _waitingAnotherPlayerTimer;
 
         public int WaitingTime = DisconnectingTrackingConstants.WAITING_ANOTHER_PLAYER_SECONDS;
 
@@ -68,19 +70,15 @@ namespace TicTacToeGame.Services.GameProcessService
             _responseTimer.AutoReset = false;
             _responseTimer.Elapsed += (sender, e) => OpponentIsNotAlive();
 
-            //_waitingAnotherPlayerTimer = new Timer(DisconnectingTrackingConstants.WAITING_ANOTHER_PLAYER_SECONDS * 1000);
-            //_moveTimer.AutoReset = false;
-            //_waitingAnotherPlayerTimer.Elapsed += (sender, e) => AnotherPlayerNotConnected();
-
-            _updateUITimer = new Timer(1000);
-            _updateUITimer.AutoReset = true;
-            _updateUITimer.Elapsed += (sender, e) =>
+            _waitingAnotherPlayerTimer = new Timer(1000);
+            _waitingAnotherPlayerTimer.AutoReset = true;
+            _waitingAnotherPlayerTimer.Elapsed += (sender, e) =>
             {
                 WaitingTime--;
                 if (WaitingTime == 0)
                 {
                     AnotherPlayerNotConnected();
-                    _updateUITimer?.Stop();
+                    _waitingAnotherPlayerTimer?.Stop();
                 }
                 StateHasChanged?.Invoke();
             };
@@ -102,7 +100,7 @@ namespace TicTacToeGame.Services.GameProcessService
             if (_moveTimer == null)
             {
                 InitializeTimers();
-                _updateUITimer?.Stop();
+                _waitingAnotherPlayerTimer?.Stop();
                 StartTimers();
 
                 _logger.LogError("Timer starts");
@@ -123,7 +121,7 @@ namespace TicTacToeGame.Services.GameProcessService
             }
             else
             {
-                if (_gameHubConnection._hubConnection.State == Microsoft.AspNetCore.SignalR.Client.HubConnectionState.Disconnected)
+                if (_gameHubConnection._hubConnection.State == HubConnectionState.Disconnected)
                 {
                     _responseTimer?.Stop();
                     _moveTimer?.Stop();
@@ -131,9 +129,21 @@ namespace TicTacToeGame.Services.GameProcessService
                 }
                 else
                 {
-                    await _gameHubConnection.CheckIfOpponentLeaves((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
-                    _logger.LogError("Starting response timer");
-                    _responseTimer.Start();
+                    if (_moveTimerElapsedCounter < DisconnectingTrackingConstants.MOVE_TIMER_ITERATIONS)
+                    {
+                        _moveTimerElapsedCounter++;
+                        _logger.LogError("Sending CheckIfOpponentLeaves. Move Timer elapsed count: {Count}",_moveTimerElapsedCounter);
+                        await _gameHubConnection.CheckIfOpponentLeaves((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
+                        _moveTimer?.Start();
+                    }
+                    else
+                    {
+                        _logger.LogError("Sending CheckIfOpponentLeaves. Sending last message");
+                        await _gameHubConnection.CheckIfOpponentLeaves((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
+                        _logger.LogError("Starting response timer");
+                        _responseTimer?.Start();
+                        _moveTimerElapsedCounter = 0;
+                    }
                 }
             }
         }
@@ -151,7 +161,7 @@ namespace TicTacToeGame.Services.GameProcessService
 
                 _gameManager.GameRepository.UpdateEntity(_gameManager.CurrentGame);
 
-                await _gameHubConnection.SendOpponentLeft((int)_gameManager.CurrentGame.RoomId);// Refactor and maybe remove
+                await _gameHubConnection.SendUserLeftMessageToTheRoom((int)_gameManager.CurrentGame.RoomId);// Refactor and maybe remove
             }
 
             _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerHost.Id);
@@ -167,6 +177,7 @@ namespace TicTacToeGame.Services.GameProcessService
         {
             if (_gameManager.CurrentPlayer.Id != senderId)
             {
+                _moveTimerElapsedCounter = 0;
                 _responseTimer?.Stop();
                 _moveTimer?.Stop();
                 _moveTimer?.Start();
@@ -175,7 +186,7 @@ namespace TicTacToeGame.Services.GameProcessService
         }
         public void StartWaitingAnotherPlayerTimer()
         {
-            _updateUITimer?.Start();
+            _waitingAnotherPlayerTimer?.Start();
         }
         // I think it`s on signalR
         public void ReceiveOpponentLeaves(int roomId, string userId)
@@ -272,8 +283,8 @@ namespace TicTacToeGame.Services.GameProcessService
                 {
                     isReceivedConnectedStatus = true;
 
-                    _updateUITimer?.Stop();
-                    StartTimers(); 
+                    _waitingAnotherPlayerTimer?.Stop();
+                    StartTimers();
 
                     IsOpponentConnected = true;
                     StateHasChanged?.Invoke();
@@ -293,7 +304,7 @@ namespace TicTacToeGame.Services.GameProcessService
 
             _moveTimer?.Dispose();
             _responseTimer?.Dispose();
-            _updateUITimer?.Dispose();
+            _waitingAnotherPlayerTimer?.Dispose();
             _logger.LogError("Dispose disconnection timers");
             await _gameHubConnection.DisposeAsync();
         }
