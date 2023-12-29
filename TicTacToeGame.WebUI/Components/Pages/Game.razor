@@ -55,9 +55,21 @@
     {
         <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; background-color: rgba(0, 0, 0, 0.5); pointer-events: all;">
             <div style="position:fixed;top: 50%;left: 50%;-webkit-transform: translate(-50%, -50%);transform: translate(-50%, -50%);">
-                <div style="background:azure;padding:10px;">
-                    Waiting another player...
-                </div>
+                @if (!DisconectingTrackingService.IsWaitingTimeUp)
+                {
+                    <div style="background:azure;padding:10px;">
+                        Waiting another player...
+                    </div>
+                    <div style="background:azure;padding:10px;">
+                        @DisconectingTrackingService.WaitingTime
+                    </div>
+                }
+                else
+                {
+                    <div style="background:azure;padding:10px;">
+                        Waiting another player time has run out
+                    </div>
+                }
             </div>
         </div>
     }
@@ -338,6 +350,8 @@ else
 
                     CheckForWinnerManager.StateHasChanged += () => InvokeAsync(StateHasChanged);
 
+                    DisconectingTrackingService.StartWaitingAnotherPlayerTimer();
+
                     await DisconectingTrackingService.SendConnectedStatus((int)GameManager.CurrentGame.RoomId, GameManager.GetCurrentUserId());
 
                     await GameHubConnection.AskAnotherPlayerBoard((int)GameManager.CurrentGame.RoomId, GameManager.CurrentPlayer.Id);
@@ -379,15 +393,12 @@ else
     {
         GameHubConnection = new GameHubConnection(NavigationManager);
 
+        // Moves
         GameHubConnection.ReceiveGameStateEvent += MakeMovesManager.ReceiveGameState;
-
         GameHubConnection.ReceiveGameStatusEvent += CheckForWinnerManager.ReceiveGameStatus;
 
+        // Disconnections
         GameHubConnection.ReceiveOpponentLeftEvent += DisconectingTrackingService.ReceiveOpponentLeft;
-
-        GameHubConnection.AskToReceiveAnotherPlayerBoardEvent += MakeMovesManager.AskToReceiveAnotherPlayerBoard;
-
-        GameHubConnection.ReceiveAnotherPlayerBoardEvent += MakeMovesManager.ReceiveAnotherPlayerBoard;
 
         GameHubConnection.ReceiveOpponentLeavesEvent += DisconectingTrackingService.ReceiveOpponentLeaves;
 
@@ -395,14 +406,23 @@ else
 
         GameHubConnection.ReceiveOpponentNotLeavesEvent += DisconectingTrackingService.ReceiveOpponentNotLeaves;
 
+        GameHubConnection.ReceiveReloadTimersEvent += DisconectingTrackingService.ReloadMoveTimer;
+        // Get Board
+        GameHubConnection.AskToReceiveAnotherPlayerBoardEvent += MakeMovesManager.AskToReceiveAnotherPlayerBoard;
+
+        GameHubConnection.ReceiveAnotherPlayerBoardEvent += MakeMovesManager.ReceiveAnotherPlayerBoard;
+
+        // Chat
         GameHubConnection.ReceiveChatMessageEvent += ChatService.ReceiveChatMessage;
 
+        // Next Game
         GameHubConnection.ReceiveAnotherPlayerAnswerForNextGameEvent += GameSessionService.ReceiveRequestOnNextGame;
 
         GameHubConnection.ReceiveDeclineAnotherGameRequestEvent += GameSessionService.ReceiveDeclineRequestOnNextGame;
 
         GameHubConnection.ReceiveReadyNextGameStatusEvent += GameSessionService.ReceiveReadyNextGameStatus;
 
+        // Connected Status
         GameHubConnection.ReceiveConnectedStatusEvent += DisconectingTrackingService.ReceiveConnectedStatus;
 
         await EnsureConnectionEstablished();
@@ -464,8 +484,7 @@ else
     {
         await MakeMovesManager.MakeMove(index);
 
-
-        DisconectingTrackingService.ReloadMoveTimer();// I think that here reloads not that timers
+        await GameHubConnection.SendReloadTimers((int)GameManager.CurrentGame.RoomId, GameManager.GetCurrentUserId());
     }
 
     private string GetSquareValue(int index) => (GameManager.Board[index] == BoardElements.Empty) ? "" : GameManager.Board[index].ToString();

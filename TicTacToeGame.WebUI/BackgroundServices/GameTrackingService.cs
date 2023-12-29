@@ -50,7 +50,7 @@ namespace TicTacToeGame.WebUI.BackgroundServices
             {
                 AddEmptyGame(game);
             }
-            
+
             // Remove
             _logger.LogError("Game Tracking Service is working. Iteration: {Count}. Number of games with no players {EmptyGames}", count, EmptyGames.Count);
             //
@@ -62,14 +62,18 @@ namespace TicTacToeGame.WebUI.BackgroundServices
         {
             foreach (var emptyGame in EmptyGames)
             {
+                // може легше буде зробити щоб брало знову той самий масив з бд і перевіряли чи є цей юзер в ньому
                 Game currentEmptyGame = _gameRepository.GetById(emptyGame.Key.Id);
-
-                if(currentEmptyGame.GameResult == GameState.Starting)
-                {
-                    _gameRepository.UpdateGameResult(emptyGame.Key.Id, GameState.Declined);
-                }
                 
-                EmptyGames.Remove(emptyGame.Key);
+                if (currentEmptyGame != null)
+                {
+                    if (currentEmptyGame.GameResult == GameState.Starting)
+                    {
+                        _gameRepository.UpdateGameResult(emptyGame.Key.Id, GameState.Declined);
+                    }
+
+                    EmptyGames.Remove(emptyGame.Key);
+                }
             }
         }
 

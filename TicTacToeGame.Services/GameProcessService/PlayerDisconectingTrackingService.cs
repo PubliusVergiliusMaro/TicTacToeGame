@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using Microsoft.Extensions.Logging;
+using System.Runtime.CompilerServices;
 using TicTacToeGame.Domain.Constants;
 using TicTacToeGame.Domain.Enums;
 using TicTacToeGame.Domain.Models;
@@ -20,23 +21,32 @@ namespace TicTacToeGame.Services.GameProcessService
 
         private readonly GameBoardManager _gameBoardManager;
 
+        private readonly ILogger<PlayerDisconectingTrackingService> _logger;
+
         public event Action StateHasChanged;
 
-        public bool OpponentLeaved { get; set; } = false;
         public string LivedPlayerName { get; set; } = "";
+        public bool OpponentLeaved { get; set; } = false;
 
         public bool IsOpponentConnected = false;
 
+        public bool IsWaitingTimeUp = false;
+
         public Timer _moveTimer;
         public Timer _responseTimer;
+        //public Timer _waitingAnotherPlayerTimer;
+        public Timer _updateUITimer;
 
+        public int WaitingTime = DisconnectingTrackingConstants.WAITING_ANOTHER_PLAYER_SECONDS;
 
         public PlayerDisconectingTrackingService(GameManager gameManager,
             GameHubConnection gameHubConnection,
             CheckForWinnerManager checkForWinnerManager,
             GameReconnectingService gameReconnectingService,
+            ILogger<PlayerDisconectingTrackingService> logger,
             GameBoardManager gameBoardManager)
         {
+            _logger = logger;
             _gameManager = gameManager;
             _gameBoardManager = gameBoardManager;
             _gameHubConnection = gameHubConnection;
@@ -58,14 +68,44 @@ namespace TicTacToeGame.Services.GameProcessService
             _responseTimer.AutoReset = false;
             _responseTimer.Elapsed += (sender, e) => OpponentIsNotAlive();
 
+            //_waitingAnotherPlayerTimer = new Timer(DisconnectingTrackingConstants.WAITING_ANOTHER_PLAYER_SECONDS * 1000);
+            //_moveTimer.AutoReset = false;
+            //_waitingAnotherPlayerTimer.Elapsed += (sender, e) => AnotherPlayerNotConnected();
+
+            _updateUITimer = new Timer(1000);
+            _updateUITimer.AutoReset = true;
+            _updateUITimer.Elapsed += (sender, e) =>
+            {
+                WaitingTime--;
+                if (WaitingTime == 0)
+                {
+                    AnotherPlayerNotConnected();
+                    _updateUITimer?.Stop();
+                }
+                StateHasChanged?.Invoke();
+            };
             //_moveTimer.Start();
         }
+
+        private void AnotherPlayerNotConnected()
+        {
+            // Close game
+
+            OpponentIsNotAlive();
+
+            IsWaitingTimeUp = true;
+            StateHasChanged?.Invoke();
+        }
+
         public void StartTimers()
         {
             if (_moveTimer == null)
             {
                 InitializeTimers();
+                _updateUITimer?.Stop();
                 StartTimers();
+
+                _logger.LogError("Timer starts");
             }
             else
             {
@@ -79,19 +119,20 @@ namespace TicTacToeGame.Services.GameProcessService
             {
                 _responseTimer?.Stop();
                 _moveTimer?.Stop();
+                _logger.LogError("Timer stops");
             }
             else
             {
-
                 if (_gameHubConnection._hubConnection.State == Microsoft.AspNetCore.SignalR.Client.HubConnectionState.Disconnected)
                 {
                     _responseTimer?.Stop();
                     _moveTimer?.Stop();
+                    _logger.LogError("Timer stops");
                 }
                 else
                 {
                     await _gameHubConnection.CheckIfOpponentLeaves((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
-
+                    _logger.LogError("Starting response timer");
                     _responseTimer.Start();
                 }
             }
@@ -100,9 +141,9 @@ namespace TicTacToeGame.Services.GameProcessService
         private async void OpponentIsNotAlive()
         {
             OpponentLeaved = true;
-            _moveTimer.Stop();
-            _responseTimer.Stop();
-
+            _moveTimer?.Stop();
+            _responseTimer?.Stop();
+            _logger.LogError("Opponent is not alive");
             if (_gameManager.CurrentGame.GameResult != GameState.Finished)
             {
                 _gameManager.CurrentGame.GameResult = GameState.Declined;
@@ -116,19 +157,26 @@ namespace TicTacToeGame.Services.GameProcessService
             _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerHost.Id);
 
             _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerGuest.Id);
-            
+
             _gameBoardManager.RemoveBoard(_gameManager.CurrentGame.UniqueId);
 
             StateHasChanged?.Invoke();
         }
 
-        public void ReloadMoveTimer()
+        public void ReloadMoveTimer(string senderId)
         {
-            _responseTimer?.Stop();
-            _moveTimer?.Stop();
-            _moveTimer?.Start();
+            if (_gameManager.CurrentPlayer.Id != senderId)
+            {
+                _responseTimer?.Stop();
+                _moveTimer?.Stop();
+                _moveTimer?.Start();
+                _logger.LogError("Reloading move timers");
+            }
         }
-
+        public void StartWaitingAnotherPlayerTimer()
+        {
+            _updateUITimer?.Start();
+        }
         // I think it`s on signalR
         public void ReceiveOpponentLeaves(int roomId, string userId)
         {
@@ -149,6 +197,7 @@ namespace TicTacToeGame.Services.GameProcessService
         {
             if (_gameManager.CurrentPlayer.Id != userId)
             {
+                _logger.LogError("Receives check if i`m alive");
                 await _gameHubConnection.SendOpponentNotLeaves((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
             }
         }
@@ -157,7 +206,8 @@ namespace TicTacToeGame.Services.GameProcessService
         {
             if (_gameManager.CurrentPlayer.Id != userId)
             {
-                ReloadMoveTimer();
+                _logger.LogError("Reeceive opponent not leaves");
+                ReloadMoveTimer(userId);
             }
         }
 
@@ -172,7 +222,7 @@ namespace TicTacToeGame.Services.GameProcessService
                 if (!host.IsPlaying && !guest.IsPlaying)
                 {
                     Game CurrentGame = _gameManager.GameRepository.GetById(_gameManager.CurrentGame.Id);
-
+                    _logger.LogError("Two players leaves");
                     if (CurrentGame.GameResult != GameState.Declined)
                     {
                         CurrentGame.GameResult = GameState.Finished;
@@ -197,20 +247,17 @@ namespace TicTacToeGame.Services.GameProcessService
         {
             OpponentLeaved = true;
             _checkForWinnerManager.GameStatus = "Game Over";
+            _logger.LogError("Receive opponent Left");
             StateHasChanged?.Invoke();
         }
 
         // Player connection
 
-        // плеєр конектиться і чекає другого, другий конектиться
-        // і відправляє меседж про це і коли той отримує то він перевіряє чи отримував вже чи ні якщо
-        // ні то відправляє назад, цей отримує і
-        // відправляє назад і той замикає коло бо не відправляє назад
-
         public bool isReceivedConnectedStatus = false;
         public async Task SendConnectedStatus(int roomId, string userId)
         {
             await _gameHubConnection.SendConnectedStatus(roomId, userId, isReceivedConnectedStatus);
+            _logger.LogError("I`m connected");
         }
         public void ReceiveConnectedStatus(string userId, bool isAnotherPlayerNotified)
         {
@@ -220,11 +267,13 @@ namespace TicTacToeGame.Services.GameProcessService
         {
             if (_gameManager.CurrentPlayer.Id != userId && !_gameManager.IsLoadingNextGame)
             {
+                _logger.LogError("Opponent connected");
                 if (isReceivedConnectedStatus == false)
                 {
                     isReceivedConnectedStatus = true;
 
-                    StartTimers();
+                    _updateUITimer?.Stop();
+                    StartTimers(); 
 
                     IsOpponentConnected = true;
                     StateHasChanged?.Invoke();
@@ -244,7 +293,8 @@ namespace TicTacToeGame.Services.GameProcessService
 
             _moveTimer?.Dispose();
             _responseTimer?.Dispose();
-
+            _updateUITimer?.Dispose();
+            _logger.LogError("Dispose disconnection timers");
             await _gameHubConnection.DisposeAsync();
         }
     }

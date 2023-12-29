@@ -19,6 +19,16 @@ namespace TicTacToeGame.Domain.Repositories
         }
         public List<Player> GetAll() => _db.Query<Player>("SelectPlayers", commandType: CommandType.StoredProcedure).AsList();
 
+        public List<Player> GetAllNotActive()
+        {
+            return policy.Execute(() =>
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    return connection.Query<Player>("SelectNotActiveUsers", commandType: CommandType.StoredProcedure).AsList();
+                }
+            });
+        }
         public Player? GetById(string id)
         {
             try

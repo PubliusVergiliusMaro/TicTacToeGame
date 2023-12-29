@@ -27,6 +27,7 @@
         padding: 0;
         margin: 0;
     }
+
     .wrap-div {
         display: flex;
         justify-content: center;
@@ -72,18 +73,19 @@
 </style>
 
 <section class="home-section">
-    <div style="text-align: center;  padding: 10px; background-color: #f0f0f0; border-radius: 5px;">
-        <h4 style="margin: 0;">Welcome @CurrentPlayer.UserName</h4>
-    </div>
-    <div class="wrap-div">
-        <div class="card">
-            <h1 class="title">Tic Tac Toe Game</h1>
-            @if (isLoading)
-            {
-                <div class="loader"></div>
-            }
-            else
-            {
+    @if (isLoading)
+    {
+        <div class="loader"></div>
+    }
+    else
+    {
+        <div style="text-align: center;  padding: 10px; background-color: #f0f0f0; border-radius: 5px;">
+            <h4 style="margin: 0;">Welcome @userName</h4>
+        </div>
+
+        <div class="wrap-div">
+            <div class="card">
+                <h1 class="title">Tic Tac Toe Game</h1>
                 <div class="button-container">
                     <div class="nav-item">
                         <NavLink class="nav-link" href="host-room">
@@ -105,17 +107,19 @@
                         </NavLink>
                     </div>
                 </div>
-            }
+            </div>
         </div>
-    </div>
+    }
 </section>
 
 @code {
     private TicTacToeGame.Domain.Models.Game ExistingGame;
 
     private Player CurrentPlayer;
-    private bool isLoading = true;
 
+    string userName = "";
+
+    private bool isLoading = true;
 
     protected override void OnInitialized()
     {
@@ -126,9 +130,11 @@
             ClaimsPrincipal? user = authState.User;
 
             string userId = GetCurrentUserIdentifier(user);
-            
-            CurrentPlayer = PlayerRepository.GetById(userId);
 
+            CurrentPlayer = PlayerRepository.GetById(userId);
+            if(CurrentPlayer != null)
+            userName = CurrentPlayer.UserName;
+    
             bool needsToReconect = GameReconnectingService.CheckIfRecconectPlayer(userId);
 
             if (needsToReconect)
@@ -140,7 +146,7 @@
             }
 
             isLoading = false;
-            
+
             GameReconnectingService.CheckIfPlayerIsPlayingAndHasGameById(userId);
 
             StateHasChanged();
