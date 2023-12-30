@@ -57,7 +57,7 @@ namespace TicTacToeGame.Services.GameProcessService
         public async Task SendMessage(string message, Player player, int CurrentRoom)
         {
             //var newMessage = new KeyValuePair<string, string>(_sender.UserName, message);
-            if(string.IsNullOrEmpty(message))
+            if(string.IsNullOrWhiteSpace(message))
             {
                 return;
             }
