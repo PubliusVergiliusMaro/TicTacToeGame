@@ -101,5 +101,12 @@ public class CheckForWinnerManager
         _gamesStatisticsService.GetGamesByResultAndPlayers(_gameManager);
         StateHasChanged?.Invoke();
     }
+    public void ReceiveTestMessage(string userId)
+    {
+        if(_gameManager.CurrentPlayer.Id != userId)
+        {
+            int a = 10;
+        }
+    }
 
 }

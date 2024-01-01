@@ -35,8 +35,6 @@ namespace TicTacToeGame.Services.HubConnections
         // Next game
         public event Action<string> ReceiveAnotherPlayerAnswerForNextGameEvent;
         public event Action<string> ReceiveDeclineAnotherGameRequestEvent;
-        //public event Action<string> ReceiveAcceptAnotherGameRequestEvent;
-        //public event Action<string> ReceiveJoinningToNextGameEvent;
 
         public event Action ReceiveReadyNextGameStatusEvent;
 
@@ -98,14 +96,6 @@ namespace TicTacToeGame.Services.HubConnections
             _hubConnection.On<string>("ReceiveDeclineAnotherGameRequest", (userId)
                 => ReceiveDeclineAnotherGameRequestEvent?.Invoke(userId));
 
-            //_hubConnection.On<string>("ReceiveAcceptAnotherGameRequest", (userId) =>
-            //{
-            //    Task.Run(() => ReceiveAcceptAnotherGameRequestEvent?.Invoke(userId)).Wait();
-            //});
-
-            //_hubConnection.On<string>("ReceiveJoinningToNextGame", (userId)
-            //    => ReceiveJoinningToNextGameEvent?.Invoke(userId));
-
             _hubConnection.On("ReceiveReadyNextGameStatus", ()
                 => ReceiveReadyNextGameStatusEvent?.Invoke());
         }
@@ -159,14 +149,6 @@ namespace TicTacToeGame.Services.HubConnections
         {
             await _hubConnection.SendAsync("AskAnotherPlayerForNextGame", roomId, userId);
         }
-        //public async Task AskToJoinNextGame(int roomId, string userId)
-        //{
-        //    await _hubConnection.SendAsync("AskToJoinNextGame", roomId, userId);
-        //}
-        //public async Task SendAcceptAnotherGameRequest(int roomId, string userId)
-        //{
-        //    await _hubConnection.SendAsync("SendAcceptAnotherGameRequest", roomId, userId);
-        //}
         public async Task SendDeclineAnotherGameRequest(int roomId, string userId)
         {
             await _hubConnection.SendAsync("SendDeclineAnotherGameRequest", roomId, userId);
@@ -180,6 +162,7 @@ namespace TicTacToeGame.Services.HubConnections
         {
             await _hubConnection.SendAsync("SendGameStatus", gameResult, gameStatus, winner, game, gameId);
         }
+
         public async Task SendGameState(BoardElements[] board, PlayerType nextPlayerTurn, int roomId)
         {
             try
@@ -191,8 +174,7 @@ namespace TicTacToeGame.Services.HubConnections
                 throw new Exception(ex.Message);
             }
         }
-
-
+      
         public async Task StartConnectionAsync()
         {
             try

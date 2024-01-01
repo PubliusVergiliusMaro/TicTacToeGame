@@ -87,8 +87,6 @@ namespace TicTacToeGame.Services.GameProcessService
 
         private void AnotherPlayerNotConnected()
         {
-            // Close game
-
             OpponentIsNotAlive();
 
             IsWaitingTimeUp = true;
@@ -110,7 +108,28 @@ namespace TicTacToeGame.Services.GameProcessService
                 _moveTimer.Start();
             }
         }
-
+        public void ReloadMoveTimer(string senderId)
+        {
+            if (_gameManager.CurrentPlayer != null && _gameManager.CurrentPlayer.Id != senderId)
+            {
+                _moveTimerElapsedCounter = 0;
+                _responseTimer?.Stop();
+                _moveTimer?.Stop();
+                _moveTimer?.Start();
+                _logger.LogError("Reloading move timers");
+            }
+        }
+        public void StopTimers()
+        {
+            _moveTimer?.Stop();
+            _responseTimer?.Stop();
+            _waitingAnotherPlayerTimer?.Stop();
+            _logger.LogError("Timer stops");
+        }
+        public void StartWaitingAnotherPlayerTimer()
+        {
+            _waitingAnotherPlayerTimer?.Start();
+        }
         private async Task CheckIfPlayerAlive()
         {
             if (_gameManager.CurrentGame == null)
@@ -173,21 +192,7 @@ namespace TicTacToeGame.Services.GameProcessService
             StateHasChanged?.Invoke();
         }
 
-        public void ReloadMoveTimer(string senderId)
-        {
-            if (_gameManager.CurrentPlayer != null && _gameManager.CurrentPlayer.Id != senderId)
-            {
-                _moveTimerElapsedCounter = 0;
-                _responseTimer?.Stop();
-                _moveTimer?.Stop();
-                _moveTimer?.Start();
-                _logger.LogError("Reloading move timers");
-            }
-        }
-        public void StartWaitingAnotherPlayerTimer()
-        {
-            _waitingAnotherPlayerTimer?.Start();
-        }
+       
         // I think it`s on signalR
         public void ReceiveOpponentLeaves(int roomId, string userId)
         {

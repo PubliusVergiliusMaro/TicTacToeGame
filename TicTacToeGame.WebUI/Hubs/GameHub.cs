@@ -86,14 +86,6 @@ namespace TicTacToeGame.WebUI.Hubs
         {
             await Clients.Group(roomId.ToString()).SendAsync("ReceiveDeclineAnotherGameRequest", userId);
         }
-        //public async Task SendAcceptAnotherGameRequest(int roomId, string userId)
-        //{
-        //    await Clients.Group(roomId.ToString()).SendAsync("ReceiveAcceptAnotherGameRequest", userId);
-        //}
-        //public async Task AskToJoinNextGame(int roomId, string userId)
-        //{
-        //    await Clients.Group(roomId.ToString()).SendAsync("ReceiveJoinningToNextGame", userId);
-        //}
         public async Task SendReadyNextGameStatus(int roomId)
         {
             await Clients.Group(roomId.ToString()).SendAsync("ReceiveReadyNextGameStatus");

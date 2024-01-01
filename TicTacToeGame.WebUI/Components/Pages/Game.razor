@@ -470,7 +470,8 @@ else
 
             DisconectingTrackingService.UpdateGameResultAfterTwoPlayersDisconnection();
 
-            await DisconectingTrackingService.DisposeAsync();
+            DisconectingTrackingService.StopTimers();
+            //await DisconectingTrackingService.DisposeAsync();
         }
 
         GameManager.ClearData();
