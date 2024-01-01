@@ -13,6 +13,8 @@ namespace TicTacToeGame.Services.GameProcessService
 
         private readonly GameManager _gameManager;
 
+        private PlayerDisconectingTrackingService _playerDisconectingTrackingService;
+
         public event Action StateHasChanged;
 
         public bool RequestForNextGame { get; set; } = false;
@@ -29,6 +31,12 @@ namespace TicTacToeGame.Services.GameProcessService
             _gameHubConnection = gameHubConnection;
             _gameManager=gameManager;
         }
+
+        public void SetDisconnectingTracking(PlayerDisconectingTrackingService playerDisconectingTrackingService)
+        {
+            _playerDisconectingTrackingService = playerDisconectingTrackingService;
+        }
+
         public void SetHubConnection(GameHubConnection gameHubConnection)
         {
             _gameHubConnection = gameHubConnection;
@@ -58,6 +66,9 @@ namespace TicTacToeGame.Services.GameProcessService
             await _gameHubConnection.SendDeclineAnotherGameRequest((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.Id);
 
             DeclinedNextGame = true;
+
+            await _playerDisconectingTrackingService.DisposeAsync();
+            
             StateHasChanged?.Invoke();
         }
         public void ReceiveDeclineRequestOnNextGame(string userId)
@@ -78,8 +89,10 @@ namespace TicTacToeGame.Services.GameProcessService
                 await _gameHubConnection.SendReadyNextGameStatus((int)_gameManager.CurrentGame.RoomId);
             }
         }
-        public void ReceiveReadyNextGameStatus()
+        public async void ReceiveReadyNextGameStatus()
         {
+            await _playerDisconectingTrackingService.DisposeAsync();
+            
             _gameManager.IsLoadingNextGame = true;
 
             _navigationManager.NavigateTo("/game", forceLoad: true);

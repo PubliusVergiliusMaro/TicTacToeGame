@@ -351,6 +351,8 @@ else
 
                     DisconectingTrackingService.StartWaitingAnotherPlayerTimer();
 
+                    GameSessionService.SetDisconnectingTracking(DisconectingTrackingService);
+
                     await DisconectingTrackingService.SendConnectedStatus((int)GameManager.CurrentGame.RoomId, GameManager.GetCurrentUserId());
 
                     await GameHubConnection.AskAnotherPlayerBoard((int)GameManager.CurrentGame.RoomId, GameManager.CurrentPlayer.Id);
@@ -456,7 +458,9 @@ else
     {
         if (!GameManager.IsCleanedUp)
         {
+            // 
             await GameHubConnection.SendUserLeaves((int)GameManager.CurrentGame.RoomId, GameManager.GetCurrentUserId());
+            //
 
             GameReconnectingService.MakePlayerNotPlaying(GameManager.GetCurrentUserId());
 
@@ -465,6 +469,8 @@ else
             GameReconnectingService.IsPlayerLeaveGameByButton = true;
 
             DisconectingTrackingService.UpdateGameResultAfterTwoPlayersDisconnection();
+
+            await DisconectingTrackingService.DisposeAsync();
         }
 
         GameManager.ClearData();

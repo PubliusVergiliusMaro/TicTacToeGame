@@ -32,9 +32,9 @@ namespace TicTacToeGame.WebUI.Hubs
         {
             await Clients.Group(roomId.ToString()).SendAsync("ReceiveGameState", board, nextPlayerTurn, roomId);
         }
-        public async Task SendGameStatus(GameState gameState, string gameStatus, int roomId)
+        public async Task SendGameStatus(GameState gameState, string gameStatus, PlayerType winner, Game game, int roomId)
         {
-            await Clients.Group(roomId.ToString()).SendAsync("ReceiveGameStatus", gameState, gameStatus, roomId);
+            await Clients.Group(roomId.ToString()).SendAsync("ReceiveGameStatus", gameState, gameStatus, winner, game, roomId);
         }
         // Connection
         public async Task SendConnectedStatus(int roomId, string userId,bool isAnotherPlayerNotified)

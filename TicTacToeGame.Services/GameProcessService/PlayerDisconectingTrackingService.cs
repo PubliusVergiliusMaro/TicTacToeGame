@@ -154,7 +154,7 @@ namespace TicTacToeGame.Services.GameProcessService
             _moveTimer?.Stop();
             _responseTimer?.Stop();
             _logger.LogError("Opponent is not alive");
-            if (_gameManager.CurrentGame.GameResult != GameState.Finished)
+            if (_gameManager.CurrentGame != null && _gameManager.CurrentGame.GameResult != GameState.Finished)
             {
                 _gameManager.CurrentGame.GameResult = GameState.Declined;
                 _gameManager.CurrentGame.Winner = PlayerType.None;
@@ -175,7 +175,7 @@ namespace TicTacToeGame.Services.GameProcessService
 
         public void ReloadMoveTimer(string senderId)
         {
-            if (_gameManager.CurrentPlayer.Id != senderId)
+            if (_gameManager.CurrentPlayer != null && _gameManager.CurrentPlayer.Id != senderId)
             {
                 _moveTimerElapsedCounter = 0;
                 _responseTimer?.Stop();
@@ -237,17 +237,17 @@ namespace TicTacToeGame.Services.GameProcessService
                     if (CurrentGame.GameResult != GameState.Declined)
                     {
                         CurrentGame.GameResult = GameState.Finished;
-                        if (!_checkForWinnerManager.CheckForWinner())
-                        {
-                            if (_checkForWinnerManager.CheckForTie())
-                            {
-                                CurrentGame.Winner = PlayerType.None;
-                            }
-                        }
-                        else
-                        {
-                            CurrentGame.Winner = (CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
-                        }
+                        //if (!_checkForWinnerManager.CheckForWinner())
+                        //{
+                        //    if (_checkForWinnerManager.CheckForTie())
+                        //    {
+                        //        CurrentGame.Winner = PlayerType.None;
+                        //    }
+                        //}
+                        //else
+                        //{
+                        //    CurrentGame.Winner = (CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
+                        //}
                     }
                     _gameManager.GameRepository.UpdateEntity(CurrentGame);
                 }
@@ -301,6 +301,7 @@ namespace TicTacToeGame.Services.GameProcessService
         {
             _moveTimer?.Stop();
             _responseTimer?.Stop();
+            _waitingAnotherPlayerTimer?.Stop();
 
             _moveTimer?.Dispose();
             _responseTimer?.Dispose();

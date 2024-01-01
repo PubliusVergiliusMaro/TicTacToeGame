@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR.Client;
 using TicTacToeGame.Domain.Enums;
+using TicTacToeGame.Domain.Models;
 
 namespace TicTacToeGame.Services.HubConnections
 {
@@ -12,7 +13,7 @@ namespace TicTacToeGame.Services.HubConnections
 
         // Moves
         public event Action<BoardElements[], PlayerType, int> ReceiveGameStateEvent;
-        public event Action<GameState, string, int> ReceiveGameStatusEvent;
+        public event Action<GameState, string, PlayerType, Game, int> ReceiveGameStatusEvent;
 
         // Disconnections
         public event Action ReceiveOpponentLeftEvent;
@@ -56,8 +57,8 @@ namespace TicTacToeGame.Services.HubConnections
             _hubConnection.On<BoardElements[], PlayerType, int>("ReceiveGameState", (receivedBoard, nextPlayerTurn, gameId)
                 => ReceiveGameStateEvent?.Invoke(receivedBoard, nextPlayerTurn, gameId));
 
-            _hubConnection.On<GameState, string, int>("ReceiveGameStatus", (receiveGameResult, receiveGameStatus, gameId)
-                => ReceiveGameStatusEvent?.Invoke(receiveGameResult, receiveGameStatus, gameId));
+            _hubConnection.On<GameState, string, PlayerType, Game, int>("ReceiveGameStatus", (receiveGameResult, receiveGameStatus, winner, game, gameId)
+                 => ReceiveGameStatusEvent?.Invoke(receiveGameResult, receiveGameStatus, winner, game, gameId));
 
             // Disconnections
             _hubConnection.On("ReceiveOpponentLeft", () => ReceiveOpponentLeftEvent?.Invoke());
@@ -175,9 +176,9 @@ namespace TicTacToeGame.Services.HubConnections
             await _hubConnection.SendAsync("SendReadyNextGameStatus", roomId);
         }
         // MakeMovesGameManager
-        public async Task SendGameStatus(GameState gameResult, string gameStatus, int gameId)
+        public async Task SendGameStatus(GameState gameResult, string gameStatus, PlayerType winner, Game game, int gameId)
         {
-            await _hubConnection.SendAsync("SendGameStatus", gameResult, gameStatus, gameId);
+            await _hubConnection.SendAsync("SendGameStatus", gameResult, gameStatus, winner, game, gameId);
         }
         public async Task SendGameState(BoardElements[] board, PlayerType nextPlayerTurn, int roomId)
         {

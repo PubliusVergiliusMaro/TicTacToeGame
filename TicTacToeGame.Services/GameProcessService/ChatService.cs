@@ -48,15 +48,8 @@ namespace TicTacToeGame.Services.GameProcessService
             StateHasChanged?.Invoke();
         }
 
-        //public async Task SendMessage(string message)
-        //{
-        //    IsReceivedNewMessage = false;
-        //    await _gameHubConnection.SendChatMessage((int)_gameManager.CurrentGame.RoomId, _gameManager.CurrentPlayer.UserName, message);
-        //    StateHasChanged?.Invoke();
-        //}
         public async Task SendMessage(string message, Player player, int CurrentRoom)
         {
-            //var newMessage = new KeyValuePair<string, string>(_sender.UserName, message);
             if(string.IsNullOrWhiteSpace(message))
             {
                 return;

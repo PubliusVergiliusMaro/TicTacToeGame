@@ -19,7 +19,7 @@ public class MakeMovesGameManager
 
     private GameHubConnection _gameHubConnection;
 
-    private GameFinalizationService _gameFinalizationService;
+    //private GameFinalizationService _gameFinalizationService;
 
     private readonly GameManager _gameManager;
 
@@ -31,7 +31,6 @@ public class MakeMovesGameManager
     public MakeMovesGameManager(GamesStatisticsService gamesStatisticsService,
         CheckForWinnerManager checkForWinnerManager,
         GameReconnectingService gameReconnectingService,
-        GameFinalizationService gameFinalizationService,
         GameHubConnection gameHubConnection,
         GameBoardManager gameBoardManager,
         GameManager gameManager)
@@ -41,7 +40,7 @@ public class MakeMovesGameManager
         _gameReconnectingService = gameReconnectingService;
         _gameHubConnection = gameHubConnection;
         _gameManager = gameManager;
-        _gameFinalizationService = gameFinalizationService;
+        //_gameFinalizationService = gameFinalizationService;
         _gameBoardManager = gameBoardManager;
     }
     public void SetHubConnection(GameHubConnection gameHubConnection)
@@ -136,99 +135,102 @@ public class MakeMovesGameManager
     {
         if (_checkForWinnerManager.CheckForWinner())
         {
-            await _gameFinalizationService.FinishGame(_checkForWinnerManager.GameStatus);
-            //await FinishGameAndPutInHistory();
+            //await _gameFinalizationService.FinishGame(_checkForWinnerManager.GameStatus);
+            await FinishGameAndPutInHistory();
         }
         else if (_checkForWinnerManager.CheckForTie())
         {
-            await _gameFinalizationService.FinishGame(_checkForWinnerManager.GameStatus,true);
-            //await FinishGameAndPutInHistory(true);
+            //await _gameFinalizationService.FinishGame(_checkForWinnerManager.GameStatus,true);
+            await FinishGameAndPutInHistory(true);
         }
     }
 
-    //private async Task FinishGameAndPutInHistory(bool isTie = false)
-    //{
-    //    try
-    //    {
-    //        _gameManager.CurrentGame.GameResult = GameState.Finished;
-
-    //        if (_gamesStatisticsService == null || _gameManager.CurrentPlayerHost == null || _gameManager.CurrentPlayerGuest == null)
-    //        {
-    //            // Handle the case where required objects are null
-    //            throw new InvalidOperationException("One or more required objects are null.");
-    //        }
-
-    //        GamesHistory hostGamesHistory = await _gamesStatisticsService.GetGamesHistoryByPlayerId(_gameManager.CurrentPlayerHost.Id);
-    //        GamesHistory guestGamesHistory = await _gamesStatisticsService.GetGamesHistoryByPlayerId(_gameManager.CurrentPlayerGuest.Id);
-
-    //        if (hostGamesHistory == null || guestGamesHistory == null)
-    //        {
-    //            // Handle the case where games history is not found
-    //            throw new InvalidOperationException("Games history not found for one or more players.");
-    //        }
-
-    //        _gameManager.CurrentGame.GamesHistoryHostId = hostGamesHistory.Id;
-    //        _gameManager.CurrentGame.GamesHistoryGuestId = guestGamesHistory.Id;
-    //        if (isTie)
-    //        {
-    //            _gameManager.CurrentGame.Winner = PlayerType.None;
-    //        }
-    //        else
-    //            _gameManager.CurrentGame.Winner = (_gameManager.CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
-
-    //        _gameManager.GameRepository.UpdateEntity(_gameManager.CurrentGame);
-    //        await SendGameStatus(_checkForWinnerManager.GameStatus);
-
-    //        _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerHost.Id);
-    //        _gameManager.CurrentPlayerHost.IsPlaying = false;
-    //        _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerGuest.Id);
-    //        _gameManager.CurrentPlayerGuest.IsPlaying = false;
-
-    //        //_gamesStatisticsService.UpdatePlayersGameHistory(_gameManager.CurrentPlayerHost.Id, _gameManager.CurrentPlayerGuest.Id, _gameManager.CurrentGame.RoomId);
-
-    //        _gameBoardManager.RemoveBoard(_gameManager.CurrentGame.UniqueId);
-
-    //        StateHasChanged?.Invoke();
-    //    }
-    //    catch (NullReferenceException ex)
-    //    {
-    //        // Handle NullReferenceException
-    //        Console.WriteLine($"NullReferenceException: {ex.Message}");
-    //    }
-    //    catch (InvalidOperationException ex)
-    //    {
-    //        // Handle InvalidOperationException
-    //        Console.WriteLine($"InvalidOperationException: {ex.Message}");
-    //    }
-    //    catch (DbUpdateException ex)
-    //    {
-    //        // Handle DbUpdateException
-    //        Console.WriteLine($"DbUpdateException: {ex.Message}");
-    //    }
-    //    catch (DataException ex)
-    //    {
-    //        // Handle DataException
-    //        Console.WriteLine($"DataException: {ex.Message}");
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        // Handle any other unexpected exceptions
-    //        Console.WriteLine($"An unexpected error occurred: {ex.Message}");
-    //    }
-    //}
-
-    private async Task SendGameStatus(string GameStatus)
+    private async Task FinishGameAndPutInHistory(bool isTie = false)
     {
-        await _gameHubConnection.SendGameStatus(_gameManager.CurrentGame.GameResult, GameStatus, (int)_gameManager.CurrentGame.RoomId);
+        try
+        {
+            _gameManager.CurrentGame.GameResult = GameState.Finished;
+
+            if (_gamesStatisticsService == null || _gameManager.CurrentPlayerHost == null || _gameManager.CurrentPlayerGuest == null)
+            {
+                // Handle the case where required objects are null
+                throw new InvalidOperationException("One or more required objects are null.");
+            }
+
+            GamesHistory hostGamesHistory = await _gamesStatisticsService.GetGamesHistoryByPlayerId(_gameManager.CurrentPlayerHost.Id);
+            GamesHistory guestGamesHistory = await _gamesStatisticsService.GetGamesHistoryByPlayerId(_gameManager.CurrentPlayerGuest.Id);
+
+            if (hostGamesHistory == null || guestGamesHistory == null)
+            {
+                // Handle the case where games history is not found
+                throw new InvalidOperationException("Games history not found for one or more players.");
+            }
+
+            _gameManager.CurrentGame.GamesHistoryHostId = hostGamesHistory.Id;
+            _gameManager.CurrentGame.GamesHistoryGuestId = guestGamesHistory.Id;
+            if (isTie)
+            {
+                _gameManager.CurrentGame.Winner = PlayerType.None;
+            }
+            else
+                _gameManager.CurrentGame.Winner = (_gameManager.CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Host : PlayerType.Guest;
+
+            //_gameManager.GameRepository.UpdateEntity(_gameManager.CurrentGame);
+
+            await SendGameStatus(_checkForWinnerManager.GameStatus, (PlayerType)_gameManager.CurrentGame.Winner, _gameManager.CurrentGame);
+
+            _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerHost.Id);
+            _gameManager.CurrentPlayerHost.IsPlaying = false;
+            _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerGuest.Id);
+            _gameManager.CurrentPlayerGuest.IsPlaying = false;
+
+            //_gamesStatisticsService.UpdatePlayersGameHistory(_gameManager.CurrentPlayerHost.Id, _gameManager.CurrentPlayerGuest.Id, _gameManager.CurrentGame.RoomId);
+
+            //_gameBoardManager.RemoveBoard(_gameManager.CurrentGame.UniqueId);
+
+            StateHasChanged?.Invoke();
+        }
+        catch (NullReferenceException ex)
+        {
+            // Handle NullReferenceException
+            Console.WriteLine($"NullReferenceException: {ex.Message}");
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Handle InvalidOperationException
+            Console.WriteLine($"InvalidOperationException: {ex.Message}");
+        }
+        catch (DbUpdateException ex)
+        {
+            // Handle DbUpdateException
+            Console.WriteLine($"DbUpdateException: {ex.Message}");
+        }
+        catch (DataException ex)
+        {
+            // Handle DataException
+            Console.WriteLine($"DataException: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            // Handle any other unexpected exceptions
+            Console.WriteLine($"An unexpected error occurred: {ex.Message}");
+        }
     }
 
+    private async Task SendGameStatus(string GameStatus, PlayerType winner, Game game)
+    {
+        await _gameHubConnection.SendGameStatus(_gameManager.CurrentGame.GameResult, GameStatus, winner, game, (int)_gameManager.CurrentGame.RoomId);
+    }
     private async Task SentGameState()
     {
         PlayerType nextPlayerTurn = (_gameManager.CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
 
         _gameBoardManager.UpdateBoard(_gameManager.CurrentGame.UniqueId, _gameManager.Board);
-
-        await _gameHubConnection.SendGameState(_gameManager.Board, nextPlayerTurn, (int)_gameManager.CurrentGame.RoomId);
+        
+        if (!_checkForWinnerManager.CheckForWinner())
+        {
+            await _gameHubConnection.SendGameState(_gameManager.Board, nextPlayerTurn, (int)_gameManager.CurrentGame.RoomId);
+        }
     }
 
     public void UpdateGameAfterMove()
@@ -269,8 +271,11 @@ public class MakeMovesGameManager
     {
         _gameManager.Board = receivedBoard;
         _gameManager.CurrentGame.CurrentTurn = nextPlayerTurn;
+        
         UpdateGameAfterMove();
+        
         MoveWasMade = false;
+        
         StateHasChanged?.Invoke();
     }
 }
