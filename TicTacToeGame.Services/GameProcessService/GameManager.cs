@@ -14,6 +14,7 @@ public class GameManager
     public Player CurrentPlayer;
 
     public Game CurrentGame;
+
     public GamesHistory GamesHistory = new();
     public int HostWins = 0;
     public int GuestWins = 0;

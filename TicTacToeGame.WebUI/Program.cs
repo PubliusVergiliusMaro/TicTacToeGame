@@ -89,7 +89,7 @@ builder.Services.AddScoped<GameHubConnection>();
 
 builder.Services.AddTransient<HostRoomHubConnection>();
 
-builder.Services.AddHostedService<GameTrackingService>();
+builder.Services.AddTransient<GameCleaner>();
 
 builder.Services.AddSingleton<GameBoardManager>();
 
@@ -98,6 +98,10 @@ builder.Services.AddServerSideBlazor(options =>
     options.DisconnectedCircuitMaxRetained = 100;
     options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromSeconds(DisconnectingTrackingConstants.DISCONNECTED_CIRCUIT_RETENTION_PERIOD);
 });
+
+builder.Services.AddHostedService<GameTrackingService>();
+
+builder.Services.AddHostedService<PlayerTrackingService>();
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()

@@ -1,9 +1,8 @@
-﻿
-using TicTacToeGame.Domain.Constants;
+﻿using TicTacToeGame.Domain.Constants;
 using TicTacToeGame.Domain.Enums;
-using TicTacToeGame.Domain.Models;
 using TicTacToeGame.Domain.Repositories;
 using TicTacToeGame.Services.GameProcessService;
+using Game = TicTacToeGame.Domain.Models.Game;
 
 namespace TicTacToeGame.WebUI.BackgroundServices
 {
@@ -17,7 +16,7 @@ namespace TicTacToeGame.WebUI.BackgroundServices
 
         private readonly GameRepository _gameRepository;
 
-        private readonly Dictionary<Game, TimeSpan> EmptyGames = new();
+        private readonly Dictionary<Guid, Game> EmptyGames = new();
 
         private readonly GameBoardManager _gameBoardManager;
 
@@ -44,13 +43,8 @@ namespace TicTacToeGame.WebUI.BackgroundServices
 
             ClearEmptyGames();
 
-            List<Game> games = _gameRepository.GetEmptyGames();
+            AddEmptyGame();
 
-            foreach (var game in games)
-            {
-                AddEmptyGame(game);
-            }
-            
             // Remove
             _logger.LogError("Game Tracking Service is working. Iteration: {Count}. Number of games with no players {EmptyGames}", count, EmptyGames.Count);
             //
@@ -62,24 +56,49 @@ namespace TicTacToeGame.WebUI.BackgroundServices
         {
             foreach (var emptyGame in EmptyGames)
             {
-                Game currentEmptyGame = _gameRepository.GetById(emptyGame.Key.Id);
+                Domain.Models.Game currentEmptyGame = _gameRepository.GetById(emptyGame.Value.Id);
 
-                if(currentEmptyGame.GameResult == GameState.Starting)
+                if (currentEmptyGame != null)
                 {
-                    _gameRepository.UpdateGameResult(emptyGame.Key.Id, GameState.Declined);
+                    if (currentEmptyGame.GameResult == GameState.Starting)
+                    {
+                        _gameRepository.UpdateGameResult(emptyGame.Value.Id, GameState.Declined);
+                    }
+
+                    EmptyGames.Remove(emptyGame.Key);
                 }
-                
-                EmptyGames.Remove(emptyGame.Key);
             }
         }
 
-        private void AddEmptyGame(Game game)
-        {
-            TimeSpan currentUtcTimeSpan = DateTime.UtcNow - DateTime.UtcNow.Date;
+        // 
+        //private void ClearEmptyGames()
+        //{
+        //    List<Game> emptyGames = _gameRepository.GetEmptyGames();
 
-            if (!EmptyGames.Keys.Any(existingGame => existingGame.Id == game.Id))
+        //    foreach (var emptyGame in emptyGames)
+        //    {
+        //        if (EmptyGames.ContainsKey(emptyGame.UniqueId))
+        //        {
+        //            _gameRepository.UpdateGameResult(emptyGame.Id, GameState.Declined);
+        //            EmptyGames.Remove(emptyGame.UniqueId);
+        //        }
+        //        else
+        //        {
+        //            EmptyGames.Add(emptyGame.UniqueId, emptyGame);
+        //        }
+        //    }
+        //}
+
+        private void AddEmptyGame()
+        {
+            List<Game> emptyGames = _gameRepository.GetEmptyGames();
+
+            foreach (var emptyGame in emptyGames)
             {
-                EmptyGames.Add(game, currentUtcTimeSpan);
+                if (!EmptyGames.ContainsKey(emptyGame.UniqueId))
+                {
+                    EmptyGames.Add(emptyGame.UniqueId, emptyGame);
+                }
             }
         }
 

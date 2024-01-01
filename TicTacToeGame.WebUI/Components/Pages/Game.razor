@@ -30,6 +30,7 @@
 @inject GameHubConnection GameHubConnection
 @inject GameManager GameManager
 @inject GameBoardManager GameBoardManager
+@inject ILogger<Game> Logger
 
 @inject IServiceProvider ServiceProvider
 
@@ -41,6 +42,7 @@
 
 @attribute [Authorize]
 
+
 @if (GameManager.IsInitialized)
 {
     <h1 style="text-align: center;">Tic Tac Toe Game</h1>
@@ -51,12 +53,23 @@
 
     @if (!DisconectingTrackingService.isReceivedConnectedStatus)
     {
-        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; background-color: rgba(0, 0, 0, 0.5); pointer-events: all;">
-            <div style="position:fixed;top: 50%;left: 50%;-webkit-transform: translate(-50%, -50%);transform: translate(-50%, -50%);">
+        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 9; background-color: rgba(0, 0, 0, 0.5); pointer-events: all;"></div>
+        <div style="position:fixed;top: 50%;left: 50%;-webkit-transform: translate(-50%, -50%);transform: translate(-50%, -50%);z-index: 11;">
+            @if (!DisconectingTrackingService.IsWaitingTimeUp)
+            {
                 <div style="background:azure;padding:10px;">
                     Waiting another player...
                 </div>
-            </div>
+                <div style="background:azure;padding:10px;">
+                    @DisconectingTrackingService.WaitingTime
+                </div>
+            }
+            else
+            {
+                <div style="background:azure;padding:10px;">
+                    Waiting another player time has run out
+                </div>
+            }
         </div>
     }
 
@@ -156,35 +169,35 @@
                 Chat
             </button>
         }
-        <button style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: #ff6347; color: #fff; border: none; cursor: pointer; z-index:20;" @onclick="LeaveGame">
+        <button style="margin: 10px 0px 0px 10px; padding: 10px 15px; font-size: 16px; background-color: #ff6347; color: #fff; border: none; cursor: pointer; z-index:10;" @onclick="LeaveGame">
             Leave Game
         </button>
     </div>
-  
-        <div class="scoreboard-container" style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 10px 0;">
-            <div class="scoreboard" style="text-align: center; background-color: #f0f0f0; padding: 20px; border-radius: 10px;">
-                <h4 class="scoreboard-header" style="margin-bottom: 10px;">Games played: @GameManager.GamesHistory.Games.Count</h4>
 
-                <div class="scoreboard-players" style="display: flex; justify-content: center; align-items: center;">
-                    <div class="scoreboard-player" style="display: flex; flex-direction: column; margin: 0 10px;">
-                        <span class="scoreboard-username" style="font-size: 1.2em;">@GameManager.CurrentPlayerHost.UserName</span>
-                        <span class="scoreboard-score" style="font-size: 1.5em; font-weight: bold;">@GameManager.HostWins</span>
-                    </div>
+    <div class="scoreboard-container" style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 10px 0;">
+        <div class="scoreboard" style="text-align: center; background-color: #f0f0f0; padding: 20px; border-radius: 10px;">
+            <h4 class="scoreboard-header" style="margin-bottom: 10px;">Games played: @GameManager.GamesHistory.Games.Count</h4>
 
-                    <div class="scoreboard-divider" style="font-size: 1.5em; margin: 0 5px;">:</div>
-
-                    <div class="scoreboard-player" style="display: flex; flex-direction: column; margin: 0 10px;">
-                        <span class="scoreboard-username" style="font-size: 1.2em;">@GameManager.CurrentPlayerGuest.UserName</span>
-                        <span class="scoreboard-score" style="font-size: 1.5em; font-weight: bold;">@GameManager.GuestWins</span>
-                    </div>
+            <div class="scoreboard-players" style="display: flex; justify-content: center; align-items: center;">
+                <div class="scoreboard-player" style="display: flex; flex-direction: column; margin: 0 10px;">
+                    <span class="scoreboard-username" style="font-size: 1.2em;">@GameManager.CurrentPlayerHost.UserName</span>
+                    <span class="scoreboard-score" style="font-size: 1.5em; font-weight: bold;">@GameManager.HostWins</span>
                 </div>
 
-            <h3 class="scoreboard-tie" style="color: orange; margin-top: 10px;">Tie @(GameManager.GamesHistory.Games.Count - (GameManager.HostWins + GameManager.GuestWins))</h3>
+                <div class="scoreboard-divider" style="font-size: 1.5em; margin: 0 5px;">:</div>
+
+                <div class="scoreboard-player" style="display: flex; flex-direction: column; margin: 0 10px;">
+                    <span class="scoreboard-username" style="font-size: 1.2em;">@GameManager.CurrentPlayerGuest.UserName</span>
+                    <span class="scoreboard-score" style="font-size: 1.5em; font-weight: bold;">@GameManager.GuestWins</span>
+                </div>
             </div>
+
+            <h3 class="scoreboard-tie" style="color: orange; margin-top: 10px;">Tie @(GameManager.GamesHistory.Games.Count - (GameManager.HostWins + GameManager.GuestWins))</h3>
         </div>
+    </div>
 
     @if (GameManager.GamesHistory.Games.Count != 0)
-    { 
+    {
         @foreach (var game in GameManager.GamesHistory.Games)
         {
             string cardColorClass = "";
@@ -216,7 +229,7 @@
                     </div>
                 </div>
             </div>
-        }             
+        }
     }
 
 
@@ -255,7 +268,7 @@
                 scrollChatToBottom();
             });
         </script>
-       
+
     }
 }
 else
@@ -284,10 +297,15 @@ else
 
             CheckForWinnerManager.GameStatus = "Game in progress";
 
+            Logger.LogError("Before Initialization");
+
             isGameInitializedSuccesfully = await GameInitializeProcess.InitializeGameForAuthenticatedUser();
+
+            Logger.LogError("After Initialization");
 
             if (!isGameInitializedSuccesfully)
             {
+                Logger.LogError("Player Kicks");
                 NavigationManager.NavigateTo("/");
                 return;
             }
@@ -331,6 +349,10 @@ else
 
                     CheckForWinnerManager.StateHasChanged += () => InvokeAsync(StateHasChanged);
 
+                    DisconectingTrackingService.StartWaitingAnotherPlayerTimer();
+
+                    GameSessionService.SetDisconnectingTracking(DisconectingTrackingService);
+
                     await DisconectingTrackingService.SendConnectedStatus((int)GameManager.CurrentGame.RoomId, GameManager.GetCurrentUserId());
 
                     await GameHubConnection.AskAnotherPlayerBoard((int)GameManager.CurrentGame.RoomId, GameManager.CurrentPlayer.Id);
@@ -372,15 +394,12 @@ else
     {
         GameHubConnection = new GameHubConnection(NavigationManager);
 
+        // Moves
         GameHubConnection.ReceiveGameStateEvent += MakeMovesManager.ReceiveGameState;
-
         GameHubConnection.ReceiveGameStatusEvent += CheckForWinnerManager.ReceiveGameStatus;
 
+        // Disconnections
         GameHubConnection.ReceiveOpponentLeftEvent += DisconectingTrackingService.ReceiveOpponentLeft;
-
-        GameHubConnection.AskToReceiveAnotherPlayerBoardEvent += MakeMovesManager.AskToReceiveAnotherPlayerBoard;
-
-        GameHubConnection.ReceiveAnotherPlayerBoardEvent += MakeMovesManager.ReceiveAnotherPlayerBoard;
 
         GameHubConnection.ReceiveOpponentLeavesEvent += DisconectingTrackingService.ReceiveOpponentLeaves;
 
@@ -388,18 +407,23 @@ else
 
         GameHubConnection.ReceiveOpponentNotLeavesEvent += DisconectingTrackingService.ReceiveOpponentNotLeaves;
 
+        GameHubConnection.ReceiveReloadTimersEvent += DisconectingTrackingService.ReloadMoveTimer;
+        // Get Board
+        GameHubConnection.AskToReceiveAnotherPlayerBoardEvent += MakeMovesManager.AskToReceiveAnotherPlayerBoard;
+
+        GameHubConnection.ReceiveAnotherPlayerBoardEvent += MakeMovesManager.ReceiveAnotherPlayerBoard;
+
+        // Chat
         GameHubConnection.ReceiveChatMessageEvent += ChatService.ReceiveChatMessage;
 
+        // Next Game
         GameHubConnection.ReceiveAnotherPlayerAnswerForNextGameEvent += GameSessionService.ReceiveRequestOnNextGame;
 
         GameHubConnection.ReceiveDeclineAnotherGameRequestEvent += GameSessionService.ReceiveDeclineRequestOnNextGame;
 
-        // GameHubConnection.ReceiveAcceptAnotherGameRequestEvent += GameSessionService.ReceiveAcceptAnotherGameRequest;
-
-        // GameHubConnection.ReceiveJoinningToNextGameEvent += GameSessionService.ReceiveJoinningToNextGame;
-
         GameHubConnection.ReceiveReadyNextGameStatusEvent += GameSessionService.ReceiveReadyNextGameStatus;
 
+        // Connected Status
         GameHubConnection.ReceiveConnectedStatusEvent += DisconectingTrackingService.ReceiveConnectedStatus;
 
         await EnsureConnectionEstablished();
@@ -416,8 +440,10 @@ else
                 {
                     await ReInitializeGame();
                 }
-
-                await GameHubConnection.JoinGame((int)GameManager.CurrentGame.RoomId);
+                else
+                {
+                    await GameHubConnection.JoinGame((int)GameManager.CurrentGame.RoomId);
+                }
             }
             catch (Exception)
             {
@@ -432,15 +458,20 @@ else
     {
         if (!GameManager.IsCleanedUp)
         {
+            // 
             await GameHubConnection.SendUserLeaves((int)GameManager.CurrentGame.RoomId, GameManager.GetCurrentUserId());
+            //
 
             GameReconnectingService.MakePlayerNotPlaying(GameManager.GetCurrentUserId());
-            
+
             GameBoardManager.RemoveBoard(GameManager.CurrentGame.UniqueId);
 
             GameReconnectingService.IsPlayerLeaveGameByButton = true;
 
             DisconectingTrackingService.UpdateGameResultAfterTwoPlayersDisconnection();
+
+            DisconectingTrackingService.StopTimers();
+            //await DisconectingTrackingService.DisposeAsync();
         }
 
         GameManager.ClearData();
@@ -459,9 +490,7 @@ else
     {
         await MakeMovesManager.MakeMove(index);
 
-        DisconectingTrackingService.ReloadMoveTimer();// I think that here reloads not that timers
-
-        //MakeMovesManager.MoveWasMade = true;
+        await GameHubConnection.SendReloadTimers((int)GameManager.CurrentGame.RoomId, GameManager.GetCurrentUserId());
     }
 
     private string GetSquareValue(int index) => (GameManager.Board[index] == BoardElements.Empty) ? "" : GameManager.Board[index].ToString();
@@ -473,7 +502,7 @@ else
         await ChatService.SendMessage(ChatService.Message, GameManager.CurrentPlayer, (int)GameManager.CurrentGame.RoomId);
         ChatService.Message = "";
     }
-    
+
     public async Task Enter(KeyboardEventArgs e)
     {
         if ((e.Code == "Enter" || e.Code == "NumpadEnter") && !string.IsNullOrWhiteSpace(ChatService.Message))
@@ -485,18 +514,19 @@ else
 
     public async ValueTask DisposeAsync()
     {
-        await InvokeAsync(async () =>
+        if (GameManager.IsInitialized)
         {
-            if (isGameInitializedSuccesfully)
-            {
-                GameReconnectingService.MakePlayerNotPlaying(GameManager.GetCurrentUserId());
+            GameReconnectingService.MakePlayerNotPlaying(GameManager.GetCurrentUserId());
 
-                GameManager.ClearData();
+            GameManager.ClearData();
 
-                await DisconectingTrackingService.DisposeAsync();
+            await DisconectingTrackingService.DisposeAsync();
 
-                await GameHubConnection.DisposeAsync();
-            }
-        });
+            await GameHubConnection.DisposeAsync();
+
+            Logger.LogError($"Dispose");
+        }
+        else
+            Logger.LogError($"NotDispose");
     }
 }

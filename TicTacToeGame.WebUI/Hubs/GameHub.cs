@@ -27,22 +27,21 @@ namespace TicTacToeGame.WebUI.Hubs
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, roomId.ToString());
         }
-        // moves
+        // Moves
         public async Task SendGameState(BoardElements[] board, PlayerType nextPlayerTurn, int roomId)
         {
             await Clients.Group(roomId.ToString()).SendAsync("ReceiveGameState", board, nextPlayerTurn, roomId);
         }
-        public async Task SendGameStatus(GameState gameState, string gameStatus, int roomId)
+        public async Task SendGameStatus(GameState gameState, string gameStatus, PlayerType winner, Game game, int roomId)
         {
-            await Clients.Group(roomId.ToString()).SendAsync("ReceiveGameStatus", gameState, gameStatus, roomId);
+            await Clients.Group(roomId.ToString()).SendAsync("ReceiveGameStatus", gameState, gameStatus, winner, game, roomId);
         }
-        // connects
-        // check if it is using
+        // Connection
         public async Task SendConnectedStatus(int roomId, string userId,bool isAnotherPlayerNotified)
         {
             await Clients.Group(roomId.ToString()).SendAsync("ReceiveConnectedStatus", userId, isAnotherPlayerNotified);
         }
-        // disconections
+        // Disconnections
         public async Task CheckIfOpponentLeaves(int roomId, string userId)
         {
             await Clients.Group(roomId.ToString()).SendAsync("ReceiveIfOpponentLeaves", roomId, userId);
@@ -59,7 +58,11 @@ namespace TicTacToeGame.WebUI.Hubs
         {
             await Clients.Group(roomId.ToString()).SendAsync("ReceiveOpponentLeft");
         }
-        // get board
+        public async Task SendReloadTimers(int roomId, string userId)
+        {
+            await Clients.Group(roomId.ToString()).SendAsync("ReceiveReloadTimers", userId);
+        }
+        // Get board
         public async Task AskAnotherPlayerBoard(int roomId, string userId)
         {
             await Clients.Group(roomId.ToString()).SendAsync("AskToReceiveAnotherPlayerBoard", userId, roomId);
@@ -68,12 +71,12 @@ namespace TicTacToeGame.WebUI.Hubs
         {
             await Clients.Group(roomId.ToString()).SendAsync("ReceiveAnotherPlayerBoard", userId, board);
         }
-        // chat
+        // Chat
         public async Task SendChatMessage(int roomId, string senderNickname, string message)
         {
             await Clients.Group(roomId.ToString()).SendAsync("ReceiveChatMessage", senderNickname, message);
         }
-        // next game
+        // Next game
 
         public async Task AskAnotherPlayerForNextGame(int roomId, string userId)
         {
@@ -83,14 +86,6 @@ namespace TicTacToeGame.WebUI.Hubs
         {
             await Clients.Group(roomId.ToString()).SendAsync("ReceiveDeclineAnotherGameRequest", userId);
         }
-        //public async Task SendAcceptAnotherGameRequest(int roomId, string userId)
-        //{
-        //    await Clients.Group(roomId.ToString()).SendAsync("ReceiveAcceptAnotherGameRequest", userId);
-        //}
-        //public async Task AskToJoinNextGame(int roomId, string userId)
-        //{
-        //    await Clients.Group(roomId.ToString()).SendAsync("ReceiveJoinningToNextGame", userId);
-        //}
         public async Task SendReadyNextGameStatus(int roomId)
         {
             await Clients.Group(roomId.ToString()).SendAsync("ReceiveReadyNextGameStatus");

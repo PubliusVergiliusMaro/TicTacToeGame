@@ -1,5 +1,6 @@
 ﻿using TicTacToeGame.Domain.Constants;
 using TicTacToeGame.Domain.Enums;
+using TicTacToeGame.Domain.Models;
 using TicTacToeGame.Domain.Repositories;
 using TicTacToeGame.Services.GamesStatisticServices;
 
@@ -10,14 +11,19 @@ public class CheckForWinnerManager
 
     private readonly GamesStatisticsService _gamesStatisticsService;
 
+    private readonly GameBoardManager _gameBoardManager;
+
     public event Action StateHasChanged;
 
     public string GameStatus { get; set; }
 
-    public CheckForWinnerManager(GameManager gameManager, GamesStatisticsService gamesStatisticsService)
+    public CheckForWinnerManager(GameManager gameManager,
+        GamesStatisticsService gamesStatisticsService,
+        GameBoardManager gameBoardManager)
     {
         _gameManager = gameManager;
         _gamesStatisticsService = gamesStatisticsService;
+        _gameBoardManager=gameBoardManager;
     }
 
     public bool CheckForWinner() => CheckRowsForWinner() || CheckColumnsForWinner() || CheckDiagonalsForWinner();
@@ -83,16 +89,24 @@ public class CheckForWinnerManager
         return a != BoardElements.Empty && a == b && b == c;
     }
 
-    public void ReceiveGameStatus(GameState receiveGameResult, string receiveGameStatus, int gameId)
+    public void ReceiveGameStatus(GameState receiveGameResult, string receiveGameStatus, PlayerType winner, Game game, int gameId)
     {
-        _gameManager.CurrentGame.GameResult = receiveGameResult;
-        
-        //if(receiveGameResult == GameState.Finished)
-        //    _gamesStatisticsService.UpdatePlayersGameHistory(_gameManager.CurrentPlayerHost.Id, _gameManager.CurrentPlayerGuest.Id, _gameManager.CurrentGame.RoomId);
-        
+        _gameManager.CurrentGame = game;
+        _gameManager.GameRepository.UpdateEntity(game);
+
+        _gameManager.Board = _gameBoardManager.GetBoard(_gameManager.CurrentGame.UniqueId);
+
         GameStatus = receiveGameStatus;
+
         _gamesStatisticsService.GetGamesByResultAndPlayers(_gameManager);
         StateHasChanged?.Invoke();
+    }
+    public void ReceiveTestMessage(string userId)
+    {
+        if(_gameManager.CurrentPlayer.Id != userId)
+        {
+            int a = 10;
+        }
     }
 
 }

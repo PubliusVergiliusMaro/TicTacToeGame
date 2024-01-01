@@ -1,10 +1,11 @@
-﻿using TicTacToeGame.Domain.Enums;
+﻿using System.Collections.Concurrent;
+using TicTacToeGame.Domain.Enums;
 
 namespace TicTacToeGame.Services.GameProcessService
 {
     public class GameBoardManager
     {
-        private readonly Dictionary<Guid, BoardElements[]> GameBoard = new();
+        public readonly ConcurrentDictionary<Guid, BoardElements[]> GameBoard = new();
 
         public void AddBoardIfNotExist(Guid gameUniqueId, BoardElements[] board)
         {
@@ -12,7 +13,7 @@ namespace TicTacToeGame.Services.GameProcessService
             {
                 if (!GameBoard.ContainsKey(gameUniqueId))
                 {
-                    GameBoard.Add(gameUniqueId, board);
+                    GameBoard.TryAdd(gameUniqueId, board);
                 }
             }
             catch (Exception ex)
@@ -43,7 +44,7 @@ namespace TicTacToeGame.Services.GameProcessService
                 }
                 else
                     throw new Exception("Board not found");
-                   
+
             }
             catch (Exception ex)
             {
@@ -57,7 +58,7 @@ namespace TicTacToeGame.Services.GameProcessService
             {
                 if (GameBoard.ContainsKey(gameUniqueId))
                 {
-                    GameBoard.Remove(gameUniqueId);
+                    GameBoard.TryRemove(gameUniqueId, out _);
                 }
             }
             catch (Exception ex)

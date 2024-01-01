@@ -19,6 +19,8 @@ public class MakeMovesGameManager
 
     private GameHubConnection _gameHubConnection;
 
+    //private GameFinalizationService _gameFinalizationService;
+
     private readonly GameManager _gameManager;
 
     public string CurrentPlayerSign;
@@ -38,6 +40,7 @@ public class MakeMovesGameManager
         _gameReconnectingService = gameReconnectingService;
         _gameHubConnection = gameHubConnection;
         _gameManager = gameManager;
+        //_gameFinalizationService = gameFinalizationService;
         _gameBoardManager = gameBoardManager;
     }
     public void SetHubConnection(GameHubConnection gameHubConnection)
@@ -132,10 +135,12 @@ public class MakeMovesGameManager
     {
         if (_checkForWinnerManager.CheckForWinner())
         {
+            //await _gameFinalizationService.FinishGame(_checkForWinnerManager.GameStatus);
             await FinishGameAndPutInHistory();
         }
         else if (_checkForWinnerManager.CheckForTie())
         {
+            //await _gameFinalizationService.FinishGame(_checkForWinnerManager.GameStatus,true);
             await FinishGameAndPutInHistory(true);
         }
     }
@@ -168,10 +173,11 @@ public class MakeMovesGameManager
                 _gameManager.CurrentGame.Winner = PlayerType.None;
             }
             else
-                _gameManager.CurrentGame.Winner = (_gameManager.CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
+                _gameManager.CurrentGame.Winner = (_gameManager.CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Host : PlayerType.Guest;
 
-            _gameManager.GameRepository.UpdateEntity(_gameManager.CurrentGame);
-            await SendGameStatus(_checkForWinnerManager.GameStatus);
+            //_gameManager.GameRepository.UpdateEntity(_gameManager.CurrentGame);
+
+            await SendGameStatus(_checkForWinnerManager.GameStatus, (PlayerType)_gameManager.CurrentGame.Winner, _gameManager.CurrentGame);
 
             _gameReconnectingService.MakePlayerNotPlaying(_gameManager.CurrentPlayerHost.Id);
             _gameManager.CurrentPlayerHost.IsPlaying = false;
@@ -180,7 +186,7 @@ public class MakeMovesGameManager
 
             //_gamesStatisticsService.UpdatePlayersGameHistory(_gameManager.CurrentPlayerHost.Id, _gameManager.CurrentPlayerGuest.Id, _gameManager.CurrentGame.RoomId);
 
-            _gameBoardManager.RemoveBoard(_gameManager.CurrentGame.UniqueId);
+            //_gameBoardManager.RemoveBoard(_gameManager.CurrentGame.UniqueId);
 
             StateHasChanged?.Invoke();
         }
@@ -211,18 +217,20 @@ public class MakeMovesGameManager
         }
     }
 
-    private async Task SendGameStatus(string GameStatus)
+    private async Task SendGameStatus(string GameStatus, PlayerType winner, Game game)
     {
-        await _gameHubConnection.SendGameStatus(_gameManager.CurrentGame.GameResult, GameStatus, (int)_gameManager.CurrentGame.RoomId);
+        await _gameHubConnection.SendGameStatus(_gameManager.CurrentGame.GameResult, GameStatus, winner, game, (int)_gameManager.CurrentGame.RoomId);
     }
-
     private async Task SentGameState()
     {
         PlayerType nextPlayerTurn = (_gameManager.CurrentGame.CurrentTurn == PlayerType.Host) ? PlayerType.Guest : PlayerType.Host;
 
         _gameBoardManager.UpdateBoard(_gameManager.CurrentGame.UniqueId, _gameManager.Board);
-
-        await _gameHubConnection.SendGameState(_gameManager.Board, nextPlayerTurn, (int)_gameManager.CurrentGame.RoomId);
+        
+        if (!_checkForWinnerManager.CheckForWinner())
+        {
+            await _gameHubConnection.SendGameState(_gameManager.Board, nextPlayerTurn, (int)_gameManager.CurrentGame.RoomId);
+        }
     }
 
     public void UpdateGameAfterMove()
@@ -263,8 +271,11 @@ public class MakeMovesGameManager
     {
         _gameManager.Board = receivedBoard;
         _gameManager.CurrentGame.CurrentTurn = nextPlayerTurn;
+        
         UpdateGameAfterMove();
+        
         MoveWasMade = false;
+        
         StateHasChanged?.Invoke();
     }
 }

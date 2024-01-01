@@ -3,6 +3,7 @@ using TicTacToeGame.Domain.Enums;
 
 namespace TicTacToeGame.Domain.Models
 {
+    [Table("dbo.GamesHistory")]
     public class GamesHistory : EntityBase
     {
         [Write(false)]
