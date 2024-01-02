@@ -15,7 +15,6 @@ namespace TicTacToeGame.Services.GameProcessService
 
     public class GameChatService
     {
-        //public List<KeyValuePair<string, string>> ChatMessages = new List<KeyValuePair<string, string>>();
         public static List<ChatMessage> ChatMessages = new List<ChatMessage>();
 
         public string Message { get; set; }

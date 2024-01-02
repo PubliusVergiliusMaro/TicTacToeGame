@@ -1,0 +1,113 @@
+﻿@using TicTacToeGame.Domain.Constants
+@using TicTacToeGame.Domain.Enums
+@using TicTacToeGame.Services.GameProcessService
+@using TicTacToeGame.Services.HubConnections
+
+<div class="xED3T" style="display: flex; flex-direction: column; align-items: center; padding: 20px; background-color: #14bdac;">
+    <p style="margin-top: 20px; font-size: 18px; color: #fff; background-color: #14bdac; padding: 10px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+        You`re @MakeMovesManager.CurrentPlayerSign;
+    </p>
+    <p style="margin-top: 20px; font-size: 18px; color: #fff; background-color: #14bdac; padding: 10px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+        @CheckForWinnerManager.GameStatus
+    </p>
+    <p style="margin-top: 20px; font-size: 18px; color: #fff; background-color: #14bdac; padding: 10px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+        Current turn now: @MakeMovesManager.DetermineWhoMakeMoveNow().ToString();
+    </p>
+
+    <table jsname="z2IlVe" class="KD6xlc" style="border-collapse: separate; border-spacing: 10px;">
+        <tbody>
+            @for (int row = TicTacToeRules.FIRST_ROW_OF_BOARD; row < TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS; row++)
+            {
+                <div style="display: flex;">
+                    @for (int col = TicTacToeRules.FIRST_COLUMN_OF_BOARD; col < TicTacToeRules.MAX_COUNT_OF_BOARD_COLUMNS; col++)
+                    {
+                        int index = row * 3 + col;
+                        <button style="width: 100px; height: 100px; font-size: 48px; text-align: center; vertical-align: middle;
+                                background-color: #14bdac; border: none; color: #fff;"
+                                @onclick="(async () => await MakeMove(index))" disabled="@IsButtonDisabled(index)">
+                            @GetSquareValue(index)
+                        </button>
+                        @if (col < TicTacToeRules.MAX_COUNT_OF_BOARD_COLUMNS - 1)
+                        {
+                            <div style="width: 5px; background-color: #70757a; height: 100px; "></div>
+                        }
+                    }
+                </div>
+                @if (row < TicTacToeRules.MAX_COUNT_OF_BOARD_COLUMNS - 1)
+                {
+                    <div style="height: 5px; background-color: #70757a; width: 100%; "></div>
+                }
+            }
+        </tbody>
+    </table>
+    @if (GameSessionService.RequestForNextGame)
+    {
+        @if (!GameSessionService.ApprovedNextGame && !GameSessionService.DeclinedNextGame)
+        {
+            <div class="card" style="width: 18rem;">
+                <div class="card-body">
+                    <h5 class="card-title">Game Invitation</h5>
+                    <p class="card-text">You have been invited to another game. Do you accept?</p>
+                    <button class="btn btn-success" @onclick="Approve">Approve</button>
+                    <button class="btn btn-danger" @onclick="Decline">Decline</button>
+                </div>
+            </div>
+        }
+    }
+    @if (GameSessionService.ApprovedNextGame)
+    {
+        <div class="card" style="width: 18rem;">
+            <div class="card-body">
+                <h5 class="card-title">Game Invitation was accepted</h5>
+                <p class="text-success"><i class="fas fa-check"></i> Game approved</p>
+            </div>
+        </div>
+    }
+    else if (GameSessionService.DeclinedNextGame)
+    {
+        <div class="card" style="width: 18rem;">
+            <div class="card-body">
+                <h5 class="card-title">Game Invitation was declined</h5>
+                <p class="text-danger"><i class="fas fa-times"></i> Game declined</p>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+  
+    [Parameter]
+    public GameHubConnection GameHubConnection { get; set; }
+
+    [Parameter]
+    public CheckForWinnerManager CheckForWinnerManager { get; set; }
+
+    [Parameter]
+    public MakeMovesGameManager MakeMovesManager { get; set; }
+
+    [Parameter]
+    public PlayerDisconectingTrackingService DisconectingTrackingService { get; set; }
+
+    [Parameter]
+    public GameSessionService GameSessionService { get; set; }
+
+    [Parameter]
+    public GameManager GameManager { get; set; }
+
+
+    private string GetSquareValue(int index) => (GameManager.Board[index] == BoardElements.Empty) ? "" : GameManager.Board[index].ToString();
+
+    private bool IsButtonDisabled(int index) => MakeMovesManager.MoveWasMade|| GameManager.CurrentGame.GameResult == GameState.Finished;
+
+    private async Task Approve() => await GameSessionService.AcceptNextGameRequest();
+
+    private async Task Decline() => await GameSessionService.DeclineRequestOnNextGame();
+
+    private async Task MakeMove(int index)
+    {
+        await MakeMovesManager.MakeMove(index);
+
+        await GameHubConnection.SendReloadTimers((int)GameManager.CurrentGame.RoomId, GameManager.GetCurrentUserId());
+    }
+
+}

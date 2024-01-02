@@ -1,0 +1,72 @@
+﻿@using TicTacToeGame.Domain.Models
+@using TicTacToeGame.Services.GameProcessService
+@using TicTacToeGame.Services.GamesStatisticServices
+
+
+<div class="scoreboard-container" style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 10px 0;">
+    <div class="scoreboard" style="text-align: center; background-color: #f0f0f0; padding: 20px; border-radius: 10px;">
+        <h4 class="scoreboard-header" style="margin-bottom: 10px;">Games played: @GameManager.GamesHistory.Games.Count</h4>
+
+        <div class="scoreboard-players" style="display: flex; justify-content: center; align-items: center;">
+            <div class="scoreboard-player" style="display: flex; flex-direction: column; margin: 0 10px;">
+                <span class="scoreboard-username" style="font-size: 1.2em;">@GameManager.CurrentPlayerHost.UserName</span>
+                <span class="scoreboard-score" style="font-size: 1.5em; font-weight: bold;">@GameManager.HostWins</span>
+            </div>
+
+            <div class="scoreboard-divider" style="font-size: 1.5em; margin: 0 5px;">:</div>
+
+            <div class="scoreboard-player" style="display: flex; flex-direction: column; margin: 0 10px;">
+                <span class="scoreboard-username" style="font-size: 1.2em;">@GameManager.CurrentPlayerGuest.UserName</span>
+                <span class="scoreboard-score" style="font-size: 1.5em; font-weight: bold;">@GameManager.GuestWins</span>
+            </div>
+        </div>
+
+        <h3 class="scoreboard-tie" style="color: orange; margin-top: 10px;">Tie @(GameManager.GamesHistory.Games.Count - (GameManager.HostWins + GameManager.GuestWins))</h3>
+    </div>
+</div>
+@if (GameManager.GamesHistory.Games.Count != 0)
+{
+    @foreach (var game in GameManager.GamesHistory.Games)
+    {
+        string cardColorClass = "";
+        Player winner = GamesStatisticsService.GetWinner(game.Winner, GameManager.CurrentPlayerHost, GameManager.CurrentPlayerGuest);
+        bool hostWon = (winner != null && winner.Id == GameManager.CurrentPlayerHost.Id);
+        bool guestWon = (winner != null && winner.Id == GameManager.CurrentPlayerGuest.Id);
+        bool isDraw = (winner == null);
+        if (GameManager.GetCurrentUserId() == GameManager.CurrentPlayerHost.Id)
+        {
+            cardColorClass = hostWon ? "bg-success" : guestWon ? "bg-danger" : isDraw ? "bg-warning" : "";
+        }
+        else
+        {
+            cardColorClass = hostWon ? "bg-danger" : guestWon ? "bg-success" : isDraw ? "bg-warning" : "";
+
+        }
+        <div class="card m-1 @cardColorClass">
+            <div class="card-body">
+                <div class="card m-1">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            @(isDraw ? "Draw" : $"Winner: {winner.UserName}")
+                            @{
+                                string.Format("{0} ({1}) : {2} ({3})", GameManager.CurrentPlayerHost.UserName, GameManager.HostWins, GameManager.CurrentPlayerGuest.UserName, GameManager.GuestWins);
+                            }
+                        </h5>
+                        <p class="card-text">@game.CreatedAt.ToString("D")</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+
+    [Parameter]
+    public GameManager GameManager { get; set; }
+
+    [Parameter]
+    public GamesStatisticsService GamesStatisticsService { get; set; }
+
+
+}
