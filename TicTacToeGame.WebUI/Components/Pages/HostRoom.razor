@@ -193,8 +193,6 @@
    
     public string GetCurrentUserId() =>  user?.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
 
-    //public string GetPlayersId() => user.FindFirstValue(ClaimTypes.NameIdentifier);
-
     public async ValueTask DisposeAsync()
     {
         await HostRoomHubConnection.DisposeAsync();

@@ -2,28 +2,18 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.SignalR.Client
-@using TicTacToeGame.Domain.Constants
 @using TicTacToeGame.Domain.Enums
-@using TicTacToeGame.Domain.Models
-@using System.Security.Claims
-@using TicTacToeGame.Domain.Repositories
 @using TicTacToeGame.Services.GameProcessService
 @using TicTacToeGame.Services.GamesStatisticServices
 @using TicTacToeGame.Services.HubConnections
-@using TicTacToeGame.WebUI.Components.Account
-@using TicTacToeGame.WebUI.Components.Layout
-@using Microsoft.AspNetCore.Components.Web
-@using TicTacToeGame.WebUI.Hubs
+@using TicTacToeGame.WebUI.Components.GameComponents
 
-@inject PlayerRepository _playerRepository
-@inject GameRepository GameRepository
-@inject AuthenticationStateProvider _authenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject GameInitializeService GameInitializeProcess
 @inject CheckForWinnerManager CheckForWinnerManager
 @inject MakeMovesGameManager MakeMovesManager
 @inject PlayerDisconectingTrackingService DisconectingTrackingService
-@inject GameChatService ChatService
+@inject GameChatService ChatService 
 @inject GameReconnectingService GameReconnectingService
 @inject GamesStatisticsService GamesStatisticsService
 @inject GameSessionService GameSessionService
@@ -31,10 +21,6 @@
 @inject GameManager GameManager
 @inject GameBoardManager GameBoardManager
 @inject ILogger<Game> Logger
-
-@inject IServiceProvider ServiceProvider
-
-@inject IJSRuntime JSRuntime
 
 @implements IAsyncDisposable
 
@@ -54,6 +40,7 @@
     @if (!DisconectingTrackingService.isReceivedConnectedStatus)
     {
         <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 9; background-color: rgba(0, 0, 0, 0.5); pointer-events: all;"></div>
+
         <div style="position:fixed;top: 50%;left: 50%;-webkit-transform: translate(-50%, -50%);transform: translate(-50%, -50%);z-index: 11;">
             @if (!DisconectingTrackingService.IsWaitingTimeUp)
             {
@@ -73,76 +60,12 @@
         </div>
     }
 
-    <div class="xED3T" style="display: flex; flex-direction: column; align-items: center; padding: 20px; background-color: #14bdac;">
-        <p style="margin-top: 20px; font-size: 18px; color: #fff; background-color: #14bdac; padding: 10px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
-            You`re @MakeMovesManager.CurrentPlayerSign;
-        </p>
-        <p style="margin-top: 20px; font-size: 18px; color: #fff; background-color: #14bdac; padding: 10px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
-            @CheckForWinnerManager.GameStatus
-        </p>
-        <p style="margin-top: 20px; font-size: 18px; color: #fff; background-color: #14bdac; padding: 10px; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
-            Current turn now: @MakeMovesManager.DetermineWhoMakeMoveNow().ToString();
-        </p>
-
-        <table jsname="z2IlVe" class="KD6xlc" style="border-collapse: separate; border-spacing: 10px;">
-            <tbody>
-                @for (int row = TicTacToeRules.FIRST_ROW_OF_BOARD; row < TicTacToeRules.MAX_COUNT_OF_BOARD_ROWS; row++)
-                {
-                    <div style="display: flex;">
-                        @for (int col = TicTacToeRules.FIRST_COLUMN_OF_BOARD; col < TicTacToeRules.MAX_COUNT_OF_BOARD_COLUMNS; col++)
-                        {
-                            int index = row * 3 + col;
-                            <button style="width: 100px; height: 100px; font-size: 48px; text-align: center; vertical-align: middle;
-                                background-color: #14bdac; border: none; color: #fff;"
-                                    @onclick="(async () => await MakeMove(index))" disabled="@IsButtonDisabled(index)">
-                                @GetSquareValue(index)
-                            </button>
-                            @if (col < TicTacToeRules.MAX_COUNT_OF_BOARD_COLUMNS - 1)
-                            {
-                                <div style="width: 5px; background-color: #70757a; height: 100px; "></div>
-                            }
-                        }
-                    </div>
-                    @if (row < TicTacToeRules.MAX_COUNT_OF_BOARD_COLUMNS - 1)
-                    {
-                        <div style="height: 5px; background-color: #70757a; width: 100%; "></div>
-                    }
-                }
-            </tbody>
-        </table>
-        @if (GameSessionService.RequestForNextGame)
-        {
-            @if (!GameSessionService.ApprovedNextGame && !GameSessionService.DeclinedNextGame)
-            {
-                <div class="card" style="width: 18rem;">
-                    <div class="card-body">
-                        <h5 class="card-title">Game Invitation</h5>
-                        <p class="card-text">You have been invited to another game. Do you accept?</p>
-                        <button class="btn btn-success" @onclick="Approve">Approve</button>
-                        <button class="btn btn-danger" @onclick="Decline">Decline</button>
-                    </div>
-                </div>
-            }
-        }
-        @if (GameSessionService.ApprovedNextGame)
-        {
-            <div class="card" style="width: 18rem;">
-                <div class="card-body">
-                    <h5 class="card-title">Game Invitation was accepted</h5>
-                    <p class="text-success"><i class="fas fa-check"></i> Game approved</p>
-                </div>
-            </div>
-        }
-        else if (GameSessionService.DeclinedNextGame)
-        {
-            <div class="card" style="width: 18rem;">
-                <div class="card-body">
-                    <h5 class="card-title">Game Invitation was declined</h5>
-                    <p class="text-danger"><i class="fas fa-times"></i> Game declined</p>
-                </div>
-            </div>
-        }
-    </div>
+    <GameBoard  GameHubConnection="GameHubConnection" 
+                CheckForWinnerManager="CheckForWinnerManager"
+                MakeMovesManager="MakeMovesManager"
+                DisconectingTrackingService="DisconectingTrackingService"
+                GameSessionService="GameSessionService"
+                GameManager="GameManager"/>
 
     <div class="d-flex">
         @if (GameManager.CurrentGame.GameResult == GameState.Finished)
@@ -174,102 +97,9 @@
         </button>
     </div>
 
-    <div class="scoreboard-container" style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 10px 0;">
-        <div class="scoreboard" style="text-align: center; background-color: #f0f0f0; padding: 20px; border-radius: 10px;">
-            <h4 class="scoreboard-header" style="margin-bottom: 10px;">Games played: @GameManager.GamesHistory.Games.Count</h4>
+    <SessionHistory GameManager="GameManager" GamesStatisticsService="GamesStatisticsService" />
 
-            <div class="scoreboard-players" style="display: flex; justify-content: center; align-items: center;">
-                <div class="scoreboard-player" style="display: flex; flex-direction: column; margin: 0 10px;">
-                    <span class="scoreboard-username" style="font-size: 1.2em;">@GameManager.CurrentPlayerHost.UserName</span>
-                    <span class="scoreboard-score" style="font-size: 1.5em; font-weight: bold;">@GameManager.HostWins</span>
-                </div>
-
-                <div class="scoreboard-divider" style="font-size: 1.5em; margin: 0 5px;">:</div>
-
-                <div class="scoreboard-player" style="display: flex; flex-direction: column; margin: 0 10px;">
-                    <span class="scoreboard-username" style="font-size: 1.2em;">@GameManager.CurrentPlayerGuest.UserName</span>
-                    <span class="scoreboard-score" style="font-size: 1.5em; font-weight: bold;">@GameManager.GuestWins</span>
-                </div>
-            </div>
-
-            <h3 class="scoreboard-tie" style="color: orange; margin-top: 10px;">Tie @(GameManager.GamesHistory.Games.Count - (GameManager.HostWins + GameManager.GuestWins))</h3>
-        </div>
-    </div>
-
-    @if (GameManager.GamesHistory.Games.Count != 0)
-    {
-        @foreach (var game in GameManager.GamesHistory.Games)
-        {
-            string cardColorClass = "";
-            Player winner = GamesStatisticsService.GetWinner(game.Winner, GameManager.CurrentPlayerHost, GameManager.CurrentPlayerGuest);
-            bool hostWon = (winner != null && winner.Id == GameManager.CurrentPlayerHost.Id);
-            bool guestWon = (winner != null && winner.Id == GameManager.CurrentPlayerGuest.Id);
-            bool isDraw = (winner == null);
-            if (GameManager.GetCurrentUserId() == GameManager.CurrentPlayerHost.Id)
-            {
-                cardColorClass = hostWon ? "bg-success" : guestWon ? "bg-danger" : isDraw ? "bg-warning" : "";
-            }
-            else
-            {
-                cardColorClass = hostWon ? "bg-danger" : guestWon ? "bg-success" : isDraw ? "bg-warning" : "";
-
-            }
-            <div class="card m-1 @cardColorClass">
-                <div class="card-body">
-                    <div class="card m-1">
-                        <div class="card-body">
-                            <h5 class="card-title">
-                                @(isDraw ? "Draw" : $"Winner: {winner.UserName}")
-                                @{
-                                    string.Format("{0} ({1}) : {2} ({3})", GameManager.CurrentPlayerHost.UserName, GameManager.HostWins, GameManager.CurrentPlayerGuest.UserName, GameManager.GuestWins);
-                                }
-                            </h5>
-                            <p class="card-text">@game.CreatedAt.ToString("D")</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        }
-    }
-
-
-    @if (ChatService.IsChatVisible)
-    {
-        <div id="chatContainer" style="position: fixed;  bottom: 0; right: 0; width: 300px; height: 400px; border: 1px solid #ccc; padding: 10px; margin: 10px; background-color: #f9f9f9;">
-            <div class="d-flex justify-content-between">
-                <h3>Chat</h3>
-                <button style="margin:0px 0px 5px 0px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;" @onclick="ChatService.ToggleChat">
-                    Toggle Chat
-                </button>
-            </div>
-            <div id="chatContent" style="height: 80%; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; word-wrap: break-word;">
-                @foreach (var chatmsg in GameChatService.ChatMessages.Where(msg => (msg.PlayerId == GameManager.CurrentPlayerGuest.Id || msg.PlayerId == GameManager.CurrentPlayerHost.Id) && msg.RoomId == (int)GameManager.CurrentGame.RoomId))
-                {
-                    <p><strong>@chatmsg.PlayerNickname:</strong> @chatmsg.Message</p>
-                }
-
-            </div>
-            <input @bind="ChatService.Message" @bind:event="oninput" @onkeydown="@Enter" type="text" style="width: 70%; padding: 5px;" placeholder="Type your message here..." maxlength="250" />
-            <button @onclick="SendMessage" disabled="@string.IsNullOrWhiteSpace(ChatService.Message)" style="width: 28%; padding: 5px 10px; background-color: @(string.IsNullOrWhiteSpace(ChatService.Message) ? "#ccc" : "#14bdac"); color: #fff; border: none; cursor: pointer;">Send</button>
-        </div>
-
-        <script>
-            // JavaScript to scroll the chat window to the bottom
-            var chatContainer = document.getElementById("chatContent");
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-
-            // Function to scroll the chat window to the bottom
-            function scrollChatToBottom() {
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-            }
-
-            // Call the function whenever the chat visibility changes
-            document.addEventListener("DOMContentLoaded", function () {
-                scrollChatToBottom();
-            });
-        </script>
-
-    }
+    <Chat ChatService="ChatService" GameManager="GameManager" />
 }
 else
 {
@@ -287,10 +117,6 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
-        {
-            await JSRuntime.InvokeVoidAsync("registerEventHandler", "click", DotNetObjectReference.Create(this), nameof(OnDocumentClick));
-        }
         if (!isInitialized)
         {
             isInitialized = true;
@@ -330,7 +156,7 @@ else
                     isSuccessfullyReinitialized = await ReInitializeGame();
                 }
 
-                if (isSuccessfullyReinitialized == null || isSuccessfullyReinitialized == true)
+                if (isSuccessfullyReinitialized != false)
                 {
 
                     GameManager.UpdateCurrentPlayerGameConnectionId(GameHubConnection.GetConnectionId());
@@ -339,15 +165,7 @@ else
 
                     MakeMovesManager.InitializePlayers();
 
-                    DisconectingTrackingService.StateHasChanged += () => InvokeAsync(StateHasChanged);
-
-                    MakeMovesManager.StateHasChanged += () => InvokeAsync(StateHasChanged);
-
-                    ChatService.StateHasChanged += () => InvokeAsync(StateHasChanged);
-
-                    GameSessionService.StateHasChanged += () => InvokeAsync(StateHasChanged);
-
-                    CheckForWinnerManager.StateHasChanged += () => InvokeAsync(StateHasChanged);
+                    SetUIUpdateTriggers();
 
                     DisconectingTrackingService.StartWaitingAnotherPlayerTimer();
 
@@ -365,15 +183,20 @@ else
             }
         }
     }
-    [JSInvokable]
-    public void OnDocumentClick()
-    {
-        // Hide the chat when clicking outside the chat area
-        ChatService.IsChatVisible = false;
 
-        // Force a re-render to update the UI
-        StateHasChanged();
+    private void SetUIUpdateTriggers()
+    {
+        DisconectingTrackingService.StateHasChanged += () => InvokeAsync(StateHasChanged);
+
+        MakeMovesManager.StateHasChanged += () => InvokeAsync(StateHasChanged);
+
+        ChatService.StateHasChanged += () => InvokeAsync(StateHasChanged);
+
+        GameSessionService.StateHasChanged += () => InvokeAsync(StateHasChanged);
+
+        CheckForWinnerManager.StateHasChanged += () => InvokeAsync(StateHasChanged);
     }
+
     private async Task<bool> ReInitializeGame()
     {
         GameManager.ClearData();
@@ -458,9 +281,7 @@ else
     {
         if (!GameManager.IsCleanedUp)
         {
-            // 
             await GameHubConnection.SendUserLeaves((int)GameManager.CurrentGame.RoomId, GameManager.GetCurrentUserId());
-            //
 
             GameReconnectingService.MakePlayerNotPlaying(GameManager.GetCurrentUserId());
 
@@ -471,7 +292,6 @@ else
             DisconectingTrackingService.UpdateGameResultAfterTwoPlayersDisconnection();
 
             DisconectingTrackingService.StopTimers();
-            //await DisconectingTrackingService.DisposeAsync();
         }
 
         GameManager.ClearData();
@@ -479,38 +299,9 @@ else
         NavigationManager.NavigateTo("/");
     }
 
-    private async Task Approve() => await GameSessionService.AcceptNextGameRequest();
-
-    private async Task Decline() => await GameSessionService.DeclineRequestOnNextGame();
-
     private async Task PlayNextGame()
-        => await GameSessionService.SendRequestOnNextGame((int)GameManager.CurrentGame.RoomId, GameManager.GetCurrentUserId());
+       => await GameSessionService.SendRequestOnNextGame((int)GameManager.CurrentGame.RoomId, GameManager.GetCurrentUserId());
 
-    private async Task MakeMove(int index)
-    {
-        await MakeMovesManager.MakeMove(index);
-
-        await GameHubConnection.SendReloadTimers((int)GameManager.CurrentGame.RoomId, GameManager.GetCurrentUserId());
-    }
-
-    private string GetSquareValue(int index) => (GameManager.Board[index] == BoardElements.Empty) ? "" : GameManager.Board[index].ToString();
-
-    private bool IsButtonDisabled(int index) => MakeMovesManager.MoveWasMade|| GameManager.CurrentGame.GameResult == GameState.Finished;
-
-    private async Task SendMessage()
-    {
-        await ChatService.SendMessage(ChatService.Message, GameManager.CurrentPlayer, (int)GameManager.CurrentGame.RoomId);
-        ChatService.Message = "";
-    }
-
-    public async Task Enter(KeyboardEventArgs e)
-    {
-        if ((e.Code == "Enter" || e.Code == "NumpadEnter") && !string.IsNullOrWhiteSpace(ChatService.Message))
-        {
-            await SendMessage();
-        }
-    }
-    void UpdateSendButton(ChangeEventArgs e) => ChatService.Message = e.Value.ToString();
 
     public async ValueTask DisposeAsync()
     {

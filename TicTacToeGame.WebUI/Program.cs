@@ -1,9 +1,7 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
-using Serilog.Sinks.SystemConsole.Themes;
 using TicTacToeGame.Domain.Constants;
 using TicTacToeGame.Domain.Models;
 using TicTacToeGame.Domain.Repositories;
@@ -77,7 +75,7 @@ builder.Services.AddTransient<MakeMovesGameManager>();
 
 builder.Services.AddTransient<PlayerDisconectingTrackingService>();
 
-builder.Services.AddTransient<GameChatService>(); 
+builder.Services.AddTransient<GameChatService>();
 
 builder.Services.AddTransient<GameReconnectingService>();
 

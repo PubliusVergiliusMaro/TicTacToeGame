@@ -1,0 +1,85 @@
+﻿@using TicTacToeGame.Services.GameProcessService
+@using TicTacToeGame.Services.HubConnections
+
+@if (ChatService.IsChatVisible)
+{
+    <div id="chatContainer" style="position: fixed;  bottom: 0; right: 0; width: 300px; height: 400px; border: 1px solid #ccc; padding: 10px; margin: 10px; background-color: #f9f9f9; z-index:10">
+        <div class="d-flex justify-content-between">
+            <h3>Chat</h3>
+            <button style="margin:0px 0px 5px 0px; font-size: 16px; background-color: #14bdac; color: #fff; border: none; cursor: pointer;" @onclick="ChatService.ToggleChat">
+                Toggle Chat
+            </button>
+        </div>
+        <div id="chatContent" style="height: 80%; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; word-wrap: break-word;">
+            @foreach (var chatmsg in GameChatService.ChatMessages.Where(msg => (msg.PlayerId == GameManager.CurrentPlayerGuest.Id || msg.PlayerId == GameManager.CurrentPlayerHost.Id) && msg.RoomId == (int)GameManager.CurrentGame.RoomId))
+            {
+                <p><strong>@chatmsg.PlayerNickname:</strong> @chatmsg.Message</p>
+            }
+
+        </div>
+        <input @bind="ChatService.Message" @bind:event="oninput" @onkeydown="@Enter" type="text" style="width: 70%; padding: 5px;" placeholder="Type your message here..." maxlength="250" />
+        <button @onclick="SendMessage" disabled="@string.IsNullOrWhiteSpace(ChatService.Message)" style="width: 28%; padding: 5px 10px; background-color: @(string.IsNullOrWhiteSpace(ChatService.Message) ? "#ccc" : "#14bdac"); color: #fff; border: none; cursor: pointer;">Send</button>
+    </div>
+
+    <script>
+        // JavaScript to scroll the chat window to the bottom
+        var chatContainer = document.getElementById("chatContent");
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        // Function to scroll the chat window to the bottom
+        function scrollChatToBottom() {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Call the function whenever the chat visibility changes
+        document.addEventListener("DOMContentLoaded", function () {
+            scrollChatToBottom();
+        });
+    </script>
+}
+
+@code
+{
+    [Parameter]
+    public GameChatService ChatService { get; set; }
+
+    [Parameter]
+    public GameManager GameManager { get; set; }
+
+    [Inject]
+    IJSRuntime JSRuntime { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("registerEventHandler", "click", DotNetObjectReference.Create(this), nameof(OnDocumentClick));
+        }
+    }
+
+    [JSInvokable]
+    public void OnDocumentClick()
+    {
+        // Hide the chat when clicking outside the chat area
+        ChatService.IsChatVisible = false;
+
+        // Force a re-render to update the UI
+        StateHasChanged();
+    }
+
+    private async Task SendMessage()
+    {
+        await ChatService.SendMessage(ChatService.Message, GameManager.CurrentPlayer, (int)GameManager.CurrentGame.RoomId);
+        ChatService.Message = "";
+    }
+
+    public async Task Enter(KeyboardEventArgs e)
+    {
+        if ((e.Code == "Enter" || e.Code == "NumpadEnter") && !string.IsNullOrWhiteSpace(ChatService.Message))
+        {
+            await SendMessage();
+        }
+    }
+    void UpdateSendButton(ChangeEventArgs e) => ChatService.Message = e.Value.ToString();
+
+}
